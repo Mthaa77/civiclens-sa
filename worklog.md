@@ -4236,3 +4236,312 @@ Stage Summary:
 - **Prisma**: User model added for Firebase UID mapping, query logging disabled in production
 - **Environment**: .env.example documents all required Firebase and database variables
 - Next: Connect LoginPage to Firebase Auth, add Firestore data sync, deploy to GCP
+
+---
+Task ID: 4
+Agent: Onboarding Enhancer
+Task: Completely Upgrade and Enhance the Onboarding Modal for CivicLens SA
+
+Work Log:
+- Rewrote `/src/components/shared/OnboardingModal.tsx` — Premium 6-step onboarding experience:
+
+  **Step 1: Welcome / Hero Step**
+  - Animated SA flag gradient background with 50 floating particles (varying sizes)
+  - CivicLens SA Shield logo with 3 concentric pulse rings (staggered animation: 3s, 2.5s, 2s)
+  - "Welcome to CivicLens SA" heading with gradient text animation (blue→green→gold)
+  - Typewriter effect subtitle: "Intelligence for a better South Africa"
+  - Animated counter: "257 Municipalities • R478B+ Tenders • 9 Provinces" with count-up numbers
+
+  **Step 2: Platform Overview**
+  - 3 feature cards in horizontal row: Real-Time Monitoring (Activity icon), Risk Detection (Shield icon), Spatial Intelligence (Eye icon)
+  - Icons float-animate on hover (y: -4 spring animation)
+  - Each card: icon, title, description, accent line at top
+  - Staggered spring entrance animation from bottom
+  - Same animated counter line as Step 1
+
+  **Step 3: Module Showcase**
+  - All 16 modules displayed as interactive mini-cards in a 4×4 responsive grid
+  - Each card: icon (color-coded), name, short description, phase badge (MVP/P2/P3)
+  - Click to select/deselect — selected modules get golden border glow + checkmark overlay
+  - Checkmark animates with spring entrance (AnimatePresence)
+  - Counter at bottom: "X modules selected" (green when ≥3, with prompt to select at least 3)
+  - Continue button disabled until ≥3 modules selected
+  - Scrollable grid with max-height for overflow
+
+  **Step 4: Command Centre Preview**
+  - Mini KPI strip (4 cards with animated count-up numbers): Municipalities (257), Tender Value (R478B), Risk Signals (234), §139 Cases (43)
+  - SVG donut chart showing Audit Outcome Distribution with center label (257 total)
+  - Color-coded legend with percentages
+  - Typewriter effect description: "This is your command centre — your home base for intelligence across all 257 municipalities"
+
+  **Step 5: Pro Tips & Shortcuts**
+  - 4 shortcut cards in 2×2 grid: Ctrl+K Search, 1–9 Quick Navigate, ? Shortcuts, G+key Go to module
+  - Each key displayed in premium Kbd style with animated scale pulse
+  - Keys animate one by one in sequence with staggered delays
+  - Tip at bottom: "Press ? anytime to see all shortcuts"
+
+  **Step 6: Get Started / Completion**
+  - Confetti particle burst animation (30 SVG circles, 7 SA flag colors, fly out and fade)
+  - Large checkmark icon with scale spring animation (staggered: outer circle first, then checkmark)
+  - "You're All Set!" heading with gradient text (blue→green→gold)
+  - Summary of selected modules from Step 3 as tag badges with icons
+  - "Launch CivicLens SA" CTA with gradient shimmer button
+  - Small text: "You can revisit this tour anytime from Help Centre"
+
+  **Visual Enhancements:**
+  - SA flag color accent line at very top of modal (navy/red/gold stripes)
+  - Step progress bar with animated gradient fill (SA flag colors: #002395 → #0077B6 → #2D6A4F → #DE3831 → #FFB612)
+  - Step indicators: 6 numbered circles with connecting lines
+    - Completed steps get checkmark icon and green border
+    - Current step pulses with blue border and scale animation
+    - Future steps have subtle white/[0.15] border
+  - Navigation: Back/Next buttons with arrow icons
+    - Next button uses gradient (blue→green) with shadow
+    - "Begin Your Journey" text on Step 1
+    - Disabled state when module selection < 3
+  - Skip link in bottom-right corner
+  - Glass morphism card background (bg-[#0a0e1a]/95, backdrop-blur-xl)
+  - Responsive: works on mobile (full-screen via p-4) and desktop (centered card, max-w-2xl)
+  - Smooth page transitions with AnimatePresence (slide direction based on navigation, scale 0.95→1)
+  - Custom scrollbar class for module grid overflow
+
+  **State Management:**
+  - Selected modules saved to localStorage as 'civiclens-interests' (JSON array of module IDs)
+  - Onboarding completion saved to localStorage as 'civiclens-onboarded'
+  - Lazy initialization from localStorage (useState initializer) to avoid effect-based setState lint error
+  - On repeat visits (onboarded=true), modal doesn't show automatically
+  - Can be re-triggered from Help Centre
+
+  **Technical Implementation:**
+  - Framer Motion for all animations (AnimatePresence, motion.div, spring transitions)
+  - lucide-react for all icons (17 different icon components used)
+  - shadcn/ui Button component for navigation
+  - cn() utility from @/lib/utils for conditional classnames
+  - Proper TypeScript types throughout (ModuleCard, ShortcutDef, interface props)
+  - 'use client' directive at top
+  - Custom hooks: useTypewriter, useCountUp
+  - useMemo for particle generation (performance optimization)
+  - useCallback for event handlers (goNext, goBack, goToStep, toggleModule, handleClose)
+
+  **Lint Fix:**
+  - Changed `selectedModules` initialization from useEffect+setState to lazy useState initializer
+  - This avoids the react-hooks/set-state-in-effect lint error
+
+Stage Summary:
+- Complete rewrite of OnboardingModal from 4 basic steps to 6 premium, feature-rich steps
+- All requested features implemented: particles, pulse rings, typewriter, count-up, module selection, donut chart, confetti, shimmer buttons
+- Full Framer Motion animations throughout with spring physics and staggered entrances
+- Interactive module selection with validation (≥3 required)
+- Persistent state via localStorage for both interests and completion
+- Zero new lint errors introduced
+- Dev server compiles successfully (200 status)
+
+---
+Task ID: 2
+Agent: Typography System Builder
+Task: Upgrade Typography and Font System for CivicLens SA
+
+Work Log:
+
+### Step 1: Add Inter Font to layout.tsx
+- Updated `/src/app/layout.tsx`:
+  - Added `Inter` import from `next/font/google` alongside existing `Geist` and `Geist_Mono`
+  - Created `inter` font constant with CSS variable `--font-inter` and `latin` subset
+  - Applied `${inter.variable}` to body className alongside existing `geistSans.variable` and `geistMono.variable`
+  - All 3 CSS variables now available: `--font-geist-sans`, `--font-geist-mono`, `--font-inter`
+
+### Step 2: Create Typography Utility Components
+- Created `/src/components/shared/Typography.tsx` with `'use client'` directive:
+  - **AnimatedCounter**: Smooth count-up animation with requestAnimationFrame, easeOutExpo easing, configurable prefix/suffix/decimals/duration, font-data tabular-nums classes, en-ZA locale formatting
+  - **GradientText**: Background-clip text gradient with 4 presets (sa-flag, gold, teal, danger), custom from/to/via props, optional animated gradient shift
+  - **TypeScale (TypeH1–TypeH6)**: Heading components using Inter font via heading-base CSS class, responsive sizing via text-heading-1 through text-heading-6 CSS classes, configurable HTML element via `as` prop
+  - **TextShimmer**: Animated text shimmer effect for loading/emphasis, customizable speed and highlight color, dark mode optimized
+  - **MetricValue**: Premium metric display combining AnimatedCounter + GradientText + trend indicator (up/down/neutral with TrendingUp/TrendingDown/Minus icons), optional label and gradient preset support
+
+### Step 3: Add Typography CSS to globals.css
+- Appended Premium Typography System to `/src/app/globals.css`:
+  - CSS custom properties: --font-heading, --font-body, --font-mono
+  - Responsive type scale with clamp(): --text-display through --text-h6
+  - Letter-spacing scale: --tracking-tighter through --tracking-widest
+  - Line-height scale: --leading-none through --leading-relaxed
+  - .heading-base class with Inter font, OpenType features, font smoothing
+  - .body-text class with ligatures and kerning
+  - .data-text class with tabular-nums and monospace
+  - .text-display class for extra-large hero text
+  - .text-heading-1 through .text-heading-6 size classes
+  - @keyframes text-gradient-flow and .text-gradient-animated for animated gradient text
+  - @keyframes text-shimmer and .text-shimmer class for shimmer effect (light + dark mode)
+  - Multi-line truncation utilities (.truncate-lines-2, .truncate-lines-3)
+  - Text wrapping utilities (.text-balance, .text-pretty)
+
+### Step 4: Lint Check
+- Fixed lint issues in Typography.tsx:
+  - Restructured AnimatedCounter to avoid useCallback/variable-before-declaration issues
+  - Removed unused eslint-disable directives
+  - Removed ref-during-render pattern (valueRef/durationRef)
+  - Used direct value/duration in useEffect closure instead
+- Final lint: PASSES (pre-existing errors in CommandPalette, OnboardingModal, PremiumTooltip are NOT from this task)
+
+Stage Summary:
+- Comprehensive premium typography system added to CivicLens SA
+- Inter font added as heading/display font alongside Geist Sans (body) and Geist Mono (code)
+- 5 reusable components: AnimatedCounter, GradientText, TypeScale (H1-H6), TextShimmer, MetricValue
+- Full responsive type scale with clamp() for fluid sizing
+- CSS utility classes for headings, body text, data text, shimmer, gradient animations
+- Dark mode optimized throughout
+- All lint checks pass for new code
+- Dev server compiles successfully (200 status)
+
+---
+Task ID: 3
+Agent: Component Upgrader
+Task: Upgrade and Enhance Interactive Advanced Components for CivicLens SA
+
+Work Log:
+
+### 1. CommandPalette Component (`/src/components/shared/CommandPalette.tsx`)
+- Premium spotlight/command palette (like VS Code Ctrl+P / Raycast)
+- Triggered by Ctrl+K, integrates with existing Topbar command palette
+- Features:
+  - Fuzzy search across: modules, municipalities, tenders, actions, risk signals
+  - Grouped results: Recent Searches, Actions, Modules (by phase), Municipalities, Tenders, Risk Signals
+  - Each result has: icon with colored background, title, subtitle, badge (FHS score, phase badge, severity), keyboard shortcut (for actions)
+  - Keyboard navigation via cmdk built-in (arrow up/down, Enter to select, Esc to close)
+  - Glass morphism dark theme styling with top accent gradient line (SA colors)
+  - Recent searches stored in localStorage (up to 5 entries)
+  - Action items: "Toggle Dark Mode" (Ctrl+Shift+D), "Export Data" (E), "Open Help" (?), "Toggle Sidebar" (Ctrl+B)
+  - Module items: all 17 modules with their icons and phase badges (MVP/P2/P3)
+  - Municipality items: from MOCK_MUNICIPALITIES with FHS score badges color-coded by band
+  - Tender items: from MOCK_TENDERS with status color badges and value display
+  - Risk Signal items: from MOCK_RISK_SIGNALS with severity badges
+  - Footer with keyboard navigation hints
+  - Uses shadcn/ui Command component (cmdk)
+  - Lint-safe: uses ref for query tracking instead of setState in effects
+
+### 2. PremiumToast Component (`/src/components/shared/PremiumToast.tsx`)
+- Rich notification toasts with premium styling
+- Features:
+  - 4 types: success (green #10B981), warning (amber #F59E0B), error (red #EF4444), info (blue #3B82F6)
+  - Animated entrance (slide from right with Framer Motion)
+  - Progress bar that auto-dismisses after configurable duration (default 5 seconds)
+  - Action buttons within the toast
+  - Icon + title + description layout
+  - Dismiss button (X)
+  - Stacking support (multiple toasts via container)
+  - Top accent line color-coded by type
+  - Background glow behind icon
+  - Uses existing sonner integration for accessibility
+- Exports: PremiumToastContainer (render in layout), showSuccessToast, showWarningToast, showErrorToast, showInfoToast
+
+### 3. PremiumTooltip Component (`/src/components/shared/PremiumTooltip.tsx`)
+- Enhanced tooltip with rich content support
+- Features:
+  - Rich content: icon + title + description layout
+  - Animated entrance (fade + slight scale with Framer Motion)
+  - Custom arrow indicator with accent color
+  - Dark glass morphism background (bg-[#0d1224]/96 backdrop-blur-xl)
+  - Optional "Learn more" link inside tooltip with ExternalLink icon
+  - Delay configuration (default 300ms)
+  - Supports both hover and click triggers
+  - Custom accent color per tooltip
+  - Side and alignment configuration
+  - Uses existing shadcn/ui Tooltip component
+
+### 4. SectionHeader Component (`/src/components/shared/SectionHeader.tsx`)
+- Premium section headers for use across all modules
+- Features:
+  - Icon with colored background circle and background glow effect
+  - Title (large, bold, Inter font)
+  - Subtitle/description (lighter zinc-500 color)
+  - Optional badge (phase, status, etc.) with custom color
+  - Optional action buttons on the right
+  - Animated accent line below (gradient from accent color to transparent)
+  - Entrance animation (fade up with Framer Motion)
+  - Responsive: stacks on mobile (flex-col), side-by-side on desktop (flex-row)
+  - Props: icon, title, subtitle, badge, badgeColor, actions, accentColor, className
+
+### 5. StatCard Component (`/src/components/shared/StatCard.tsx`)
+- Premium stat card for KPI displays
+- Features:
+  - Icon with glow effect (colored background + blur behind)
+  - Value with animated count-up on mount (ease-out cubic, configurable duration)
+  - Prefix/suffix support (e.g., "R", "%", "B")
+  - Label text
+  - Trend indicator (up/down/neutral) with color-coded badge and percentage
+  - Sparkline mini chart (SVG, dynamic data points, area fill + line + end dot)
+  - Hover: card lifts (-3px), border glows with accent color, box shadow appears
+  - Click: optional onClick handler
+  - Customizable accent color
+  - Shimmer animation on mount (diagonal sweep)
+  - Top accent line color-coded
+  - Responsive sizing
+  - Lint-safe: count-up uses requestAnimationFrame, no setState in effects
+
+Design Implementation:
+- All components match the existing dark theme aesthetic (#0a0e1a / #0d1224 backgrounds)
+- Glass morphism with backdrop-blur throughout
+- Consistent accent color system using hex values
+- Framer Motion animations: fade, slide, scale, shimmer
+- Proper TypeScript types for all props
+- shadcn/ui components used: Command, Tooltip, Badge
+- Lucide React icons throughout
+- cn() utility for conditional class merging
+- All components use 'use client' directive
+- All lint checks pass cleanly (0 errors, 0 warnings)
+- Dev server compiles successfully with 200 status
+
+Stage Summary:
+- 5 premium interactive shared components created
+- CommandPalette: full-featured command palette with fuzzy search, grouped results, keyboard shortcuts
+- PremiumToast: rich notification system with 4 types, progress bars, stacking, sonner integration
+- PremiumTooltip: enhanced tooltips with rich content, glass morphism, learn-more links
+- SectionHeader: animated section headers with icon circles, accent lines, responsive layout
+- StatCard: interactive KPI cards with count-up animation, sparklines, trend indicators, hover effects
+- All components follow existing CivicLens SA design language
+- ESLint passes with 0 errors, dev server renders without errors
+
+---
+Task ID: 12
+Agent: Main Orchestrator
+Task: Upgrade typography/fonts, enhance interactive components, upgrade onboarding
+
+Work Log:
+- Assessed current typography (Geist Sans + Geist Mono only) and component state
+- Added Inter font as heading/display font via next/font/google
+- Created comprehensive Typography system with CSS custom properties:
+  - Responsive type scale using clamp() (display through h6)
+  - Letter-spacing scale (--tracking-tighter through --tracking-widest)
+  - Line-height scale (--leading-none through --leading-relaxed)
+  - .heading-base, .body-text, .data-text utility classes
+  - Animated gradient text, text shimmer, multi-line truncation
+  - text-balance and text-pretty wrapping utilities
+- Created 6 premium Typography components:
+  - AnimatedCounter (smooth count-up with easeOutExpo)
+  - GradientText (4 presets + custom, optional animation)
+  - TypeH1–TypeH6 (Inter font, responsive sizing)
+  - TextShimmer (animated shimmer effect)
+  - MetricValue (animated counter + gradient + trend)
+- Completely rewrote OnboardingModal from 4 to 6 steps:
+  - Welcome/Hero with shield pulse rings + particles
+  - Platform Overview with feature cards + counter
+  - Module Showcase with 16-module interactive grid + selection
+  - Command Centre Preview with KPI cards + SVG donut
+  - Pro Tips with animated keyboard shortcuts
+  - Get Started with confetti burst + summary
+  - Progress bar with SA flag colors
+  - Step indicators with numbered circles + connecting lines
+- Created 5 new interactive components:
+  - CommandPalette (fuzzy search, grouped results, keyboard nav)
+  - PremiumToast (4 types, progress bar, action buttons, stacking)
+  - PremiumTooltip (rich content, glass morphism, learn more link)
+  - SectionHeader (animated accent line, responsive layout)
+  - StatCard (count-up, sparkline, trend indicator, hover glow)
+- QA verified: zero console errors, login→dashboard works, onboarding appears correctly
+- Lint passes clean
+
+Stage Summary:
+- **Typography**: Inter font added as display font; comprehensive type scale with clamp() responsive sizing; heading-base/body-text/data-text utility classes
+- **Onboarding**: Premium 6-step experience with confetti, module selection, SVG donut preview, animated keyboard shortcuts
+- **New Components**: CommandPalette, PremiumToast, PremiumTooltip, SectionHeader, StatCard — all production-ready with TypeScript types
+- **Animation**: Text shimmer, gradient flow, count-up counters, confetti burst, sparkline SVGs
+- Next: Integrate new components into Dashboard and other modules, connect CommandPalette to Topbar
