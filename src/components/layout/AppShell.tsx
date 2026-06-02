@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useNavigationStore } from '@/store/navigation';
@@ -11,27 +11,6 @@ import Topbar from './Topbar';
 import Footer from './Footer';
 import ActivityTicker from './ActivityTicker';
 import KeyboardShortcuts from '@/components/shared/KeyboardShortcuts';
-import LoginPage from '@/components/modules/LoginPage';
-import Dashboard from '@/components/modules/Dashboard';
-import TenderLens from '@/components/modules/TenderLens';
-import MuniLens from '@/components/modules/MuniLens';
-import GeoLens from '@/components/modules/GeoLens';
-import AIAnalyst from '@/components/modules/AIAnalyst';
-import RiskLens from '@/components/modules/RiskLens';
-import ElectionLens from '@/components/modules/ElectionLens';
-import ReportLens from '@/components/modules/ReportLens';
-import PolicyLens from '@/components/modules/PolicyLens';
-import PeopleLens from '@/components/modules/PeopleLens';
-import ServiceLens from '@/components/modules/ServiceLens';
-import AGASAlert from '@/components/modules/AGASAlert';
-import EarlyAlert from '@/components/modules/EarlyAlert';
-import GrantLens from '@/components/modules/GrantLens';
-import BudgetLens from '@/components/modules/BudgetLens';
-import CarbonLens from '@/components/modules/CarbonLens';
-import DataHub from '@/components/modules/DataHub';
-import DataExplorer from '@/components/modules/DataExplorer';
-import SettingsPage from '@/components/modules/SettingsPage';
-import HelpCentre from '@/components/modules/HelpCentre';
 import OnboardingModal from '@/components/shared/OnboardingModal';
 import {
   Sheet,
@@ -39,10 +18,148 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// ── Dynamic imports (lazy-loaded modules) ─────────────────────────────────
+const LoginPage = React.lazy(() => import('@/components/modules/LoginPage'));
+const Dashboard = React.lazy(() => import('@/components/modules/Dashboard'));
+const TenderLens = React.lazy(() => import('@/components/modules/TenderLens'));
+const MuniLens = React.lazy(() => import('@/components/modules/MuniLens'));
+const GeoLens = React.lazy(() => import('@/components/modules/GeoLens'));
+const AIAnalyst = React.lazy(() => import('@/components/modules/AIAnalyst'));
+const RiskLens = React.lazy(() => import('@/components/modules/RiskLens'));
+const ElectionLens = React.lazy(() => import('@/components/modules/ElectionLens'));
+const ReportLens = React.lazy(() => import('@/components/modules/ReportLens'));
+const PolicyLens = React.lazy(() => import('@/components/modules/PolicyLens'));
+const PeopleLens = React.lazy(() => import('@/components/modules/PeopleLens'));
+const ServiceLens = React.lazy(() => import('@/components/modules/ServiceLens'));
+const AGASAlert = React.lazy(() => import('@/components/modules/AGASAlert'));
+const EarlyAlert = React.lazy(() => import('@/components/modules/EarlyAlert'));
+const GrantLens = React.lazy(() => import('@/components/modules/GrantLens'));
+const BudgetLens = React.lazy(() => import('@/components/modules/BudgetLens'));
+const CarbonLens = React.lazy(() => import('@/components/modules/CarbonLens'));
+const DataHub = React.lazy(() => import('@/components/modules/DataHub'));
+const DataExplorer = React.lazy(() => import('@/components/modules/DataExplorer'));
+const SettingsPage = React.lazy(() => import('@/components/modules/SettingsPage'));
+const HelpCentre = React.lazy(() => import('@/components/modules/HelpCentre'));
+
+// ── Module registry for preloading ────────────────────────────────────────
+// Maps module IDs to their lazy component factories.
+// Calling the factory triggers the dynamic import, preloading the chunk.
+const MODULE_PRELOAD_MAP: Record<string, () => Promise<unknown>> = {
+  login: () => import('@/components/modules/LoginPage'),
+  dashboard: () => import('@/components/modules/Dashboard'),
+  tenderlens: () => import('@/components/modules/TenderLens'),
+  munilens: () => import('@/components/modules/MuniLens'),
+  geolens: () => import('@/components/modules/GeoLens'),
+  'ai-analyst': () => import('@/components/modules/AIAnalyst'),
+  risklens: () => import('@/components/modules/RiskLens'),
+  electionlens: () => import('@/components/modules/ElectionLens'),
+  reportlens: () => import('@/components/modules/ReportLens'),
+  policylens: () => import('@/components/modules/PolicyLens'),
+  peoplelens: () => import('@/components/modules/PeopleLens'),
+  servicelens: () => import('@/components/modules/ServiceLens'),
+  agasalert: () => import('@/components/modules/AGASAlert'),
+  earlyalert: () => import('@/components/modules/EarlyAlert'),
+  grantlens: () => import('@/components/modules/GrantLens'),
+  budgetlens: () => import('@/components/modules/BudgetLens'),
+  carbonlens: () => import('@/components/modules/CarbonLens'),
+  datahub: () => import('@/components/modules/DataHub'),
+  'data-explorer': () => import('@/components/modules/DataExplorer'),
+  settings: () => import('@/components/modules/SettingsPage'),
+  help: () => import('@/components/modules/HelpCentre'),
+};
+
+/** Preload a module chunk by its ID. Safe to call multiple times. */
+export function preloadModule(moduleId: string) {
+  const loader = MODULE_PRELOAD_MAP[moduleId];
+  if (loader) {
+    loader().catch(() => {
+      // Silently ignore preload failures — the actual lazy import will retry
+    });
+  }
+}
+
+// ── ModuleLoader — Premium skeleton with shimmer ──────────────────────────
+function ModuleLoader() {
+  return (
+    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 rounded-xl bg-white/[0.04]" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40 bg-white/[0.04]" />
+            <Skeleton className="h-3 w-24 bg-white/[0.03]" />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-20 rounded-md bg-white/[0.04]" />
+          <Skeleton className="h-8 w-20 rounded-md bg-white/[0.04]" />
+        </div>
+      </div>
+
+      {/* KPI cards skeleton — 6 items */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <Skeleton className="size-8 rounded-lg bg-white/[0.04]" />
+              <Skeleton className="h-4 w-12 rounded-full bg-white/[0.03]" />
+            </div>
+            <Skeleton className="h-7 w-20 bg-white/[0.04]" />
+            <Skeleton className="h-3 w-16 bg-white/[0.03]" />
+          </div>
+        ))}
+      </div>
+
+      {/* Main content skeleton — 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+          <Skeleton className="h-5 w-32 bg-white/[0.04]" />
+          <Skeleton className="h-[200px] w-full rounded-lg bg-white/[0.03]" />
+        </div>
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+          <Skeleton className="h-5 w-36 bg-white/[0.04]" />
+          <Skeleton className="h-[200px] w-full rounded-lg bg-white/[0.03]" />
+        </div>
+      </div>
+
+      {/* Table skeleton */}
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-40 bg-white/[0.04]" />
+          <Skeleton className="h-8 w-24 rounded-md bg-white/[0.04]" />
+        </div>
+        {/* Table header */}
+        <div className="flex gap-4 border-b border-white/[0.06] pb-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-3 flex-1 bg-white/[0.04]" />
+          ))}
+        </div>
+        {/* Table rows */}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex gap-4 py-2">
+            {Array.from({ length: 5 }).map((_, j) => (
+              <Skeleton key={j} className="h-4 flex-1 bg-white/[0.03]" />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Shimmer overlay effect */}
+      <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent animate-[shimmer_2s_infinite] -translate-x-full" />
+      </div>
+    </div>
+  );
+}
 
 // ── Placeholder module components ──────────────────────────────────────────
-// These will be replaced with actual module implementations later.
-// For now, they show a professional placeholder for each module.
+// For modules that don't have a full implementation yet.
 
 function ModulePlaceholder({ moduleId }: { moduleId: string }) {
   const mod = MODULES.find((m) => m.id === moduleId);
@@ -105,72 +222,42 @@ function ModulePlaceholder({ moduleId }: { moduleId: string }) {
 
 // ── Module content renderer ────────────────────────────────────────────────
 function ModuleContent({ moduleId }: { moduleId: string }) {
-  // Render actual module components when implemented
-  if (moduleId === 'dashboard') {
-    return <Dashboard />;
-  }
-  if (moduleId === 'tenderlens') {
-    return <TenderLens />;
-  }
-  if (moduleId === 'munilens') {
-    return <MuniLens />;
-  }
-  if (moduleId === 'geolens') {
-    return <GeoLens />;
-  }
-  if (moduleId === 'ai-analyst') {
-    return <AIAnalyst />;
-  }
-  if (moduleId === 'risklens') {
-    return <RiskLens />;
-  }
-  if (moduleId === 'electionlens') {
-    return <ElectionLens />;
-  }
-  if (moduleId === 'reportlens') {
-    return <ReportLens />;
-  }
-  if (moduleId === 'policylens') {
-    return <PolicyLens />;
-  }
-  if (moduleId === 'peoplelens') {
-    return <PeopleLens />;
-  }
-  if (moduleId === 'servicelens') {
-    return <ServiceLens />;
-  }
-  if (moduleId === 'agasalert') {
-    return <AGASAlert />;
-  }
-  if (moduleId === 'earlyalert') {
-    return <EarlyAlert />;
-  }
-  if (moduleId === 'grantlens') {
-    return <GrantLens />;
-  }
-  if (moduleId === 'budgetlens') {
-    return <BudgetLens />;
-  }
-  if (moduleId === 'carbonlens') {
-    return <CarbonLens />;
-  }
-  if (moduleId === 'datahub') {
-    return <DataHub />;
-  }
-  if (moduleId === 'data-explorer') {
-    return <DataExplorer />;
-  }
-  if (moduleId === 'settings') {
-    return <SettingsPage />;
-  }
-  if (moduleId === 'help') {
-    return <HelpCentre />;
+  // Map module IDs to their lazy-loaded components
+  const moduleComponents: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+    dashboard: Dashboard,
+    tenderlens: TenderLens,
+    munilens: MuniLens,
+    geolens: GeoLens,
+    'ai-analyst': AIAnalyst,
+    risklens: RiskLens,
+    electionlens: ElectionLens,
+    reportlens: ReportLens,
+    policylens: PolicyLens,
+    peoplelens: PeopleLens,
+    servicelens: ServiceLens,
+    agasalert: AGASAlert,
+    earlyalert: EarlyAlert,
+    grantlens: GrantLens,
+    budgetlens: BudgetLens,
+    carbonlens: CarbonLens,
+    datahub: DataHub,
+    'data-explorer': DataExplorer,
+    settings: SettingsPage,
+    help: HelpCentre,
+  };
+
+  const LazyComponent = moduleComponents[moduleId];
+
+  if (LazyComponent) {
+    return (
+      <Suspense fallback={<ModuleLoader />}>
+        <LazyComponent />
+      </Suspense>
+    );
   }
 
   // Fallback to placeholder for unimplemented modules
-  return (
-    <ModulePlaceholder moduleId={moduleId} />
-  );
+  return <ModulePlaceholder moduleId={moduleId} />;
 }
 
 // ── Mobile Sidebar Sheet ───────────────────────────────────────────────────
@@ -211,7 +298,9 @@ export default function AppShell() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <LoginPage onLogin={() => setAuthenticated(true)} />
+          <Suspense fallback={<ModuleLoader />}>
+            <LoginPage onLogin={() => setAuthenticated(true)} />
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     );

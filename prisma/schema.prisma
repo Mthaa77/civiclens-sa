@@ -10,6 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── USERS (Firebase Auth) ────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  firebaseUid   String   @unique // Firebase Auth UID
+  email         String   @unique
+  displayName   String?
+  photoURL      String?
+  role          String   @default("viewer") // admin, analyst, viewer
+  organisation  String?
+  phone         String?
+  lastSignInAt  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  savedSearches SavedSearch[]
+}
+
 // ─── MUNICIPALITIES ───────────────────────────────────────────────────────────
 
 model Municipality {
@@ -165,6 +183,8 @@ model SavedSearch {
   isActive    Boolean  @default(true)
   lastMatchAt DateTime?
   createdAt   DateTime @default(now())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
 }
 
 // ─── DATASET REGISTRY ─────────────────────────────────────────────────────────

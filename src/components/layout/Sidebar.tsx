@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigationStore } from '@/store/navigation';
+import { preloadModule } from '@/components/layout/AppShell';
 import { MODULES } from '@/lib/mock-data';
 import type { ModuleId, ModuleDef } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -86,6 +87,7 @@ function NavItem({
   const content = (
     <motion.button
       onClick={onClick}
+      onMouseEnter={() => preloadModule(module.id)}
       className={cn(
         'group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
         'hover:bg-white/[0.06]',
