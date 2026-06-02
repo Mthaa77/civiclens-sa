@@ -40,10 +40,21 @@ import {
   ChevronDown,
   ChevronUp,
   Scale,
+  Bus,
+  Zap,
+  Wallet,
+  Layers,
+  RefreshCw,
+  AlertTriangle,
+  Building2,
+  ShieldCheck,
+  Minus,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MOCK_MUNICIPALITIES, PROVINCE_SUMMARY } from '@/lib/mock-data';
 import { formatPercent, formatNumber } from '@/lib/formatters';
+import { useNavigationStore } from '@/store/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -99,14 +110,17 @@ const THEMES = [
   { id: 'crime', label: 'Crime', icon: Target, color: '#F59E0B', indicators: ['Murder Rate', 'Sexual Offences', 'Property Crime', 'Drug-related Crime', 'Police:Population Ratio'], nationalAvg: [33, 72, 142, 108, 389], trendDirs: ['up', 'stable', 'down', 'up', 'stable'] },
 ];
 
-// ── Topic Preset Pills ──────────────────────────────────────────────────────
+// ── Topic Preset Pills (expanded to 8) ──────────────────────────────────────
 
 const TOPIC_PRESETS = [
   { label: 'Youth Unemployment', icon: Users, color: '#3B82F6' },
-  { label: 'Water Access', icon: Droplets, color: '#0891B2' },
-  { label: 'Healthcare', icon: Heart, color: '#10B981' },
-  { label: 'Education', icon: GraduationCap, color: '#8B5CF6' },
-  { label: 'Housing', icon: Home, color: '#F59E0B' },
+  { label: 'Water Service Delivery', icon: Droplets, color: '#0891B2' },
+  { label: 'Healthcare Access', icon: Heart, color: '#10B981' },
+  { label: 'Education Outcomes', icon: GraduationCap, color: '#8B5CF6' },
+  { label: 'Housing Delivery', icon: Home, color: '#F59E0B' },
+  { label: 'Public Transport', icon: Bus, color: '#06B6D4' },
+  { label: 'Energy Access', icon: Zap, color: '#EAB308' },
+  { label: 'Social Grants', icon: Wallet, color: '#8B5CF6' },
 ];
 
 // ── Trend Data ──────────────────────────────────────────────────────────────
@@ -200,6 +214,151 @@ const POLICY_INSIGHTS = [
   },
 ];
 
+// ── Cross-Module Intelligence Data ──────────────────────────────────────────
+
+const CROSS_MODULE_DATA: Record<string, {
+  riskSignals: Array<{ label: string; severity: 'Critical' | 'High' | 'Medium'; module: string }>;
+  affectedMunis: Array<{ name: string; fhs: number; module: string }>;
+  serviceMetrics: Array<{ label: string; value: string; trend: 'up' | 'down' | 'stable'; module: string }>;
+}> = {
+  'Youth Unemployment': {
+    riskSignals: [
+      { label: 'Youth unemployment exceeds 50% in 4 provinces', severity: 'Critical', module: 'risklens' },
+      { label: 'NEET rate increasing in rural districts', severity: 'High', module: 'risklens' },
+      { label: 'Skills mismatch in Gauteng labour market', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'Buffalo City Metro', fhs: 28, module: 'munilens' },
+      { name: 'Polokwane LM', fhs: 31, module: 'munilens' },
+      { name: 'Msunduzi LM', fhs: 35, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Labour Force Participation', value: '56%', trend: 'stable', module: 'servicelens' },
+      { label: 'Skills Development Spend', value: 'R2.4B', trend: 'up', module: 'servicelens' },
+      { label: 'Public Works Jobs Created', value: '1.2M', trend: 'down', module: 'servicelens' },
+    ],
+  },
+  'Water Service Delivery': {
+    riskSignals: [
+      { label: 'Blue Drop compliance dropped to 44%', severity: 'Critical', module: 'risklens' },
+      { label: 'R128B infrastructure backlog identified', severity: 'High', module: 'risklens' },
+      { label: 'Water loss rate at 37% nationally', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'Mafikeng LM', fhs: 22, module: 'munilens' },
+      { name: 'Thabazimbi LM', fhs: 26, module: 'munilens' },
+      { name: 'Emalahleni LM', fhs: 30, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Water Access Rate', value: '81.2%', trend: 'up', module: 'servicelens' },
+      { label: 'Sanitation Access', value: '72.5%', trend: 'up', module: 'servicelens' },
+      { label: 'Green Drop Score', value: '38/100', trend: 'down', module: 'servicelens' },
+    ],
+  },
+  'Healthcare Access': {
+    riskSignals: [
+      { label: 'Healthcare access below 60% in 3 provinces', severity: 'Critical', module: 'risklens' },
+      { label: 'HIV prevalence plateauing at 13.7%', severity: 'High', module: 'risklens' },
+      { label: 'Doctor:patient ratio deteriorating', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'OR Tambo DM', fhs: 24, module: 'munilens' },
+      { name: 'Alfred Nzo DM', fhs: 21, module: 'munilens' },
+      { name: 'Joe Gqabi DM', fhs: 27, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Life Expectancy', value: '65 years', trend: 'up', module: 'servicelens' },
+      { label: 'Immunisation Rate', value: '80%', trend: 'up', module: 'servicelens' },
+      { label: 'Clinic Infrastructure Score', value: '58/100', trend: 'up', module: 'servicelens' },
+    ],
+  },
+  'Education Outcomes': {
+    riskSignals: [
+      { label: 'Matric pass gap of 17pp across provinces', severity: 'Critical', module: 'risklens' },
+      { label: 'School infrastructure backlog: 2,500 schools', severity: 'High', module: 'risklens' },
+      { label: 'Teacher absenteeism rate at 12%', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'Vhembe DM', fhs: 29, module: 'munilens' },
+      { name: 'Mopani DM', fhs: 32, module: 'munilens' },
+      { name: 'Chris Hani DM', fhs: 26, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Matric Pass Rate', value: '74%', trend: 'up', module: 'servicelens' },
+      { label: 'Literacy Rate', value: '87%', trend: 'up', module: 'servicelens' },
+      { label: 'ECD Access', value: '62%', trend: 'up', module: 'servicelens' },
+    ],
+  },
+  'Housing Delivery': {
+    riskSignals: [
+      { label: '2.5M housing backlog nationally', severity: 'Critical', module: 'risklens' },
+      { label: 'Housing delivery declined 35% since 2018', severity: 'High', module: 'risklens' },
+      { label: 'Informal settlement growth rate: 4.2% YoY', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'City of Cape Town', fhs: 58, module: 'munilens' },
+      { name: 'eThekwini Metro', fhs: 42, module: 'munilens' },
+      { name: 'City of Tshwane', fhs: 48, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Units Delivered', value: '82,000', trend: 'down', module: 'servicelens' },
+      { label: 'Budget Allocation', value: 'R33B', trend: 'up', module: 'servicelens' },
+      { label: 'Title Deeds Issued', value: '45,000', trend: 'stable', module: 'servicelens' },
+    ],
+  },
+  'Public Transport': {
+    riskSignals: [
+      { label: 'Public transport spend below 2% of GDP', severity: 'Critical', module: 'risklens' },
+      { label: 'Taxi industry safety incidents rising', severity: 'High', module: 'risklens' },
+      { label: 'PRASA operational capacity at 40%', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'City of Johannesburg', fhs: 52, module: 'munilens' },
+      { name: 'Ekurhuleni Metro', fhs: 44, module: 'munilens' },
+      { name: 'Nelson Mandela Bay', fhs: 38, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Bus Fleet Utilisation', value: '68%', trend: 'up', module: 'servicelens' },
+      { label: 'Rail Commuter Trips', value: '120M/yr', trend: 'down', module: 'servicelens' },
+      { label: 'BRT Ridership', value: '52M/yr', trend: 'up', module: 'servicelens' },
+    ],
+  },
+  'Energy Access': {
+    riskSignals: [
+      { label: 'Load shedding impact on GDP: -2.1%', severity: 'Critical', module: 'risklens' },
+      { label: 'Municipal electricity debt at R68B', severity: 'High', module: 'risklens' },
+      { label: 'Renewable energy targets lagging', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'Emalahleni LM', fhs: 30, module: 'munilens' },
+      { name: 'Govan Mbeki LM', fhs: 34, module: 'munilens' },
+      { name: 'Middelburg LM', fhs: 36, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Electricity Access', value: '86.8%', trend: 'up', module: 'servicelens' },
+      { label: 'Renewable Share', value: '8.2%', trend: 'up', module: 'servicelens' },
+      { label: 'Load Shedding Hours', value: '1,200/yr', trend: 'down', module: 'servicelens' },
+    ],
+  },
+  'Social Grants': {
+    riskSignals: [
+      { label: 'SASSA dependency rate at 47% nationally', severity: 'Critical', module: 'risklens' },
+      { label: 'Grant fraud estimated at R5.2B annually', severity: 'High', module: 'risklens' },
+      { label: 'Child support grant below food poverty line', severity: 'Medium', module: 'risklens' },
+    ],
+    affectedMunis: [
+      { name: 'OR Tambo DM', fhs: 24, module: 'munilens' },
+      { name: 'Zululand DM', fhs: 27, module: 'munilens' },
+      { name: 'Umkhanyakude DM', fhs: 23, module: 'munilens' },
+    ],
+    serviceMetrics: [
+      { label: 'Total Beneficiaries', value: '27.8M', trend: 'up', module: 'servicelens' },
+      { label: 'Grant Expenditure', value: 'R253B', trend: 'up', module: 'servicelens' },
+      { label: 'SRD Recipients', value: '8.5M', trend: 'stable', module: 'servicelens' },
+    ],
+  },
+};
+
 // ── Brief Preview Structure ─────────────────────────────────────────────────
 
 const BRIEF_STRUCTURE = [
@@ -227,6 +386,147 @@ function MiniSparkline({ trend, color }: { trend: string; color: string }) {
   );
 }
 
+// ── Cross-Module Intelligence Component ─────────────────────────────────────
+
+function CrossModuleIntelligence({ topic }: { topic: string }) {
+  const { setActiveModule } = useNavigationStore();
+  const data = CROSS_MODULE_DATA[topic];
+
+  if (!data) return null;
+
+  const severityStyle = (severity: string) => {
+    if (severity === 'Critical') return 'bg-red-500/15 text-red-400 border-red-500/25';
+    if (severity === 'High') return 'bg-amber-500/15 text-amber-400 border-amber-500/25';
+    return 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25';
+  };
+
+  const fhsStyle = (fhs: number) => {
+    if (fhs >= 65) return 'bg-emerald-500/10 text-emerald-400';
+    if (fhs >= 45) return 'bg-amber-500/10 text-amber-400';
+    return 'bg-red-500/10 text-red-400';
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mt-4"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <Layers className="size-4" style={{ color: ACCENT_TO }} />
+        <h4 className="text-xs font-semibold text-zinc-200">Cross-Module Intelligence</h4>
+        <Badge
+          variant="outline"
+          className="text-[8px] h-4 px-1.5"
+          style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}
+        >
+          Related Data
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Risk Signals from RiskLens */}
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <AlertTriangle className="size-3 text-red-400" />
+            <span className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">Risk Signals</span>
+            <Badge variant="outline" className="text-[7px] h-3.5 px-1 ml-auto bg-red-500/10 text-red-400 border-red-500/20">
+              RiskLens
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            {data.riskSignals.map((signal, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveModule('risklens')}
+                className="w-full text-left rounded-md border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-[#06B6D4]/25 hover:bg-[#06B6D4]/5 transition-all group"
+              >
+                <div className="flex items-start gap-2">
+                  <Badge
+                    variant="outline"
+                    className={cn('text-[7px] h-3.5 px-1 shrink-0 mt-0.5', severityStyle(signal.severity))}
+                  >
+                    {signal.severity}
+                  </Badge>
+                  <span className="text-[10px] text-zinc-300 group-hover:text-zinc-100 leading-relaxed">{signal.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Affected Municipalities from MuniLens */}
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <Building2 className="size-3 text-purple-400" />
+            <span className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">Most Affected</span>
+            <Badge variant="outline" className="text-[7px] h-3.5 px-1 ml-auto bg-purple-500/10 text-purple-400 border-purple-500/20">
+              MuniLens
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            {data.affectedMunis.map((muni, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveModule('munilens')}
+                className="w-full text-left rounded-md border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-[#06B6D4]/25 hover:bg-[#06B6D4]/5 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Building2 className="size-3 text-zinc-500 shrink-0" />
+                    <span className="text-[10px] text-zinc-300 group-hover:text-zinc-100 truncate">{muni.name}</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn('text-[8px] h-4 px-1.5 shrink-0', fhsStyle(muni.fhs))}
+                  >
+                    FHS: {muni.fhs}
+                  </Badge>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Service Metrics from ServiceLens */}
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <BarChart3 className="size-3 text-emerald-400" />
+            <span className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">Service Metrics</span>
+            <Badge variant="outline" className="text-[7px] h-3.5 px-1 ml-auto bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+              ServiceLens
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            {data.serviceMetrics.map((metric, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveModule('servicelens')}
+                className="w-full text-left rounded-md border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-[#06B6D4]/25 hover:bg-[#06B6D4]/5 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-300 group-hover:text-zinc-100 truncate">{metric.label}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold text-zinc-200 tabular-nums">{metric.value}</span>
+                    {metric.trend === 'up' ? (
+                      <TrendingUp className="size-2.5 text-emerald-400" />
+                    ) : metric.trend === 'down' ? (
+                      <TrendingDown className="size-2.5 text-red-400" />
+                    ) : (
+                      <Minus className="size-2.5 text-zinc-500" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function PolicyLens() {
@@ -242,6 +542,7 @@ export default function PolicyLens() {
   const [trendPeriod, setTrendPeriod] = useState<'5Y' | '10Y' | 'All'>('5Y');
   const [expandedIndicator, setExpandedIndicator] = useState<string | null>(null);
   const [lineVisibility, setLineVisibility] = useState({ unemployment: true, youthUnemployment: true, povertyRate: true });
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const currentTheme = THEMES.find((t) => t.id === selectedTheme);
 
@@ -265,6 +566,7 @@ export default function PolicyLens() {
   const handlePresetClick = useCallback((label: string) => {
     setBriefTopic(label);
     setBriefGenerated(false);
+    setActivePreset(label);
   }, []);
 
   const getTrendData = useMemo(() => {
@@ -324,6 +626,31 @@ export default function PolicyLens() {
     });
     return sorted;
   }, []);
+
+  // Generate brief content based on topic
+  const getBriefContent = useMemo(() => {
+    const topic = briefTopic || 'Policy Analysis';
+    const geography = briefGeography === 'south-africa' ? 'South Africa' : briefGeography.replace('-', ' ');
+
+    return {
+      executiveSummary: `This policy brief examines ${topic.toLowerCase()} across ${geography}, drawing on the latest available data from Stats SA, National Treasury, and municipal reporting systems. Current trends indicate significant disparities that require targeted policy intervention.`,
+      keyFindings: [
+        'National averages mask severe provincial disparities, with a 3x variance between best and worst performing provinces',
+        'Current policy frameworks are insufficient to meet NDP 2030 targets at the present trajectory',
+        'Municipal-level data reveals that structural barriers disproportionately affect rural and peri-urban communities',
+      ],
+      recommendations: [
+        'Strengthen intergovernmental coordination through targeted conditional grants with performance-based disbursement mechanisms',
+        'Establish province-specific intervention thresholds with automatic escalation protocols when indicators breach critical levels',
+        'Invest in data infrastructure to enable real-time monitoring and evidence-based policy adjustments at municipal level',
+      ],
+      dataSources: [
+        { name: 'Stats SA Quarterly Labour Force Survey', module: 'peoplelens' },
+        { name: 'National Treasury MFMA Reports', module: 'munilens' },
+        { name: 'Auditor-General Outcomes', module: 'agasalert' },
+      ],
+    };
+  }, [briefTopic, briefGeography]);
 
   return (
     <div className="space-y-5">
@@ -445,7 +772,7 @@ export default function PolicyLens() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {/* Topic Preset Pills */}
+                {/* Topic Preset Pills - expanded to 8 */}
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
                   <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Quick topics:</span>
                   {TOPIC_PRESETS.map((preset) => (
@@ -454,8 +781,17 @@ export default function PolicyLens() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handlePresetClick(preset.label)}
-                      className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-300 hover:bg-white/[0.06] transition-colors"
-                      style={{ borderLeftWidth: '2px', borderLeftColor: preset.color }}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all duration-200',
+                        activePreset === preset.label
+                          ? 'bg-white/[0.06] text-zinc-100'
+                          : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]'
+                      )}
+                      style={{
+                        borderLeftWidth: '2px',
+                        borderLeftColor: preset.color,
+                        ...(activePreset === preset.label ? { borderColor: `${ACCENT_TO}40`, boxShadow: `0 0 12px ${ACCENT_TO}20` } : {}),
+                      }}
                     >
                       <preset.icon className="size-3" style={{ color: preset.color }} />
                       {preset.label}
@@ -469,7 +805,7 @@ export default function PolicyLens() {
                     <Input
                       placeholder="e.g., Water service delivery gaps in rural municipalities"
                       value={briefTopic}
-                      onChange={(e) => { setBriefTopic(e.target.value); setBriefGenerated(false); }}
+                      onChange={(e) => { setBriefTopic(e.target.value); setBriefGenerated(false); setActivePreset(null); }}
                       className="h-8 text-xs border-white/[0.08] bg-white/[0.03] focus:border-[#06B6D4]/30"
                     />
                   </div>
@@ -530,31 +866,91 @@ export default function PolicyLens() {
                   )}
                 </div>
 
-                {/* Brief Preview Card */}
+                {/* Enhanced Brief Preview Card */}
                 {briefGenerated && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+                    className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-semibold text-zinc-200">Brief Structure Preview</span>
-                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1">
-                        <Download className="size-3" />
-                        Download PDF
-                      </Button>
-                    </div>
-                    <div className="space-y-1.5">
-                      {BRIEF_STRUCTURE.map((section, i) => (
-                        <div key={section.section} className="flex items-center gap-2">
-                          <span className="text-[10px] text-zinc-500 tabular-nums w-4">{i + 1}.</span>
-                          <span className="text-[11px] text-zinc-300 flex-1">{section.section}</span>
-                          <span className="text-[9px] text-zinc-500">{section.items} items</span>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="size-6 rounded-md flex items-center justify-center" style={{ background: `${ACCENT_FROM}15`, border: `1px solid ${ACCENT_TO}25` }}>
+                            <BookOpen className="size-3" style={{ color: ACCENT_TO }} />
+                          </div>
+                          <span className="text-xs font-semibold text-zinc-200">Policy Brief Preview</span>
+                          <Badge variant="outline" className="text-[8px] h-4 px-1.5" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
+                            {briefAudience.replace('-', ' ')}
+                          </Badge>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1">
+                            <RefreshCw className="size-3" />
+                            Regenerate
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1">
+                            <Download className="size-3" />
+                            Download Full Brief
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Executive Summary */}
+                      <div className="mb-3 rounded-md border-l-2 p-3" style={{ borderLeftColor: ACCENT_TO, background: `${ACCENT_FROM}05` }}>
+                        <h5 className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">Executive Summary</h5>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">{getBriefContent.executiveSummary}</p>
+                      </div>
+
+                      {/* Key Findings */}
+                      <div className="mb-3 rounded-md border-l-2 p-3" style={{ borderLeftColor: ACCENT_TO, background: `${ACCENT_FROM}05` }}>
+                        <h5 className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">Key Findings</h5>
+                        <div className="space-y-1.5">
+                          {getBriefContent.keyFindings.map((finding, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ color: ACCENT_TO }}>{i + 1}.</span>
+                              <span className="text-[11px] text-zinc-400 leading-relaxed">{finding}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Policy Recommendations */}
+                      <div className="mb-3 rounded-md border-l-2 p-3" style={{ borderLeftColor: ACCENT_TO, background: `${ACCENT_FROM}05` }}>
+                        <h5 className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">Policy Recommendations</h5>
+                        <div className="space-y-1.5">
+                          {getBriefContent.recommendations.map((rec, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <Lightbulb className="size-3 shrink-0 mt-0.5" style={{ color: ACCENT_TO }} />
+                              <span className="text-[11px] text-zinc-400 leading-relaxed">{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Data Sources */}
+                      <div className="rounded-md border-l-2 p-3" style={{ borderLeftColor: ACCENT_TO, background: `${ACCENT_FROM}05` }}>
+                        <h5 className="text-[10px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">Data Sources</h5>
+                        <div className="space-y-1">
+                          {getBriefContent.dataSources.map((source, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <Database className="size-3 text-zinc-500 shrink-0" />
+                              <span className="text-[11px] text-zinc-400">{source.name}</span>
+                              <Badge variant="outline" className="text-[7px] h-3.5 px-1 bg-white/[0.03] text-zinc-500 border-white/[0.06]">
+                                {source.module}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
+                )}
+
+                {/* Cross-Module Intelligence Section */}
+                {briefTopic && CROSS_MODULE_DATA[briefTopic] && (
+                  <CrossModuleIntelligence topic={briefTopic} />
                 )}
               </CardContent>
             </Card>
@@ -954,10 +1350,10 @@ export default function PolicyLens() {
                                 #{rank}
                               </span>
                             </TableCell>
-                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.unemployment > 35 ? '#EF4444' : row.unemployment > 30 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.unemployment)}</TableCell>
-                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.poverty > 50 ? '#EF4444' : row.poverty > 40 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.poverty)}</TableCell>
-                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.waterAccess >= 90 ? '#10B981' : row.waterAccess >= 75 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.waterAccess)}</TableCell>
-                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.matricPass >= 75 ? '#10B981' : row.matricPass >= 70 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.matricPass)}</TableCell>
+                            <TableCell className={cn('text-right text-xs font-bold tabular-nums', getCellColor('unemployment', row.unemployment))}>{formatPercent(row.unemployment)}</TableCell>
+                            <TableCell className={cn('text-right text-xs font-bold tabular-nums', getCellColor('poverty', row.poverty))}>{formatPercent(row.poverty)}</TableCell>
+                            <TableCell className={cn('text-right text-xs font-bold tabular-nums', getCellColor('waterAccess', row.waterAccess))}>{formatPercent(row.waterAccess)}</TableCell>
+                            <TableCell className={cn('text-right text-xs font-bold tabular-nums', getCellColor('matricPass', row.matricPass))}>{formatPercent(row.matricPass)}</TableCell>
                           </TableRow>
                         );
                       })}
@@ -969,6 +1365,23 @@ export default function PolicyLens() {
           </motion.div>
         </TabsContent>
       </Tabs>
+
+      {/* ── Footer Attribution ──────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="flex items-center justify-between flex-wrap gap-2 pt-1 pb-2"
+      >
+        <div className="flex items-center gap-2 text-[10px] text-zinc-600">
+          <Database className="size-3" />
+          <span>Sources: Stats SA, National Treasury, DPSA, DHS</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+          <ShieldCheck className="size-3" style={{ color: `${ACCENT_TO}40` }} />
+          <span>PolicyLens v2.1 — Policy Intelligence Module</span>
+        </div>
+      </motion.div>
     </div>
   );
 }

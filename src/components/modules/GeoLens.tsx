@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Map,
@@ -19,6 +19,11 @@ import {
   Radio,
   ArrowRight,
   Trophy,
+  ZoomIn,
+  ZoomOut,
+  Home as HomeIcon,
+  Search,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PROVINCE_SUMMARY, MOCK_MUNICIPALITIES } from '@/lib/mock-data';
@@ -29,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import {
   LineChart,
   Line,
@@ -60,6 +66,14 @@ interface IndicatorOption {
   format: (v: number) => string;
   dotColor: string;
   trendData?: { year: string; value: number }[];
+}
+
+interface LayerOption {
+  key: string;
+  label: string;
+  indicatorKey: IndicatorKey;
+  colorScheme: 'green-red' | 'blue' | 'red' | 'amber';
+  icon: React.ElementType;
 }
 
 // ── Province SVG Paths (simplified) ──────────────────────────────────────────
@@ -139,7 +153,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
   },
 ];
 
-// ── Municipality Dot Positions (approximate, relative to province centroids) ──
+// ── Municipality Dot Positions ──────────────────────────────────────────────
 
 const MUNICIPALITY_DOTS: Record<string, Array<{ dx: number; dy: number }>> = {
   'Gauteng': [{ dx: -5, dy: -8 }, { dx: 8, dy: 5 }, { dx: -2, dy: 12 }, { dx: 12, dy: -3 }],
@@ -231,12 +245,43 @@ const INDICATORS: IndicatorOption[] = [
   },
 ];
 
+// ── Layer Options ─────────────────────────────────────────────────────────────
+
+const LAYER_OPTIONS: LayerOption[] = [
+  { key: 'financial', label: 'Financial Health', indicatorKey: 'avgFHS', colorScheme: 'green-red', icon: BarChart3 },
+  { key: 'service', label: 'Service Delivery', indicatorKey: 'avgSDS', colorScheme: 'blue', icon: Radio },
+  { key: 'section139', label: '§139 Interventions', indicatorKey: 'section139', colorScheme: 'red', icon: AlertTriangle },
+  { key: 'audit', label: 'Audit Outcomes', indicatorKey: 'cleanAudit', colorScheme: 'amber', icon: ShieldCheck },
+];
+
 // ── Color Scale ──────────────────────────────────────────────────────────────
 
-function getChoroplethColor(value: number, min: number, max: number, invert?: boolean): string {
+function getChoroplethColor(value: number, min: number, max: number, invert?: boolean, layerScheme?: string): string {
   const normalized = max === min ? 0.5 : (value - min) / (max - min);
   const score = invert ? 1 - normalized : normalized;
 
+  if (layerScheme === 'blue') {
+    if (score >= 0.75) return '#1D4ED8';
+    if (score >= 0.55) return '#3B82F6';
+    if (score >= 0.4) return '#60A5FA';
+    if (score >= 0.25) return '#93C5FD';
+    return '#BFDBFE';
+  }
+  if (layerScheme === 'red') {
+    if (score >= 0.75) return '#7F1D1D';
+    if (score >= 0.55) return '#DC2626';
+    if (score >= 0.4) return '#EF4444';
+    if (score >= 0.25) return '#F87171';
+    return '#FECACA';
+  }
+  if (layerScheme === 'amber') {
+    if (score >= 0.75) return '#92400E';
+    if (score >= 0.55) return '#D97706';
+    if (score >= 0.4) return '#F59E0B';
+    if (score >= 0.25) return '#FBBF24';
+    return '#FDE68A';
+  }
+  // Default green-red
   if (score >= 0.75) return '#059669';
   if (score >= 0.55) return '#10B981';
   if (score >= 0.4) return '#F59E0B';
@@ -244,23 +289,16 @@ function getChoroplethColor(value: number, min: number, max: number, invert?: bo
   return '#DC2626';
 }
 
-function getChoroplethGlow(value: number, min: number, max: number, invert?: boolean): string {
-  const normalized = max === min ? 0.5 : (value - min) / (max - min);
-  const score = invert ? 1 - normalized : normalized;
-
-  if (score >= 0.75) return '#059669';
-  if (score >= 0.55) return '#10B981';
-  if (score >= 0.4) return '#F59E0B';
-  if (score >= 0.25) return '#EA580C';
-  return '#DC2626';
+function getChoroplethGlow(value: number, min: number, max: number, invert?: boolean, layerScheme?: string): string {
+  return getChoroplethColor(value, min, max, invert, layerScheme);
 }
 
 // ── Rank Badge Colors ────────────────────────────────────────────────────────
 
 function getRankBadge(rank: number): { color: string; bg: string; border: string } | null {
-  if (rank === 1) return { color: '#B45309', bg: 'rgba(180,83,9,0.15)', border: 'rgba(180,83,9,0.3)' }; // gold
-  if (rank === 2) return { color: '#94A3B8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)' }; // silver
-  if (rank === 3) return { color: '#92400E', bg: 'rgba(146,64,14,0.15)', border: 'rgba(146,64,14,0.3)' }; // bronze
+  if (rank === 1) return { color: '#B45309', bg: 'rgba(180,83,9,0.15)', border: 'rgba(180,83,9,0.3)' };
+  if (rank === 2) return { color: '#94A3B8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)' };
+  if (rank === 3) return { color: '#92400E', bg: 'rgba(146,64,14,0.15)', border: 'rgba(146,64,14,0.3)' };
   return null;
 }
 
@@ -272,6 +310,13 @@ function abbreviateProvince(name: string): string {
   if (name === 'Eastern Cape') return 'E. Cape';
   if (name === 'North West') return 'N. West';
   return name;
+}
+
+// ── Province label pill width estimation ─────────────────────────────────────
+
+function getLabelPillWidth(name: string): number {
+  const abbrev = abbreviateProvince(name);
+  return abbrev.length * 7.5 + 12;
 }
 
 // ── Sub-Components ───────────────────────────────────────────────────────────
@@ -312,14 +357,25 @@ function ProvinceDetailPanel({
   provinceName,
   onClose,
   indicator,
+  muniSearchQuery,
+  onMuniSearchChange,
 }: {
   provinceName: string;
   onClose: () => void;
   indicator: IndicatorOption;
+  muniSearchQuery: string;
+  onMuniSearchChange: (q: string) => void;
 }) {
   const { setActiveModule } = useNavigationStore();
   const provinceData = PROVINCE_SUMMARY.find((p) => p.province === provinceName);
-  const municipalities = MOCK_MUNICIPALITIES.filter((m) => m.province === provinceName);
+  const allMunicipalities = MOCK_MUNICIPALITIES.filter((m) => m.province === provinceName);
+  const municipalities = useMemo(() => {
+    if (!muniSearchQuery.trim()) return allMunicipalities;
+    const q = muniSearchQuery.toLowerCase();
+    return allMunicipalities.filter(
+      (m) => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+    );
+  }, [allMunicipalities, muniSearchQuery]);
 
   if (!provinceData) return null;
 
@@ -468,7 +524,7 @@ function ProvinceDetailPanel({
           <Separator className="bg-white/[0.06]" />
         </div>
 
-        {/* Municipalities - Enhanced Drill-Down */}
+        {/* Municipalities - Enhanced with Search */}
         <div className="p-4 pt-3">
           <div className="flex items-center justify-between mb-2.5">
             <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
@@ -477,6 +533,16 @@ function ProvinceDetailPanel({
             <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-[#B45309]/10 text-[#B45309] border-[#B45309]/25">
               {municipalities.length} listed
             </Badge>
+          </div>
+          {/* Search municipalities */}
+          <div className="relative mb-2.5">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-zinc-500" />
+            <Input
+              placeholder="Search municipalities..."
+              value={muniSearchQuery}
+              onChange={(e) => onMuniSearchChange(e.target.value)}
+              className="h-7 text-[11px] pl-7 border-white/[0.06] bg-white/[0.02] focus:border-[#B45309]/30 focus:ring-0"
+            />
           </div>
           <ScrollArea className="max-h-56">
             <div className="space-y-1.5">
@@ -540,7 +606,7 @@ function ProvinceDetailPanel({
                 ))
               ) : (
                 <p className="text-[11px] text-zinc-600 py-2 text-center">
-                  No sample municipalities in database
+                  {muniSearchQuery ? 'No municipalities match your search' : 'No sample municipalities in database'}
                 </p>
               )}
             </div>
@@ -701,6 +767,124 @@ function IndicatorTrendChart({ indicator }: { indicator: IndicatorOption }) {
   );
 }
 
+// ── Map Controls Toolbar ─────────────────────────────────────────────────────
+
+function MapControlsToolbar({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  activeLayer,
+  onLayerChange,
+  layerDropdownOpen,
+  onLayerToggle,
+}: {
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
+  activeLayer: LayerOption;
+  onLayerChange: (layer: LayerOption) => void;
+  layerDropdownOpen: boolean;
+  onLayerToggle: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="absolute bottom-4 right-4 z-20 flex flex-col gap-2"
+    >
+      {/* Zoom Level Badge */}
+      <div className="flex justify-end mb-0.5">
+        <Badge
+          variant="outline"
+          className="text-[9px] h-5 px-2 bg-[#0d1224]/80 backdrop-blur-xl border-white/[0.1] text-zinc-300 tabular-nums"
+        >
+          {zoom.toFixed(1)}x
+        </Badge>
+      </div>
+
+      {/* Zoom Controls */}
+      <div className="flex flex-col rounded-xl border border-white/[0.1] bg-[#0d1224]/80 backdrop-blur-xl overflow-hidden shadow-2xl">
+        <button
+          onClick={onZoomIn}
+          className="flex items-center justify-center size-9 text-zinc-300 hover:text-[#B45309] hover:bg-[#B45309]/10 transition-all duration-200"
+          title="Zoom In"
+        >
+          <ZoomIn className="size-4" />
+        </button>
+        <div className="h-px bg-white/[0.06]" />
+        <button
+          onClick={onZoomOut}
+          className="flex items-center justify-center size-9 text-zinc-300 hover:text-[#B45309] hover:bg-[#B45309]/10 transition-all duration-200"
+          title="Zoom Out"
+        >
+          <ZoomOut className="size-4" />
+        </button>
+        <div className="h-px bg-white/[0.06]" />
+        <button
+          onClick={onReset}
+          className="flex items-center justify-center size-9 text-zinc-300 hover:text-[#B45309] hover:bg-[#B45309]/10 transition-all duration-200"
+          title="Reset View"
+        >
+          <HomeIcon className="size-4" />
+        </button>
+      </div>
+
+      {/* Layer Toggle Dropdown */}
+      <div className="relative">
+        <button
+          onClick={onLayerToggle}
+          className={cn(
+            'flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-medium transition-all duration-200 shadow-2xl',
+            layerDropdownOpen
+              ? 'border-[#B45309]/40 bg-[#0d1224]/90 text-[#B45309]'
+              : 'border-white/[0.1] bg-[#0d1224]/80 text-zinc-300 hover:text-[#B45309] hover:border-[#B45309]/30'
+          )}
+          style={{ backdropFilter: 'blur(16px)' }}
+        >
+          <Layers className="size-3.5" />
+          <span>{activeLayer.label}</span>
+          <ChevronDown className={cn('size-3 transition-transform duration-200', layerDropdownOpen && 'rotate-180')} />
+        </button>
+        <AnimatePresence>
+          {layerDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 4, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-full right-0 mb-2 w-48 rounded-xl border border-white/[0.1] bg-[#0d1224]/98 backdrop-blur-xl shadow-2xl py-1.5 overflow-hidden z-50"
+            >
+              {LAYER_OPTIONS.map((layer) => {
+                const isActive = activeLayer.key === layer.key;
+                return (
+                  <button
+                    key={layer.key}
+                    onClick={() => onLayerChange(layer)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 text-[11px] text-left transition-all duration-200',
+                      isActive
+                        ? 'bg-[#B45309]/15 text-[#B45309]'
+                        : 'text-zinc-400 hover:bg-[#B45309]/8 hover:text-zinc-100'
+                    )}
+                    style={isActive ? { borderLeft: '2px solid #B45309' } : { borderLeft: '2px solid transparent' }}
+                  >
+                    <layer.icon className="size-3.5" />
+                    <span className="font-medium">{layer.label}</span>
+                    {isActive && <CheckCircle className="size-3 ml-auto text-[#B45309]" />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main GeoLens Component ───────────────────────────────────────────────────
 
 export default function GeoLens() {
@@ -709,6 +893,19 @@ export default function GeoLens() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [indicatorDropdownOpen, setIndicatorDropdownOpen] = useState(false);
+
+  // Zoom & Pan state
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Layer state
+  const [activeLayer, setActiveLayer] = useState<LayerOption>(LAYER_OPTIONS[0]);
+  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
+
+  // Municipality search in province detail
+  const [muniSearchQuery, setMuniSearchQuery] = useState('');
 
   const { min, max } = useMemo(() => {
     const values = PROVINCE_SUMMARY.map((p) => p[selectedIndicator.key] as number);
@@ -749,6 +946,57 @@ export default function GeoLens() {
 
   // Indicator-specific glow color
   const indicatorGlowColor = selectedIndicator.dotColor;
+
+  // Layer change handler
+  const handleLayerChange = useCallback((layer: LayerOption) => {
+    setActiveLayer(layer);
+    setLayerDropdownOpen(false);
+    const indicator = INDICATORS.find((ind) => ind.key === layer.indicatorKey);
+    if (indicator) setSelectedIndicator(indicator);
+  }, []);
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(2.0, z + 0.2));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(0.8, z - 0.2));
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (zoom > 1) {
+      setIsPanning(true);
+      panStartRef.current = { x: e.clientX, y: e.clientY, panX: panOffset.x, panY: panOffset.y };
+    }
+  }, [zoom, panOffset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning && zoom > 1) {
+      const dx = e.clientX - panStartRef.current.x;
+      const dy = e.clientY - panStartRef.current.y;
+      setPanOffset({
+        x: panStartRef.current.panX + dx / zoom,
+        y: panStartRef.current.panY + dy / zoom,
+      });
+    }
+  }, [isPanning, zoom]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  // Reset muni search when province changes
+  const handleProvinceSelect = useCallback((name: string) => {
+    setSelectedProvince(selectedProvince === name ? null : name);
+    setMuniSearchQuery('');
+  }, [selectedProvince]);
 
   return (
     <div className="space-y-5">
@@ -815,6 +1063,9 @@ export default function GeoLens() {
                       onClick={() => {
                         setSelectedIndicator(ind);
                         setIndicatorDropdownOpen(false);
+                        // Sync layer
+                        const matchingLayer = LAYER_OPTIONS.find((l) => l.indicatorKey === ind.key);
+                        if (matchingLayer) setActiveLayer(matchingLayer);
                       }}
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-all duration-200',
@@ -868,6 +1119,10 @@ export default function GeoLens() {
                   viewBox="0 0 540 430"
                   className="w-full h-auto"
                   style={{ filter: 'drop-shadow(0 4px 30px rgba(180, 83, 9, 0.08))' }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
                 >
                   <defs>
                     <filter id="glow">
@@ -908,122 +1163,150 @@ export default function GeoLens() {
                   <rect x="0" y="0" width="540" height="430" fill="url(#bgSpotlight)" />
                   <rect x="0" y="0" width="540" height="430" fill="url(#vignette)" />
 
-                  {/* Province Paths */}
-                  {PROVINCE_GEO.map((geo) => {
-                    const value = getProvinceValue(geo.name);
-                    const fillColor = getChoroplethColor(value, min, max, selectedIndicator.invertScale);
-                    const glowColor = getChoroplethGlow(value, min, max, selectedIndicator.invertScale);
-                    const isHovered = hoveredProvince === geo.name;
-                    const isSelected = selectedProvince === geo.name;
+                  {/* Zoomable/Pannable group */}
+                  <g
+                    transform={`translate(${270 + panOffset.x * zoom - 270 * zoom}, ${215 + panOffset.y * zoom - 215 * zoom}) scale(${zoom})`}
+                    style={{ transition: isPanning ? 'none' : 'transform 0.3s ease-out', transformOrigin: '270px 215px' }}
+                  >
+                    {/* Province Paths */}
+                    {PROVINCE_GEO.map((geo) => {
+                      const value = getProvinceValue(geo.name);
+                      const fillColor = getChoroplethColor(value, min, max, selectedIndicator.invertScale, activeLayer.colorScheme);
+                      const glowColor = getChoroplethGlow(value, min, max, selectedIndicator.invertScale, activeLayer.colorScheme);
+                      const isHovered = hoveredProvince === geo.name;
+                      const isSelected = selectedProvince === geo.name;
 
-                    return (
-                      <g key={geo.id}>
-                        {/* Topographic contour lines for depth */}
-                        {geo.contourR?.map((r, ci) => (
-                          <circle
-                            key={`contour-${ci}`}
-                            cx={geo.labelX}
-                            cy={geo.labelY}
-                            r={r}
-                            fill="none"
-                            stroke="rgba(255,255,255,0.03)"
-                            strokeWidth={0.5}
-                            strokeDasharray="2,3"
-                            className="pointer-events-none"
-                          />
-                        ))}
+                      return (
+                        <g key={geo.id}>
+                          {/* Topographic contour lines for depth */}
+                          {geo.contourR?.map((r, ci) => (
+                            <circle
+                              key={`contour-${ci}`}
+                              cx={geo.labelX}
+                              cy={geo.labelY}
+                              r={r}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.03)"
+                              strokeWidth={0.5}
+                              strokeDasharray="2,3"
+                              className="pointer-events-none"
+                            />
+                          ))}
 
-                        {/* Municipality dot markers */}
-                        {(MUNICIPALITY_DOTS[geo.name] || []).map((dot, di) => (
-                          <circle
-                            key={`muni-dot-${di}`}
-                            cx={geo.labelX + dot.dx}
-                            cy={geo.labelY + dot.dy}
-                            r={1.5}
-                            fill="rgba(255,255,255,0.2)"
-                            className="pointer-events-none"
-                          />
-                        ))}
+                          {/* Municipality dot markers */}
+                          {(MUNICIPALITY_DOTS[geo.name] || []).map((dot, di) => (
+                            <circle
+                              key={`muni-dot-${di}`}
+                              cx={geo.labelX + dot.dx}
+                              cy={geo.labelY + dot.dy}
+                              r={1.5}
+                              fill="rgba(255,255,255,0.2)"
+                              className="pointer-events-none"
+                            />
+                          ))}
 
-                        {/* Glow effect on hover */}
-                        {(isHovered || isSelected) && (
+                          {/* Glow effect on hover */}
+                          {(isHovered || isSelected) && (
+                            <path
+                              d={geo.path}
+                              fill="none"
+                              stroke={isSelected ? '#B45309' : glowColor}
+                              strokeWidth="5"
+                              filter={isSelected ? 'url(#selectedGlow)' : 'url(#glow)'}
+                              opacity="0.7"
+                            />
+                          )}
+
+                          {/* Selected pulsing ring - enhanced with outer pulse */}
+                          {isSelected && (
+                            <>
+                              <path
+                                d={geo.path}
+                                fill="none"
+                                stroke="#B45309"
+                                strokeWidth="3"
+                                opacity="0.4"
+                                className="animate-pulse"
+                                style={{ animationDuration: '2s' }}
+                              />
+                              {/* Outer pulse ring */}
+                              <path
+                                d={geo.path}
+                                fill="none"
+                                stroke="#B45309"
+                                strokeWidth="8"
+                                opacity="0.15"
+                                filter="url(#pulseGlow)"
+                                className="animate-pulse"
+                                style={{ animationDuration: '2.5s' }}
+                              />
+                            </>
+                          )}
+
+                          {/* Province shape */}
                           <path
                             d={geo.path}
-                            fill="none"
-                            stroke={isSelected ? '#B45309' : glowColor}
-                            strokeWidth="5"
-                            filter={isSelected ? 'url(#selectedGlow)' : 'url(#glow)'}
-                            opacity="0.7"
+                            fill={fillColor}
+                            fillOpacity={isHovered ? 0.95 : isSelected ? 0.9 : 0.7}
+                            stroke={isSelected ? '#B45309' : isHovered ? '#ffffff' : 'rgba(255,255,255,0.1)'}
+                            strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 0.8}
+                            className="cursor-pointer transition-all duration-300 ease-out"
+                            style={{
+                              filter: isHovered ? 'brightness(1.15)' : undefined,
+                            }}
+                            onMouseEnter={() => setHoveredProvince(geo.name)}
+                            onMouseMove={(e) => handleProvinceMouseMove(e, geo.name)}
+                            onMouseLeave={() => setHoveredProvince(null)}
+                            onClick={() => handleProvinceSelect(geo.name)}
                           />
-                        )}
 
-                        {/* Selected pulsing ring - enhanced with outer pulse */}
-                        {isSelected && (
-                          <>
-                            <path
-                              d={geo.path}
-                              fill="none"
-                              stroke="#B45309"
-                              strokeWidth="3"
-                              opacity="0.4"
-                              className="animate-pulse"
-                              style={{ animationDuration: '2s' }}
+                          {/* Province label - Enhanced with background pill */}
+                          <g className="pointer-events-none">
+                            {/* Background pill */}
+                            <rect
+                              x={geo.labelX - getLabelPillWidth(geo.name) / 2}
+                              y={geo.labelY - 8}
+                              width={getLabelPillWidth(geo.name)}
+                              height={16}
+                              rx={4}
+                              fill="rgba(0,0,0,0.55)"
+                              stroke={isHovered || isSelected ? 'rgba(180,83,9,0.4)' : 'rgba(255,255,255,0.08)'}
+                              strokeWidth={0.5}
                             />
-                            {/* Outer pulse ring */}
-                            <path
-                              d={geo.path}
-                              fill="none"
-                              stroke="#B45309"
-                              strokeWidth="8"
-                              opacity="0.15"
-                              filter="url(#pulseGlow)"
-                              className="animate-pulse"
-                              style={{ animationDuration: '2.5s' }}
-                            />
-                          </>
-                        )}
-
-                        {/* Province shape */}
-                        <path
-                          d={geo.path}
-                          fill={fillColor}
-                          fillOpacity={isHovered ? 0.95 : isSelected ? 0.9 : 0.7}
-                          stroke={isSelected ? '#B45309' : isHovered ? '#ffffff' : 'rgba(255,255,255,0.1)'}
-                          strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 0.8}
-                          className="cursor-pointer transition-all duration-300 ease-out"
-                          style={{
-                            filter: isHovered ? 'brightness(1.15)' : undefined,
-                          }}
-                          onMouseEnter={() => setHoveredProvince(geo.name)}
-                          onMouseMove={(e) => handleProvinceMouseMove(e, geo.name)}
-                          onMouseLeave={() => setHoveredProvince(null)}
-                          onClick={() =>
-                            setSelectedProvince(selectedProvince === geo.name ? null : geo.name)
-                          }
-                        />
-
-                        {/* Province label - Enhanced: always fw 700, stronger shadow */}
-                        <text
-                          x={geo.labelX}
-                          y={geo.labelY}
-                          textAnchor="middle"
-                          className="pointer-events-none select-none"
-                          fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.75)'}
-                          fontSize={geo.name === 'Gauteng' ? '9' : '10.5'}
-                          fontWeight="700"
-                          style={{
-                            transition: 'fill 0.3s',
-                            textShadow: isHovered || isSelected
-                              ? '0 0 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9), 0 0 20px rgba(180,83,9,0.3)'
-                              : '0 0 8px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.8)',
-                          }}
-                        >
-                          {abbreviateProvince(geo.name)}
-                        </text>
-                      </g>
-                    );
-                  })}
+                            <text
+                              x={geo.labelX}
+                              y={geo.labelY + 1}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              className="select-none"
+                              fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.85)'}
+                              fontSize={isHovered || isSelected ? '12' : geo.name === 'Gauteng' ? '9' : '11'}
+                              fontWeight="700"
+                              style={{
+                                transition: 'fill 0.3s, font-size 0.2s',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                              }}
+                            >
+                              {abbreviateProvince(geo.name)}
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    })}
+                  </g>
                 </svg>
+
+                {/* Map Controls Toolbar */}
+                <MapControlsToolbar
+                  zoom={zoom}
+                  onZoomIn={handleZoomIn}
+                  onZoomOut={handleZoomOut}
+                  onReset={handleResetView}
+                  activeLayer={activeLayer}
+                  onLayerChange={handleLayerChange}
+                  layerDropdownOpen={layerDropdownOpen}
+                  onLayerToggle={() => setLayerDropdownOpen(!layerDropdownOpen)}
+                />
 
                 {/* Hover Tooltip */}
                 <AnimatePresence>
@@ -1054,8 +1337,10 @@ export default function GeoLens() {
               <ProvinceDetailPanel
                 key={selectedProvince}
                 provinceName={selectedProvince}
-                onClose={() => setSelectedProvince(null)}
+                onClose={() => { setSelectedProvince(null); setMuniSearchQuery(''); }}
                 indicator={selectedIndicator}
+                muniSearchQuery={muniSearchQuery}
+                onMuniSearchChange={setMuniSearchQuery}
               />
             ) : (
               <motion.div
@@ -1185,7 +1470,7 @@ export default function GeoLens() {
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
               {sortedProvinces.map((prov, i) => {
                 const value = prov[selectedIndicator.key] as number;
-                const color = getChoroplethColor(value, min, max, selectedIndicator.invertScale);
+                const color = getChoroplethColor(value, min, max, selectedIndicator.invertScale, activeLayer.colorScheme);
                 const isSelected = selectedProvince === prov.province;
                 const rankBadge = getRankBadge(i + 1);
 
@@ -1208,9 +1493,7 @@ export default function GeoLens() {
                 return (
                   <motion.button
                     key={prov.province}
-                    onClick={() =>
-                      setSelectedProvince(selectedProvince === prov.province ? null : prov.province)
-                    }
+                    onClick={() => handleProvinceSelect(prov.province)}
                     whileHover={{ scale: 1.03, x: 2 }}
                     whileTap={{ scale: 0.98 }}
                     className={cn(

@@ -235,7 +235,7 @@ export default function AppShell() {
 
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-4 lg:p-6">
+            <div className="p-3 sm:p-4 lg:p-6">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeModule}

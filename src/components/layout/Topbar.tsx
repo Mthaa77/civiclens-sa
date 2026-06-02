@@ -132,7 +132,7 @@ export default function Topbar() {
     <>
       <header
         className={cn(
-          'sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-white/[0.06] px-4 lg:px-6',
+          'sticky top-0 z-40 flex h-14 items-center gap-2 sm:gap-4 border-b border-border/40 px-3 sm:px-4 lg:px-6',
           'bg-[#0a0e1a]/85 backdrop-blur-2xl',
           'relative'
         )}
@@ -145,11 +145,11 @@ export default function Topbar() {
           }}
         />
 
-        {/* Mobile menu toggle */}
+        {/* Mobile menu toggle — 44px minimum tap target */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200 hover:brightness-110"
+          className="lg:hidden text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200 hover:brightness-110 min-h-[44px] min-w-[44px]"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <Menu className="size-5" />
@@ -180,9 +180,9 @@ export default function Topbar() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Mobile breadcrumb - just current module name */}
+        {/* Mobile breadcrumb - just current module name, with max-width to prevent overflow */}
         <span
-          className="sm:hidden text-sm font-medium truncate"
+          className="sm:hidden text-sm font-medium truncate max-w-[120px]"
           style={{ color: currentModule?.color ?? '#e4e4e7' }}
         >
           {currentModule?.name ?? 'Dashboard'}
@@ -194,14 +194,14 @@ export default function Topbar() {
         {/* SA Date */}
         <SouthAfricanDate />
 
-        {/* Search bar (desktop) — enhanced with glow & gradient border */}
+        {/* Search bar — responsive: hidden on small, medium on md, full on lg */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => setCommandOpen(true)}
               className={cn(
                 'hidden md:flex items-center gap-2 h-9 rounded-lg border bg-white/[0.03]',
-                'px-3 text-xs text-zinc-500 transition-all duration-300 cursor-pointer w-60 lg:w-72',
+                'px-3 text-xs text-zinc-500 transition-all duration-300 cursor-pointer w-44 lg:w-72',
                 searchFocused
                   ? 'border-transparent shadow-[0_0_16px_rgba(0,119,182,0.15),0_0_4px_rgba(0,119,182,0.1)] bg-white/[0.05]'
                   : 'border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.06]'
@@ -222,8 +222,8 @@ export default function Topbar() {
                   }}
                 />
               )}
-              <Search className="size-3.5" />
-              <span className="flex-1 text-left">Search modules...</span>
+              <Search className="size-3.5 shrink-0" />
+              <span className="flex-1 text-left truncate">Search modules...</span>
               <kbd className="pointer-events-none hidden h-5 items-center gap-1 rounded border border-white/[0.1] bg-white/[0.05] px-1.5 font-mono text-[10px] font-medium text-zinc-500 lg:flex">
                 <Command className="size-2.5" />K
               </kbd>
@@ -232,21 +232,36 @@ export default function Topbar() {
           <TooltipContent>Search modules (Ctrl+K)</TooltipContent>
         </Tooltip>
 
-        {/* AI Analyst quick launch — more prominent pulse */}
+        {/* Mobile search button — small screen fallback */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200 min-h-[44px] min-w-[44px]"
+              onClick={() => setCommandOpen(true)}
+            >
+              <Search className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Search (Ctrl+K)</TooltipContent>
+        </Tooltip>
+
+        {/* AI Analyst quick launch — 44px tap target */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               className={cn(
-                'relative size-8 text-zinc-400 transition-all duration-200',
+                'relative text-zinc-400 transition-all duration-200 min-h-[44px] min-w-[44px]',
                 'hover:text-emerald-400 hover:bg-emerald-500/10 hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]'
               )}
               onClick={() => setActiveModule('ai-analyst')}
             >
               <Sparkles className="size-4" />
               {/* More prominent pulse indicator */}
-              <span className="absolute -top-0.5 -right-0.5 flex">
+              <span className="absolute top-1 right-1 flex">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
               </span>
@@ -255,18 +270,18 @@ export default function Topbar() {
           <TooltipContent>AI Analyst</TooltipContent>
         </Tooltip>
 
-        {/* Notification bell — more visible badge with glow */}
+        {/* Notification bell — 44px tap target, badge visible on mobile */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="relative size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all duration-200"
+              className="relative text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all duration-200 min-h-[44px] min-w-[44px]"
               onClick={() => setNotificationsOpen(true)}
             >
               <Bell className="size-4" />
               <span
-                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[#0a0e1a] shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[#0a0e1a] shadow-[0_0_8px_rgba(239,68,68,0.4)]"
               >
                 3
               </span>
@@ -275,13 +290,13 @@ export default function Topbar() {
           <TooltipContent>3 new alerts</TooltipContent>
         </Tooltip>
 
-        {/* Theme toggle */}
+        {/* Theme toggle — 44px tap target */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
+              className="text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200 min-h-[44px] min-w-[44px]"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               {mounted && theme === 'dark' ? (
@@ -299,7 +314,7 @@ export default function Topbar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative size-8 rounded-full hover:bg-white/[0.06] transition-all duration-200"
+              className="relative rounded-full hover:bg-white/[0.06] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <div className="relative">
                 <Avatar className="size-8">

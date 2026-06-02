@@ -17,7 +17,8 @@ export default function Footer() {
 
       {/* Glass morphism background */}
       <div className="bg-[#0a0e1a]/80 backdrop-blur-md">
-        <div className="flex flex-col items-center justify-between gap-1 px-4 py-2 sm:flex-row lg:px-6">
+        {/* Desktop footer — full content */}
+        <div className="hidden sm:flex items-center justify-between gap-1 px-4 py-2 lg:px-6">
           {/* Left — Copyright */}
           <div className="flex items-center gap-1.5 text-[11px] text-white/30">
             <span>&copy; 2026 Carter Digitals (Pty) Ltd</span>
@@ -46,6 +47,24 @@ export default function Footer() {
               <span className="bg-gradient-to-r from-[#FFB81C] to-[#007749] bg-clip-text font-medium text-transparent">
                 CivicLens SA
               </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Mobile footer — essential info only, readable */}
+        <div className="flex sm:hidden items-center justify-between gap-2 px-4 py-2.5">
+          <div className="flex items-center gap-1.5 text-xs text-white/40">
+            <span>&copy; 2026 Carter Digitals</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/30">
+            <div className="flex items-center gap-1">
+              <Shield className="size-3 text-[#007749]/50" />
+              <span className="text-[#007749]/60 font-medium">POPIA</span>
+            </div>
+            <span className="text-white/15">&middot;</span>
+            <span className="flex items-center gap-1">
+              <Cpu className="size-3 text-white/20" />
+              v2.4.0
             </span>
           </div>
         </div>

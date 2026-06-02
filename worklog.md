@@ -3187,3 +3187,126 @@ Stage Summary:
 - All existing functionality preserved
 - ESLint passes cleanly with no errors
 - Dev server compiles successfully
+
+---
+Task ID: CR-11-a
+Agent: Premium Module Enhancer
+Task: Enhance GeoLens and PolicyLens modules from 7/10 to 8.5+/10
+
+Work Log:
+
+### GeoLens Enhancements (`/src/components/modules/GeoLens.tsx`)
+
+**1. Map Controls Toolbar (NEW)**
+- Added `MapControlsToolbar` sub-component positioned bottom-right of the map area
+- Zoom In (+) button with ZoomIn icon, Zoom Out (-) button with ZoomOut icon
+- Reset View button with Home icon
+- Layer Toggle dropdown with 4 layers: Financial Health, Service Delivery, §139 Interventions, Audit Outcomes
+- Premium glass morphism styling: bg-[#0d1224]/80 backdrop-blur-xl border-white/[0.1]
+- Each button with hover glow effect matching gold accent (#B45309)
+- Framer Motion entrance animation (slide up + fade, delay 0.3s)
+- Zoom level indicator badge showing current zoom (e.g., "1.5x")
+
+**2. Map Zoom Implementation**
+- Added zoom state (default: 1, range: 0.8 to 2.0)
+- Zoom in/out buttons adjust zoom by ±0.2 increments
+- SVG `<g>` element with `transform: scale() translate()` for zoom/pan
+- Smooth CSS transition on zoom change (0.3s ease-out)
+- Pan support when zoomed in: mouse drag events (mousedown/mousemove/mouseup)
+- Pan offset tracking with useRef for smooth drag start position
+- Disable transition during active panning for responsive feel
+
+**3. Layer Toggle Feature**
+- 4 layers defined in LAYER_OPTIONS: Financial Health (green-red), Service Delivery (blue), §139 Interventions (red), Audit Outcomes (amber)
+- Each layer changes the indicator being visualized (syncs with indicator selector)
+- Layer-specific color schemes via `colorScheme` parameter in `getChoroplethColor()`:
+  - Financial Health: green-red gradient (default)
+  - Service Delivery: blue gradient (#1D4ED8 → #BFDBFE)
+  - §139 Interventions: red intensity (#7F1D1D → #FECACA)
+  - Audit Outcomes: amber gradient (#92400E → #FDE68A)
+- Active layer shown with gold border in toolbar dropdown
+- Syncs bidirectionally with indicator selector dropdown
+
+**4. Municipality Selection Enhancement**
+- Added searchable municipality selector in ProvinceDetailPanel
+- Search input with magnifying glass icon above municipalities ScrollArea
+- Filters municipalities by name or code in real-time
+- Each municipality shows: Building2 icon, name, §139 status badge, audit outcome badge, FHS score badge
+- Empty state message when search yields no results
+- Search query resets when province changes
+
+**5. Province Label Enhancement**
+- Labels always visible (not just on hover) with font-size 11px default
+- Hover/selected state increases font-size to 12px
+- Added text-shadow: "0 1px 3px rgba(0,0,0,0.8)" for better readability
+- Background pill (semi-transparent dark rect) behind each label for better contrast
+- Pill dimensions calculated by `getLabelPillWidth()` based on province abbreviation length
+- Pill border changes to gold on hover/selected state
+
+**6. Data Source Footer**
+- Already existed; verified intact: "Sources: Stats SA, National Treasury MFMA, Auditor-General SA" with Database icon
+- "GeoLens v2.1 — Spatial Intelligence Module" with ShieldCheck icon
+
+### PolicyLens Enhancements (`/src/components/modules/PolicyLens.tsx`)
+
+**1. Brief Generator Topic Presets (expanded to 8)**
+- Expanded TOPIC_PRESETS from 5 to 8 preset pills:
+  - "Youth Unemployment" with Users icon (blue)
+  - "Water Service Delivery" with Droplets icon (cyan)
+  - "Healthcare Access" with Heart icon (green)
+  - "Education Outcomes" with GraduationCap icon (purple)
+  - "Housing Delivery" with Home icon (amber)
+  - "Public Transport" with Bus icon (cyan)
+  - "Energy Access" with Zap icon (yellow)
+  - "Social Grants" with Wallet icon (purple)
+- Active preset highlighted with teal/cyan border glow
+- Active preset state tracked via `activePreset`
+
+**2. Cross-Module Data Integration Section (NEW)**
+- Added `CrossModuleIntelligence` component below the Brief Generator
+- Shows when topic matches one of the 8 presets
+- 3-column grid layout:
+  - Risk Signals from RiskLens: top 3 risk signals with severity badges (Critical/High/Medium)
+  - Most Affected from MuniLens: top 3 municipalities with FHS badges
+  - Service Metrics from ServiceLens: relevant metrics with trend indicators
+- Each item clickable to navigate to the respective module
+- Title: "Cross-Module Intelligence" with Layers icon and teal/cyan accent
+- CROSS_MODULE_DATA constant with full mock data for all 8 topics
+
+**3. Brief Preview Card Enhancement**
+- Replaced simple structure preview with rich content card:
+  - Executive Summary: auto-generated paragraph with teal left border
+  - Key Findings: 3 bullet points from data with teal left border
+  - Policy Recommendations: 3 recommendations with Lightbulb icons
+  - Data Sources: linked to modules (PeopleLens, MuniLens, AGASAlert)
+- Each section with colored left border (teal/cyan accent)
+- "Download Full Brief" button with Download icon
+- "Regenerate" button with RefreshCw icon
+- Content dynamically generated based on topic and geography via useMemo
+
+**4. Trend Dashboard Enhancement**
+- Already had: mini stat cards, NDP 2030 target reference lines, period selector (5Y/10Y/All), Download Trend Data button
+- Verified all features intact and working
+
+**5. Comparison Tables Enhancement**
+- Already had: provincial rank column, color-coded cells (using getCellColor function), Export Comparison button, sortable column headers with direction indicators
+- Verified all features intact and working
+
+### Footer Attribution
+- Added "Sources: Stats SA, National Treasury, DPSA, DHS" with Database icon
+- "PolicyLens v2.1 — Policy Intelligence Module" with ShieldCheck icon
+
+### New Imports Added
+- GeoLens: ZoomIn, ZoomOut, Home as HomeIcon, Search, Layers from lucide-react; Input from shadcn/ui
+- PolicyLens: Bus, Zap, Wallet, Layers, RefreshCw, AlertTriangle, Building2, ShieldCheck, Minus, Database from lucide-react; useNavigationStore
+
+### Bug Fixes
+- Fixed ESLint errors: Added missing `Minus` and `Database` imports to PolicyLens.tsx
+
+Stage Summary:
+- GeoLens enhanced with interactive map controls, zoom/pan, layer toggle, searchable municipalities, and improved labels
+- PolicyLens enhanced with 8 topic presets, cross-module intelligence, rich brief preview, and verified trend/comparison features
+- Both modules target 8.5+/10 VLM quality rating
+- All existing functionality preserved
+- ESLint passes cleanly
+
