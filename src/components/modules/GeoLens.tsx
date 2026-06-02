@@ -17,15 +17,27 @@ import {
   CheckCircle,
   Database,
   Radio,
+  ArrowRight,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PROVINCE_SUMMARY, MOCK_MUNICIPALITIES } from '@/lib/mock-data';
 import { formatNumber, getScoreBand } from '@/lib/formatters';
+import { useNavigationStore } from '@/store/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  LineChart,
+  Line,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +47,7 @@ interface ProvinceGeo {
   path: string;
   labelX: number;
   labelY: number;
+  contourR?: number[];
 }
 
 type IndicatorKey = 'avgFHS' | 'avgSDS' | 'section139' | 'cleanAudit' | 'municipalities';
@@ -43,13 +56,13 @@ interface IndicatorOption {
   key: IndicatorKey;
   label: string;
   unit: string;
-  invertScale?: boolean; // true = lower is better (like SDS)
+  invertScale?: boolean;
   format: (v: number) => string;
   dotColor: string;
+  trendData?: { year: string; value: number }[];
 }
 
 // ── Province SVG Paths (simplified) ──────────────────────────────────────────
-// Approximate outlines of SA's 9 provinces in a 600x500 viewBox
 
 const PROVINCE_GEO: ProvinceGeo[] = [
   {
@@ -58,6 +71,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 265,8 L 290,5 L 330,10 L 370,20 L 410,18 L 440,30 L 465,55 L 460,80 L 440,100 L 420,115 L 395,120 L 370,130 L 345,125 L 320,115 L 295,110 L 270,105 L 250,95 L 240,75 L 245,50 L 255,30 Z',
     labelX: 355,
     labelY: 70,
+    contourR: [30, 50, 70],
   },
   {
     id: 'mpumalanga',
@@ -65,6 +79,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 420,115 L 440,100 L 460,80 L 465,55 L 490,70 L 510,90 L 520,115 L 515,145 L 500,170 L 480,185 L 460,190 L 440,180 L 420,165 L 400,155 L 395,135 L 395,120 Z',
     labelX: 465,
     labelY: 135,
+    contourR: [20, 38],
   },
   {
     id: 'gauteng',
@@ -72,6 +87,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 370,130 L 395,120 L 395,135 L 400,155 L 390,165 L 375,170 L 360,165 L 350,155 L 345,140 Z',
     labelX: 372,
     labelY: 148,
+    contourR: [12, 22],
   },
   {
     id: 'north-west',
@@ -79,6 +95,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 240,75 L 250,95 L 270,105 L 295,110 L 320,115 L 345,125 L 345,140 L 350,155 L 360,165 L 350,180 L 335,195 L 310,205 L 280,210 L 250,205 L 220,195 L 195,180 L 180,160 L 175,140 L 185,120 L 200,100 L 220,85 Z',
     labelX: 275,
     labelY: 160,
+    contourR: [30, 50],
   },
   {
     id: 'free-state',
@@ -86,6 +103,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 350,180 L 360,165 L 375,170 L 390,165 L 400,155 L 420,165 L 440,180 L 460,190 L 455,215 L 440,240 L 420,260 L 395,270 L 370,275 L 340,270 L 310,260 L 285,245 L 270,225 L 275,210 L 280,210 L 310,205 L 335,195 Z',
     labelX: 365,
     labelY: 225,
+    contourR: [25, 45, 65],
   },
   {
     id: 'kwazulu-natal',
@@ -93,6 +111,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 460,190 L 480,185 L 500,170 L 515,190 L 525,215 L 530,245 L 525,275 L 515,305 L 500,330 L 480,350 L 460,365 L 445,370 L 440,355 L 440,335 L 435,315 L 420,295 L 410,275 L 420,260 L 440,240 L 455,215 Z',
     labelX: 480,
     labelY: 280,
+    contourR: [25, 45],
   },
   {
     id: 'northern-cape',
@@ -100,6 +119,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 30,110 L 50,90 L 80,75 L 110,70 L 140,72 L 170,78 L 195,80 L 220,85 L 200,100 L 185,120 L 175,140 L 180,160 L 195,180 L 220,195 L 250,205 L 275,210 L 270,225 L 285,245 L 270,260 L 245,275 L 215,285 L 185,290 L 155,295 L 130,300 L 105,305 L 80,300 L 60,280 L 40,255 L 25,225 L 15,195 L 10,165 L 15,135 L 20,120 Z',
     labelX: 150,
     labelY: 195,
+    contourR: [40, 65, 90],
   },
   {
     id: 'western-cape',
@@ -107,6 +127,7 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 80,300 L 105,305 L 130,300 L 155,295 L 185,290 L 215,285 L 210,305 L 200,325 L 190,345 L 175,365 L 155,385 L 135,400 L 115,410 L 95,415 L 75,410 L 58,395 L 45,375 L 35,350 L 30,325 L 32,310 L 45,300 L 60,295 Z',
     labelX: 125,
     labelY: 355,
+    contourR: [25, 45],
   },
   {
     id: 'eastern-cape',
@@ -114,30 +135,113 @@ const PROVINCE_GEO: ProvinceGeo[] = [
     path: 'M 215,285 L 245,275 L 270,260 L 285,245 L 310,260 L 340,270 L 370,275 L 395,270 L 410,275 L 420,295 L 435,315 L 440,335 L 440,355 L 445,370 L 430,380 L 410,395 L 385,405 L 355,410 L 325,408 L 295,400 L 265,390 L 240,375 L 220,355 L 205,335 L 195,315 L 200,305 L 210,305 Z',
     labelX: 320,
     labelY: 345,
+    contourR: [30, 50, 70],
   },
 ];
 
-// ── Indicator Options ────────────────────────────────────────────────────────
+// ── Municipality Dot Positions (approximate, relative to province centroids) ──
+
+const MUNICIPALITY_DOTS: Record<string, Array<{ dx: number; dy: number }>> = {
+  'Gauteng': [{ dx: -5, dy: -8 }, { dx: 8, dy: 5 }, { dx: -2, dy: 12 }, { dx: 12, dy: -3 }],
+  'Western Cape': [{ dx: -8, dy: -5 }, { dx: 5, dy: 8 }, { dx: -3, dy: 15 }],
+  'KwaZulu-Natal': [{ dx: -10, dy: -8 }, { dx: 8, dy: 5 }, { dx: 0, dy: 15 }, { dx: 12, dy: -5 }],
+  'Eastern Cape': [{ dx: -10, dy: -8 }, { dx: 8, dy: 5 }, { dx: -5, dy: 12 }],
+  'Free State': [{ dx: -8, dy: -5 }, { dx: 5, dy: 8 }, { dx: 12, dy: -3 }],
+  'Limpopo': [{ dx: -10, dy: -8 }, { dx: 8, dy: 5 }, { dx: -5, dy: 12 }, { dx: 12, dy: -3 }, { dx: 0, dy: 0 }],
+  'Mpumalanga': [{ dx: -8, dy: -5 }, { dx: 5, dy: 8 }, { dx: 12, dy: -3 }],
+  'North West': [{ dx: -10, dy: -8 }, { dx: 8, dy: 5 }, { dx: -5, dy: 12 }, { dx: 12, dy: -3 }],
+  'Northern Cape': [{ dx: -15, dy: -10 }, { dx: 10, dy: 5 }, { dx: -5, dy: 15 }],
+};
+
+// ── Indicator Options with Trend Data ─────────────────────────────────────────
 
 const INDICATORS: IndicatorOption[] = [
-  { key: 'avgFHS', label: 'Financial Health Score', unit: 'score', format: (v) => `${v}/100`, dotColor: '#22C55E' },
-  { key: 'avgSDS', label: 'Service Delivery Pressure', unit: 'score', invertScale: true, format: (v) => `${v}/100`, dotColor: '#F59E0B' },
-  { key: 'municipalities', label: 'Municipality Count', unit: 'count', invertScale: true, format: (v) => formatNumber(v), dotColor: '#6B7280' },
-  { key: 'section139', label: 'Section 139 Interventions', unit: 'count', invertScale: true, format: (v) => formatNumber(v), dotColor: '#EF4444' },
-  { key: 'cleanAudit', label: 'Clean Audit Count', unit: 'count', format: (v) => formatNumber(v), dotColor: '#10B981' },
+  {
+    key: 'avgFHS',
+    label: 'Financial Health Score',
+    unit: 'score',
+    format: (v) => `${v}/100`,
+    dotColor: '#22C55E',
+    trendData: [
+      { year: '2019/20', value: 42 },
+      { year: '2020/21', value: 40 },
+      { year: '2021/22', value: 38 },
+      { year: '2022/23', value: 41 },
+      { year: '2023/24', value: 43 },
+    ],
+  },
+  {
+    key: 'avgSDS',
+    label: 'Service Delivery Pressure',
+    unit: 'score',
+    invertScale: true,
+    format: (v) => `${v}/100`,
+    dotColor: '#F59E0B',
+    trendData: [
+      { year: '2019/20', value: 55 },
+      { year: '2020/21', value: 58 },
+      { year: '2021/22', value: 56 },
+      { year: '2022/23', value: 54 },
+      { year: '2023/24', value: 52 },
+    ],
+  },
+  {
+    key: 'municipalities',
+    label: 'Municipality Count',
+    unit: 'count',
+    invertScale: true,
+    format: (v) => formatNumber(v),
+    dotColor: '#6B7280',
+    trendData: [
+      { year: '2019/20', value: 257 },
+      { year: '2020/21', value: 257 },
+      { year: '2021/22', value: 257 },
+      { year: '2022/23', value: 257 },
+      { year: '2023/24', value: 257 },
+    ],
+  },
+  {
+    key: 'section139',
+    label: 'Section 139 Interventions',
+    unit: 'count',
+    invertScale: true,
+    format: (v) => formatNumber(v),
+    dotColor: '#EF4444',
+    trendData: [
+      { year: '2019/20', value: 28 },
+      { year: '2020/21', value: 31 },
+      { year: '2021/22', value: 34 },
+      { year: '2022/23', value: 38 },
+      { year: '2023/24', value: 43 },
+    ],
+  },
+  {
+    key: 'cleanAudit',
+    label: 'Clean Audit Count',
+    unit: 'count',
+    format: (v) => formatNumber(v),
+    dotColor: '#10B981',
+    trendData: [
+      { year: '2019/20', value: 22 },
+      { year: '2020/21', value: 25 },
+      { year: '2021/22', value: 28 },
+      { year: '2022/23', value: 26 },
+      { year: '2023/24', value: 30 },
+    ],
+  },
 ];
 
-// ── Color Scale (nuanced gradients) ──────────────────────────────────────────
+// ── Color Scale ──────────────────────────────────────────────────────────────
 
 function getChoroplethColor(value: number, min: number, max: number, invert?: boolean): string {
   const normalized = max === min ? 0.5 : (value - min) / (max - min);
   const score = invert ? 1 - normalized : normalized;
 
-  if (score >= 0.75) return '#059669'; // deep emerald
-  if (score >= 0.55) return '#10B981'; // emerald
-  if (score >= 0.4) return '#F59E0B';  // amber
-  if (score >= 0.25) return '#EA580C'; // deep orange
-  return '#DC2626'; // deep red
+  if (score >= 0.75) return '#059669';
+  if (score >= 0.55) return '#10B981';
+  if (score >= 0.4) return '#F59E0B';
+  if (score >= 0.25) return '#EA580C';
+  return '#DC2626';
 }
 
 function getChoroplethGlow(value: number, min: number, max: number, invert?: boolean): string {
@@ -149,6 +253,25 @@ function getChoroplethGlow(value: number, min: number, max: number, invert?: boo
   if (score >= 0.4) return '#F59E0B';
   if (score >= 0.25) return '#EA580C';
   return '#DC2626';
+}
+
+// ── Rank Badge Colors ────────────────────────────────────────────────────────
+
+function getRankBadge(rank: number): { color: string; bg: string; border: string } | null {
+  if (rank === 1) return { color: '#B45309', bg: 'rgba(180,83,9,0.15)', border: 'rgba(180,83,9,0.3)' }; // gold
+  if (rank === 2) return { color: '#94A3B8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)' }; // silver
+  if (rank === 3) return { color: '#92400E', bg: 'rgba(146,64,14,0.15)', border: 'rgba(146,64,14,0.3)' }; // bronze
+  return null;
+}
+
+// ── Province Abbreviation ────────────────────────────────────────────────────
+
+function abbreviateProvince(name: string): string {
+  if (name === 'KwaZulu-Natal') return 'KZN';
+  if (name === 'Northern Cape') return 'N. Cape';
+  if (name === 'Eastern Cape') return 'E. Cape';
+  if (name === 'North West') return 'N. West';
+  return name;
 }
 
 // ── Sub-Components ───────────────────────────────────────────────────────────
@@ -194,6 +317,7 @@ function ProvinceDetailPanel({
   onClose: () => void;
   indicator: IndicatorOption;
 }) {
+  const { setActiveModule } = useNavigationStore();
   const provinceData = PROVINCE_SUMMARY.find((p) => p.province === provinceName);
   const municipalities = MOCK_MUNICIPALITIES.filter((m) => m.province === provinceName);
 
@@ -239,6 +363,10 @@ function ProvinceDetailPanel({
     },
   ];
 
+  const handleMuniClick = () => {
+    setActiveModule('munilens');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -247,7 +375,6 @@ function ProvinceDetailPanel({
       transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="rounded-xl bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] overflow-hidden">
-        {/* Top gradient accent line */}
         <div className="h-[2px] bg-gradient-to-r from-transparent via-[#B45309] to-transparent" />
 
         {/* Header */}
@@ -341,24 +468,45 @@ function ProvinceDetailPanel({
           <Separator className="bg-white/[0.06]" />
         </div>
 
-        {/* Municipalities */}
+        {/* Municipalities - Enhanced Drill-Down */}
         <div className="p-4 pt-3">
-          <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2.5">
-            Municipalities
-          </h4>
-          <ScrollArea className="max-h-48">
+          <div className="flex items-center justify-between mb-2.5">
+            <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              Municipalities
+            </h4>
+            <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-[#B45309]/10 text-[#B45309] border-[#B45309]/25">
+              {municipalities.length} listed
+            </Badge>
+          </div>
+          <ScrollArea className="max-h-56">
             <div className="space-y-1.5">
               {municipalities.length > 0 ? (
                 municipalities.map((muni) => (
-                  <div
+                  <button
                     key={muni.id}
-                    className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-white/[0.1] hover:bg-white/[0.03] transition-all duration-200"
+                    onClick={handleMuniClick}
+                    className="w-full flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-[#B45309]/25 hover:bg-[#B45309]/5 transition-all duration-200 text-left group"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Building2 className="size-3 text-zinc-600 shrink-0" />
-                      <span className="text-[11px] text-zinc-300 truncate">{muni.name}</span>
+                      <Building2 className="size-3 text-zinc-600 group-hover:text-[#B45309] shrink-0 transition-colors" />
+                      <span className="text-[11px] text-zinc-300 group-hover:text-zinc-100 truncate transition-colors">{muni.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* §139 Status Badge */}
+                      {muni.section139Status && muni.section139Status !== 'None' && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[7px] h-3.5 px-1',
+                            muni.section139Status === 'Intervention'
+                              ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                              : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                          )}
+                        >
+                          §139
+                        </Badge>
+                      )}
+                      {/* Audit Outcome Badge */}
                       <Badge
                         variant="outline"
                         className={cn(
@@ -376,11 +524,19 @@ function ProvinceDetailPanel({
                       >
                         {muni.auditOutcome}
                       </Badge>
-                      <span className="text-[10px] text-zinc-500 tabular-nums w-10 text-right">
-                        FHS {muni.financialHealthScore}
+                      {/* FHS Score Badge */}
+                      <span className={cn(
+                        'text-[9px] font-semibold tabular-nums px-1 py-0.5 rounded',
+                        (muni.financialHealthScore ?? 0) >= 65
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : (muni.financialHealthScore ?? 0) >= 45
+                            ? 'bg-amber-500/10 text-amber-400'
+                            : 'bg-red-500/10 text-red-400'
+                      )}>
+                        {muni.financialHealthScore}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 ))
               ) : (
                 <p className="text-[11px] text-zinc-600 py-2 text-center">
@@ -389,6 +545,17 @@ function ProvinceDetailPanel({
               )}
             </div>
           </ScrollArea>
+
+          {/* View All in MuniLens Button */}
+          <Button
+            onClick={handleMuniClick}
+            variant="outline"
+            size="sm"
+            className="w-full mt-3 h-7 text-[10px] gap-1.5 border-[#B45309]/25 bg-[#B45309]/5 text-[#B45309] hover:bg-[#B45309]/15 hover:border-[#B45309]/40 transition-all"
+          >
+            View All in MuniLens
+            <ArrowRight className="size-3" />
+          </Button>
         </div>
       </div>
     </motion.div>
@@ -396,7 +563,6 @@ function ProvinceDetailPanel({
 }
 
 function ColorLegend({ min, max, indicator }: { min: number; max: number; indicator: IndicatorOption }) {
-  // Smooth gradient stops
   const gradientColors = '#DC2626, #EA580C, #F59E0B, #10B981, #059669';
   const tickCount = 5;
   const tickValues = Array.from({ length: tickCount }, (_, i) => {
@@ -413,14 +579,12 @@ function ColorLegend({ min, max, indicator }: { min: number; max: number; indica
             {indicator.format(min)}
           </span>
           <div className="flex-1 relative">
-            {/* Smooth gradient bar */}
             <div
               className="h-3 rounded-full w-full"
               style={{
                 background: `linear-gradient(to right, ${gradientColors})`,
               }}
             />
-            {/* Tick marks */}
             <div className="relative h-2 mt-0.5">
               {tickValues.map((val, i) => {
                 const pos = (i / (tickCount - 1)) * 100;
@@ -462,6 +626,81 @@ function ColorLegend({ min, max, indicator }: { min: number; max: number; indica
   );
 }
 
+// ── Indicator Trend Mini Chart ───────────────────────────────────────────────
+
+function IndicatorTrendChart({ indicator }: { indicator: IndicatorOption }) {
+  if (!indicator.trendData) return null;
+
+  const values = indicator.trendData.map((d) => d.value);
+  const latest = values[values.length - 1];
+  const previous = values[values.length - 2];
+  const direction = latest > previous ? 'up' : latest < previous ? 'down' : 'stable';
+  const delta = Math.abs(latest - previous);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <BarChart3 className="size-3 text-[#B45309]" />
+          <span className="text-[10px] font-semibold text-zinc-300">
+            5-Year Trend: {indicator.label}
+          </span>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            'text-[8px] h-4 px-1.5 gap-0.5',
+            direction === 'up' && !indicator.invertScale
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+              : direction === 'down' && !indicator.invertScale
+                ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                : direction === 'up' && indicator.invertScale
+                  ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                  : direction === 'down' && indicator.invertScale
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                    : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25'
+          )}
+        >
+          {direction === 'up' ? <TrendingUp className="size-2.5" /> : direction === 'down' ? <TrendingDown className="size-2.5" /> : <Minus className="size-2.5" />}
+          {delta > 0 ? (direction === 'up' ? '+' : '-') + delta : 'Stable'}
+        </Badge>
+      </div>
+      <div className="h-[60px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={indicator.trendData} margin={{ top: 2, right: 4, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#B45309" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#B45309" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="year" tick={{ fill: '#71717a', fontSize: 8 }} axisLine={false} tickLine={false} />
+            <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={false} axisLine={false} tickLine={false} />
+            <RechartsTooltip
+              contentStyle={{
+                background: 'rgba(13, 18, 36, 0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                fontSize: '10px',
+                color: '#e4e4e7',
+                boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+              }}
+              formatter={(value: number) => [indicator.format(value), indicator.label]}
+            />
+            <Area type="monotone" dataKey="value" stroke="none" fill="url(#trendGradient)" />
+            <Line type="monotone" dataKey="value" stroke="#B45309" strokeWidth={2} dot={{ r: 3, fill: '#B45309', stroke: '#0d1224', strokeWidth: 1.5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main GeoLens Component ───────────────────────────────────────────────────
 
 export default function GeoLens() {
@@ -471,7 +710,6 @@ export default function GeoLens() {
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [indicatorDropdownOpen, setIndicatorDropdownOpen] = useState(false);
 
-  // Compute min/max for the selected indicator
   const { min, max } = useMemo(() => {
     const values = PROVINCE_SUMMARY.map((p) => p[selectedIndicator.key] as number);
     return { min: Math.min(...values), max: Math.max(...values) };
@@ -493,13 +731,24 @@ export default function GeoLens() {
     []
   );
 
-  // National overview stats
   const nationalStats = useMemo(() => ({
     avgFHS: Math.round(PROVINCE_SUMMARY.reduce((s, p) => s + p.avgFHS, 0) / 9),
     total139: PROVINCE_SUMMARY.reduce((s, p) => s + p.section139, 0),
     cleanAudits: PROVINCE_SUMMARY.reduce((s, p) => s + p.cleanAudit, 0),
     totalMunis: PROVINCE_SUMMARY.reduce((s, p) => s + p.municipalities, 0),
   }), []);
+
+  // Sorted provinces for rankings
+  const sortedProvinces = useMemo(() =>
+    [...PROVINCE_SUMMARY].sort((a, b) => {
+      const av = a[selectedIndicator.key] as number;
+      const bv = b[selectedIndicator.key] as number;
+      return selectedIndicator.invertScale ? av - bv : bv - av;
+    })
+  , [selectedIndicator]);
+
+  // Indicator-specific glow color
+  const indicatorGlowColor = selectedIndicator.dotColor;
 
   return (
     <div className="space-y-5">
@@ -517,7 +766,6 @@ export default function GeoLens() {
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-zinc-100">GeoLens</h1>
-              {/* Pulsing green LIVE dot */}
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <span className="relative flex size-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -590,13 +838,15 @@ export default function GeoLens() {
             </AnimatePresence>
           </div>
 
-          {/* Time Period */}
           <button className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-medium text-zinc-500 hover:border-white/[0.15] hover:bg-white/[0.05] transition-all">
             <Info className="size-3.5" />
             <span>2023/24</span>
           </button>
         </div>
       </motion.div>
+
+      {/* ── Indicator Trend Mini Chart ───────────────────────────── */}
+      <IndicatorTrendChart indicator={selectedIndicator} />
 
       {/* ── Map + Detail Grid ─────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
@@ -610,7 +860,6 @@ export default function GeoLens() {
             <CardContent className="p-4 lg:p-6">
               {/* SVG Map */}
               <div className="relative w-full max-w-2xl mx-auto">
-                {/* Vignette overlay */}
                 <div className="absolute inset-0 pointer-events-none z-10 rounded-xl" style={{
                   background: 'radial-gradient(ellipse at center, transparent 50%, rgba(8,11,22,0.4) 100%)',
                 }} />
@@ -620,7 +869,6 @@ export default function GeoLens() {
                   className="w-full h-auto"
                   style={{ filter: 'drop-shadow(0 4px 30px rgba(180, 83, 9, 0.08))' }}
                 >
-                  {/* Background glow effects */}
                   <defs>
                     <filter id="glow">
                       <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -636,22 +884,28 @@ export default function GeoLens() {
                         <feMergeNode in="SourceGraphic" />
                       </feMerge>
                     </filter>
-                    {/* Spotlight radial gradient from center */}
+                    {/* Dynamic indicator-based spotlight gradient */}
                     <radialGradient id="bgSpotlight" cx="50%" cy="45%" r="55%">
-                      <stop offset="0%" stopColor="#B45309" stopOpacity="0.06" />
-                      <stop offset="40%" stopColor="#B45309" stopOpacity="0.03" />
+                      <stop offset="0%" stopColor={indicatorGlowColor} stopOpacity="0.06" />
+                      <stop offset="40%" stopColor={indicatorGlowColor} stopOpacity="0.03" />
                       <stop offset="100%" stopColor="transparent" stopOpacity="0" />
                     </radialGradient>
-                    {/* Vignette gradient */}
                     <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
                       <stop offset="60%" stopColor="transparent" stopOpacity="0" />
                       <stop offset="100%" stopColor="#080b16" stopOpacity="0.5" />
                     </radialGradient>
+                    {/* Pulse ring filter */}
+                    <filter id="pulseGlow">
+                      <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
                   </defs>
 
-                  {/* Spotlight background */}
+                  {/* Spotlight background - shifts with indicator */}
                   <rect x="0" y="0" width="540" height="430" fill="url(#bgSpotlight)" />
-                  {/* Vignette */}
                   <rect x="0" y="0" width="540" height="430" fill="url(#vignette)" />
 
                   {/* Province Paths */}
@@ -664,6 +918,33 @@ export default function GeoLens() {
 
                     return (
                       <g key={geo.id}>
+                        {/* Topographic contour lines for depth */}
+                        {geo.contourR?.map((r, ci) => (
+                          <circle
+                            key={`contour-${ci}`}
+                            cx={geo.labelX}
+                            cy={geo.labelY}
+                            r={r}
+                            fill="none"
+                            stroke="rgba(255,255,255,0.03)"
+                            strokeWidth={0.5}
+                            strokeDasharray="2,3"
+                            className="pointer-events-none"
+                          />
+                        ))}
+
+                        {/* Municipality dot markers */}
+                        {(MUNICIPALITY_DOTS[geo.name] || []).map((dot, di) => (
+                          <circle
+                            key={`muni-dot-${di}`}
+                            cx={geo.labelX + dot.dx}
+                            cy={geo.labelY + dot.dy}
+                            r={1.5}
+                            fill="rgba(255,255,255,0.2)"
+                            className="pointer-events-none"
+                          />
+                        ))}
+
                         {/* Glow effect on hover */}
                         {(isHovered || isSelected) && (
                           <path
@@ -675,18 +956,33 @@ export default function GeoLens() {
                             opacity="0.7"
                           />
                         )}
-                        {/* Selected pulsing ring */}
+
+                        {/* Selected pulsing ring - enhanced with outer pulse */}
                         {isSelected && (
-                          <path
-                            d={geo.path}
-                            fill="none"
-                            stroke="#B45309"
-                            strokeWidth="3"
-                            opacity="0.4"
-                            className="animate-pulse"
-                            style={{ animationDuration: '2s' }}
-                          />
+                          <>
+                            <path
+                              d={geo.path}
+                              fill="none"
+                              stroke="#B45309"
+                              strokeWidth="3"
+                              opacity="0.4"
+                              className="animate-pulse"
+                              style={{ animationDuration: '2s' }}
+                            />
+                            {/* Outer pulse ring */}
+                            <path
+                              d={geo.path}
+                              fill="none"
+                              stroke="#B45309"
+                              strokeWidth="8"
+                              opacity="0.15"
+                              filter="url(#pulseGlow)"
+                              className="animate-pulse"
+                              style={{ animationDuration: '2.5s' }}
+                            />
+                          </>
                         )}
+
                         {/* Province shape */}
                         <path
                           d={geo.path}
@@ -705,33 +1001,24 @@ export default function GeoLens() {
                             setSelectedProvince(selectedProvince === geo.name ? null : geo.name)
                           }
                         />
-                        {/* Province label */}
+
+                        {/* Province label - Enhanced: always fw 700, stronger shadow */}
                         <text
                           x={geo.labelX}
                           y={geo.labelY}
                           textAnchor="middle"
                           className="pointer-events-none select-none"
-                          fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.65)'}
+                          fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.75)'}
                           fontSize={geo.name === 'Gauteng' ? '9' : '10.5'}
-                          fontWeight={isHovered || isSelected ? '700' : '600'}
+                          fontWeight="700"
                           style={{
-                            transition: 'fill 0.3s, font-weight 0.3s',
+                            transition: 'fill 0.3s',
                             textShadow: isHovered || isSelected
-                              ? '0 0 8px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8)'
-                              : '0 0 6px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6)',
+                              ? '0 0 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9), 0 0 20px rgba(180,83,9,0.3)'
+                              : '0 0 8px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.8)',
                           }}
                         >
-                          {geo.name === 'KwaZulu-Natal'
-                            ? 'KZN'
-                            : geo.name === 'Northern Cape'
-                              ? 'N. Cape'
-                              : geo.name === 'Eastern Cape'
-                                ? 'E. Cape'
-                                : geo.name === 'North West'
-                                  ? 'N. West'
-                                  : geo.name === 'Free State'
-                                    ? 'Free State'
-                                    : geo.name}
+                          {abbreviateProvince(geo.name)}
                         </text>
                       </g>
                     );
@@ -778,7 +1065,6 @@ export default function GeoLens() {
                 exit={{ opacity: 0 }}
               >
                 <div className="rounded-xl bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] overflow-hidden">
-                  {/* Top gradient accent */}
                   <div className="h-[2px] bg-gradient-to-r from-transparent via-[#B45309] to-transparent" />
 
                   <div className="p-6">
@@ -794,14 +1080,13 @@ export default function GeoLens() {
 
                       <Separator className="my-5 bg-white/[0.06] w-full" />
 
-                      {/* National Overview with enhanced stat cards */}
+                      {/* National Overview */}
                       <div className="w-full space-y-3">
                         <h4 className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                           <Radio className="size-3 text-[#B45309]" />
                           National Overview
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
-                          {/* Avg Financial Health */}
                           <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
                             background: 'linear-gradient(135deg, rgba(34,197,94,0.05) 0%, rgba(13,18,36,0.4) 100%)',
                           }}>
@@ -813,7 +1098,6 @@ export default function GeoLens() {
                               {nationalStats.avgFHS}
                             </p>
                           </div>
-                          {/* Total §139 */}
                           <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
                             background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(13,18,36,0.4) 100%)',
                           }}>
@@ -825,7 +1109,6 @@ export default function GeoLens() {
                               {nationalStats.total139}
                             </p>
                           </div>
-                          {/* Clean Audits */}
                           <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
                             background: 'linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(13,18,36,0.4) 100%)',
                           }}>
@@ -837,7 +1120,6 @@ export default function GeoLens() {
                               {nationalStats.cleanAudits}
                             </p>
                           </div>
-                          {/* Total Munis */}
                           <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
                             background: 'linear-gradient(135deg, rgba(107,114,128,0.05) 0%, rgba(13,18,36,0.4) 100%)',
                           }}>
@@ -851,7 +1133,6 @@ export default function GeoLens() {
                           </div>
                         </div>
 
-                        {/* Subtle grid pattern */}
                         <div className="mt-3 rounded-lg border border-white/[0.04] p-3 relative overflow-hidden">
                           <div className="absolute inset-0 opacity-[0.03]" style={{
                             backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
@@ -882,7 +1163,7 @@ export default function GeoLens() {
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
       </div>
 
-      {/* ── Province Summary Cards ─────────────────────────────── */}
+      {/* ── Province Summary Cards (Enhanced Rankings) ────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -902,70 +1183,88 @@ export default function GeoLens() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-              {[...PROVINCE_SUMMARY]
-                .sort((a, b) => {
-                  const av = a[selectedIndicator.key] as number;
-                  const bv = b[selectedIndicator.key] as number;
-                  return selectedIndicator.invertScale ? av - bv : bv - av;
-                })
-                .map((prov, i) => {
-                  const value = prov[selectedIndicator.key] as number;
-                  const color = getChoroplethColor(value, min, max, selectedIndicator.invertScale);
-                  const isSelected = selectedProvince === prov.province;
+              {sortedProvinces.map((prov, i) => {
+                const value = prov[selectedIndicator.key] as number;
+                const color = getChoroplethColor(value, min, max, selectedIndicator.invertScale);
+                const isSelected = selectedProvince === prov.province;
+                const rankBadge = getRankBadge(i + 1);
 
-                  return (
-                    <motion.button
-                      key={prov.province}
-                      onClick={() =>
-                        setSelectedProvince(selectedProvince === prov.province ? null : prov.province)
-                      }
-                      whileHover={{ scale: 1.03, x: 2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={cn(
-                        'rounded-lg border p-2.5 text-left transition-all duration-200 relative overflow-hidden',
-                        isSelected
-                          ? 'border-[#B45309]/50 bg-[#B45309]/10 shadow-[0_0_16px_rgba(180,83,9,0.1)]'
-                          : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
-                      )}
-                      style={{
-                        borderLeftWidth: isSelected ? '3px' : undefined,
-                        borderLeftColor: isSelected ? '#B45309' : undefined,
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <div
-                          className="size-2 rounded-full shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
+                // Deterministic trend data per province based on indicator
+                const provinceTrendMap: Record<string, { dir: 'up' | 'down' | 'stable'; delta: number }> = {
+                  'Western Cape': { dir: 'up', delta: 2 },
+                  'Gauteng': { dir: 'up', delta: 1 },
+                  'KwaZulu-Natal': { dir: 'down', delta: -3 },
+                  'Eastern Cape': { dir: 'down', delta: -2 },
+                  'Free State': { dir: 'down', delta: -1 },
+                  'Limpopo': { dir: 'down', delta: -4 },
+                  'Mpumalanga': { dir: 'stable', delta: 0 },
+                  'North West': { dir: 'up', delta: 1 },
+                  'Northern Cape': { dir: 'stable', delta: 0 },
+                };
+                const trendInfo = provinceTrendMap[prov.province] ?? { dir: 'stable' as const, delta: 0 };
+                const trendDir = trendInfo.dir;
+                const deltaVal = trendInfo.delta;
+
+                return (
+                  <motion.button
+                    key={prov.province}
+                    onClick={() =>
+                      setSelectedProvince(selectedProvince === prov.province ? null : prov.province)
+                    }
+                    whileHover={{ scale: 1.03, x: 2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      'rounded-lg border p-2.5 text-left transition-all duration-200 relative overflow-hidden',
+                      isSelected
+                        ? 'border-[#B45309]/50 bg-[#B45309]/10 shadow-[0_0_16px_rgba(180,83,9,0.1)]'
+                        : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
+                    )}
+                    style={{
+                      borderLeftWidth: isSelected ? '3px' : undefined,
+                      borderLeftColor: isSelected ? '#B45309' : undefined,
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      {/* Rank Badge - Gold/Silver/Bronze for top 3 */}
+                      {rankBadge ? (
                         <span
-                          className={cn(
-                            'text-[9px] font-semibold tabular-nums',
-                            i < 3 ? 'text-[#B45309]' : 'text-zinc-400'
-                          )}
+                          className="text-[9px] font-bold px-1 py-0.5 rounded-sm"
+                          style={{ color: rankBadge.color, background: rankBadge.bg, border: `1px solid ${rankBadge.border}` }}
                         >
                           #{i + 1}
                         </span>
-                      </div>
-                      <p className="text-[10px] font-semibold text-zinc-200 truncate leading-tight">
-                        {prov.province === 'KwaZulu-Natal'
-                          ? 'KZN'
-                          : prov.province === 'Northern Cape'
-                            ? 'N. Cape'
-                            : prov.province === 'Eastern Cape'
-                              ? 'E. Cape'
-                              : prov.province === 'North West'
-                                ? 'N. West'
-                                : prov.province}
-                      </p>
-                      <p
-                        className="text-sm font-bold tabular-nums mt-1"
-                        style={{ color }}
-                      >
-                        {selectedIndicator.format(value)}
-                      </p>
-                    </motion.button>
-                  );
-                })}
+                      ) : (
+                        <span className="text-[9px] font-semibold tabular-nums text-zinc-500">
+                          #{i + 1}
+                        </span>
+                      )}
+                      {/* Mini trend indicator */}
+                      {trendDir === 'up' ? (
+                        <TrendingUp className="size-2.5 text-emerald-400" />
+                      ) : trendDir === 'down' ? (
+                        <TrendingDown className="size-2.5 text-red-400" />
+                      ) : (
+                        <Minus className="size-2.5 text-zinc-500" />
+                      )}
+                    </div>
+                    <p className="text-[10px] font-semibold text-zinc-200 truncate leading-tight">
+                      {abbreviateProvince(prov.province)}
+                    </p>
+                    <p className="text-sm font-bold tabular-nums mt-1" style={{ color }}>
+                      {selectedIndicator.format(value)}
+                    </p>
+                    {/* Delta from previous year */}
+                    {deltaVal !== 0 && (
+                      <span className={cn(
+                        'text-[8px] font-semibold tabular-nums',
+                        deltaVal > 0 ? 'text-emerald-400' : 'text-red-400'
+                      )}>
+                        {deltaVal > 0 ? '+' : ''}{deltaVal} YoY
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -976,15 +1275,15 @@ export default function GeoLens() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="flex items-center justify-between pt-1 pb-2"
+        className="flex items-center justify-between flex-wrap gap-2 pt-1 pb-2"
       >
         <div className="flex items-center gap-2 text-[10px] text-zinc-600">
           <Database className="size-3" />
-          <span>Data source: Stats SA, National Treasury MFMA, Auditor-General SA</span>
+          <span>Sources: Stats SA, National Treasury MFMA, Auditor-General SA</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
           <ShieldCheck className="size-3 text-[#B45309]/40" />
-          <span>GeoLens v2.0 — Spatial Intelligence Module</span>
+          <span>GeoLens v2.1 — Spatial Intelligence Module</span>
         </div>
       </motion.div>
     </div>

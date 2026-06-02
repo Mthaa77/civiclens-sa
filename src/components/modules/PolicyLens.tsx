@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LineChart,
   Line,
@@ -16,10 +16,10 @@ import {
   ReferenceLine,
 } from 'recharts';
 import {
-  ScrollText,
-  Search,
   BookOpen,
+  Search,
   TrendingUp,
+  TrendingDown,
   BarChart3,
   Table2,
   Loader2,
@@ -28,6 +28,18 @@ import {
   Lightbulb,
   Target,
   ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  Sparkles,
+  Download,
+  Droplets,
+  Heart,
+  GraduationCap,
+  Home,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Scale,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MOCK_MUNICIPALITIES, PROVINCE_SUMMARY } from '@/lib/mock-data';
@@ -51,8 +63,9 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 // ── Accent Colors: teal (#0F766E) → cyan (#06B6D4) ────────────────────────
 const ACCENT_FROM = '#0F766E';
@@ -78,12 +91,22 @@ const itemFadeIn = {
 // ── Policy Themes ───────────────────────────────────────────────────────────
 
 const THEMES = [
-  { id: 'labour', label: 'Labour', icon: '👷', color: '#3B82F6', indicators: ['Unemployment Rate', 'Youth Unemployment', 'Formal Employment', 'Informal Employment', 'Labour Force Participation'], nationalAvg: [31.5, 44.8, 62, 18, 56] },
-  { id: 'poverty', label: 'Poverty', icon: '📊', color: '#EF4444', indicators: ['Poverty Rate', 'Gini Coefficient', 'SASSA Dependency', 'Household Income', 'Food Security'], nationalAvg: [50.8, 0.61, 47, 18700, 78] },
-  { id: 'health', label: 'Health', icon: '🏥', color: '#10B981', indicators: ['Life Expectancy', 'Infant Mortality', 'HIV Prevalence', 'Healthcare Access', 'Immunisation Rate'], nationalAvg: [65, 22, 13.7, 72, 80] },
-  { id: 'education', label: 'Education', icon: '📚', color: '#8B5CF6', indicators: ['Matric Pass Rate', 'Literacy Rate', 'School Infrastructure', 'Teacher:Learner Ratio', 'ECD Access'], nationalAvg: [74, 87, 58, '1:32', 62] },
-  { id: 'water', label: 'Water', icon: '💧', color: '#0891B2', indicators: ['Water Access', 'Blue Drop Score', 'Sanitation Access', 'Green Drop Score', 'Water Loss Rate'], nationalAvg: [81.2, 44, 72.5, 38, 37] },
-  { id: 'crime', label: 'Crime', icon: '🛡️', color: '#F59E0B', indicators: ['Murder Rate', 'Sexual Offences', 'Property Crime', 'Drug-related Crime', 'Police:Population Ratio'], nationalAvg: [33, 72, 142, 108, '1:389'] },
+  { id: 'labour', label: 'Labour', icon: Users, color: '#3B82F6', indicators: ['Unemployment Rate', 'Youth Unemployment', 'Formal Employment', 'Informal Employment', 'Labour Force Participation'], nationalAvg: [31.5, 44.8, 62, 18, 56], trendDirs: ['down', 'down', 'up', 'up', 'stable'] },
+  { id: 'poverty', label: 'Poverty', icon: Scale, color: '#EF4444', indicators: ['Poverty Rate', 'Gini Coefficient', 'SASSA Dependency', 'Household Income', 'Food Security'], nationalAvg: [50.8, 0.61, 47, 18700, 78], trendDirs: ['down', 'down', 'up', 'up', 'up'] },
+  { id: 'health', label: 'Health', icon: Heart, color: '#10B981', indicators: ['Life Expectancy', 'Infant Mortality', 'HIV Prevalence', 'Healthcare Access', 'Immunisation Rate'], nationalAvg: [65, 22, 13.7, 72, 80], trendDirs: ['up', 'down', 'down', 'up', 'up'] },
+  { id: 'education', label: 'Education', icon: GraduationCap, color: '#8B5CF6', indicators: ['Matric Pass Rate', 'Literacy Rate', 'School Infrastructure', 'Teacher:Learner Ratio', 'ECD Access'], nationalAvg: [74, 87, 58, 32, 62], trendDirs: ['up', 'up', 'up', 'stable', 'up'] },
+  { id: 'water', label: 'Water', icon: Droplets, color: '#0891B2', indicators: ['Water Access', 'Blue Drop Score', 'Sanitation Access', 'Green Drop Score', 'Water Loss Rate'], nationalAvg: [81.2, 44, 72.5, 38, 37], trendDirs: ['up', 'down', 'up', 'down', 'down'] },
+  { id: 'crime', label: 'Crime', icon: Target, color: '#F59E0B', indicators: ['Murder Rate', 'Sexual Offences', 'Property Crime', 'Drug-related Crime', 'Police:Population Ratio'], nationalAvg: [33, 72, 142, 108, 389], trendDirs: ['up', 'stable', 'down', 'up', 'stable'] },
+];
+
+// ── Topic Preset Pills ──────────────────────────────────────────────────────
+
+const TOPIC_PRESETS = [
+  { label: 'Youth Unemployment', icon: Users, color: '#3B82F6' },
+  { label: 'Water Access', icon: Droplets, color: '#0891B2' },
+  { label: 'Healthcare', icon: Heart, color: '#10B981' },
+  { label: 'Education', icon: GraduationCap, color: '#8B5CF6' },
+  { label: 'Housing', icon: Home, color: '#F59E0B' },
 ];
 
 // ── Trend Data ──────────────────────────────────────────────────────────────
@@ -96,6 +119,28 @@ const TREND_DATA = [
   { year: '2022', unemployment: 33.0, youthUnemployment: 46.5, povertyRate: 54.1, gini: 0.63 },
   { year: '2023', unemployment: 32.1, youthUnemployment: 45.5, povertyRate: 52.3, gini: 0.62 },
   { year: '2024', unemployment: 31.5, youthUnemployment: 44.8, povertyRate: 50.8, gini: 0.61 },
+];
+
+// ── Extended Trend Data (10Y / All) ─────────────────────────────────────────
+
+const TREND_DATA_EXTENDED = [
+  { year: '2010', unemployment: 24.9, youthUnemployment: 34.5, povertyRate: 57.2, gini: 0.65 },
+  { year: '2011', unemployment: 25.0, youthUnemployment: 35.4, povertyRate: 56.8, gini: 0.65 },
+  { year: '2012', unemployment: 25.2, youthUnemployment: 36.0, povertyRate: 56.1, gini: 0.65 },
+  { year: '2013', unemployment: 25.6, youthUnemployment: 36.8, povertyRate: 55.8, gini: 0.64 },
+  { year: '2014', unemployment: 25.4, youthUnemployment: 36.9, povertyRate: 55.5, gini: 0.64 },
+  { year: '2015', unemployment: 26.0, youthUnemployment: 37.5, povertyRate: 55.2, gini: 0.64 },
+  { year: '2016', unemployment: 26.7, youthUnemployment: 38.2, povertyRate: 55.8, gini: 0.63 },
+  { year: '2017', unemployment: 27.3, youthUnemployment: 38.6, povertyRate: 56.1, gini: 0.63 },
+  ...TREND_DATA,
+];
+
+// ── Policy Milestones ───────────────────────────────────────────────────────
+
+const POLICY_MILESTONES = [
+  { year: '2012', label: 'NDP Adopted', y: 14 },
+  { year: '2020', label: 'COVID-19', y: 58 },
+  { year: '2023', label: 'Medium-Term Strategy', y: 52 },
 ];
 
 // ── Comparison Data ─────────────────────────────────────────────────────────
@@ -112,44 +157,123 @@ const PROVINCIAL_COMPARISON = [
   { name: 'Northern Cape', unemployment: 32.5, poverty: 38.2, waterAccess: 88.1, matricPass: 75.8 },
 ];
 
-// ── Key Policy Insights (rotating) ─────────────────────────────────────────
+// National averages for comparison
+const NATIONAL_AVERAGES = { unemployment: 31.5, poverty: 50.8, waterAccess: 81.2, matricPass: 74.0 };
+
+// ── Key Policy Insights (5 rotating cards) ──────────────────────────────────
 
 const POLICY_INSIGHTS = [
-  { title: 'Youth Unemployment Crisis', description: 'SA youth unemployment (44.8%) remains the highest globally. Targeted intervention in Eastern Cape and Limpopo could impact 2.8M youth.', icon: Target, color: '#EF4444' },
-  { title: 'Water Infrastructure Decline', description: 'Blue Drop scores have dropped 44% since 2012. R128B required to address water infrastructure backlog nationwide.', icon: Lightbulb, color: '#0891B2' },
-  { title: 'Education Outcomes Gap', description: 'Matric pass rates vary 17pp between Western Cape (82.5%) and Limpopo (65.2%), correlating with infrastructure investment.', icon: BookOpen, color: '#8B5CF6' },
+  {
+    title: 'Youth Unemployment Crisis',
+    description: 'SA youth unemployment (44.8%) remains the highest globally.',
+    recommendation: 'Targeted intervention in Eastern Cape and Limpopo could impact 2.8M youth through skills programmes and public employment schemes.',
+    icon: Users,
+    color: '#EF4444',
+  },
+  {
+    title: 'Water Infrastructure Decline',
+    description: 'Blue Drop scores have dropped 44% since 2012. R128B required to address backlog.',
+    recommendation: 'Prioritise municipal water infrastructure grants and strengthen Blue Drop regulatory enforcement.',
+    icon: Droplets,
+    color: '#0891B2',
+  },
+  {
+    title: 'Healthcare Outcome Disparities',
+    description: 'Infant mortality varies 3x between provinces. HIV prevalence plateauing at 13.7%.',
+    recommendation: 'Scale district health specialist teams and accelerate NHI pilot programmes in under-served provinces.',
+    icon: Heart,
+    color: '#10B981',
+  },
+  {
+    title: 'Education Performance Gap',
+    description: 'Matric pass rates vary 17pp between Western Cape (82.5%) and Limpopo (65.2%).',
+    recommendation: 'Ring-fence school infrastructure budgets and deploy additional teacher support in under-performing districts.',
+    icon: GraduationCap,
+    color: '#8B5CF6',
+  },
+  {
+    title: 'Housing Delivery Shortfall',
+    description: '2.5M housing backlog persists. Annual delivery has declined 35% since 2018.',
+    recommendation: 'Reform beneficiary allocation, promote gap housing finance, and leverage private sector partnerships.',
+    icon: Home,
+    color: '#F59E0B',
+  },
 ];
+
+// ── Brief Preview Structure ─────────────────────────────────────────────────
+
+const BRIEF_STRUCTURE = [
+  { section: 'Executive Summary', items: 1 },
+  { section: 'Context & Background', items: 2 },
+  { section: 'Key Findings', items: 3 },
+  { section: 'Data Analysis', items: 4 },
+  { section: 'Policy Recommendations', items: 3 },
+  { section: 'Appendix: Data Sources', items: 2 },
+];
+
+// ── Mini Sparkline SVG Generator ────────────────────────────────────────────
+
+function MiniSparkline({ trend, color }: { trend: string; color: string }) {
+  const paths: Record<string, string> = {
+    up: 'M2,12 L6,10 L10,7 L14,5 L18,2',
+    down: 'M2,2 L6,5 L10,7 L14,10 L18,12',
+    stable: 'M2,7 L6,7 L10,7 L14,7 L18,7',
+  };
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" className="shrink-0">
+      <path d={paths[trend] ?? paths.stable} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="18" cy={trend === 'up' ? 2 : trend === 'down' ? 12 : 7} r="1.5" fill={color} />
+    </svg>
+  );
+}
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function PolicyLens() {
   const [selectedTheme, setSelectedTheme] = useState('labour');
   const [briefTopic, setBriefTopic] = useState('');
-  const [briefGeography, setBriefGeography] = useState('');
-  const [briefAudience, setBriefAudience] = useState('');
+  const [briefGeography, setBriefGeography] = useState('south-africa');
+  const [briefAudience, setBriefAudience] = useState('policy-analyst');
   const [isGenerating, setIsGenerating] = useState(false);
   const [briefGenerated, setBriefGenerated] = useState(false);
   const [insightIndex, setInsightIndex] = useState(0);
   const [sortCol, setSortCol] = useState<string>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [trendPeriod, setTrendPeriod] = useState<'5Y' | '10Y' | 'All'>('5Y');
+  const [expandedIndicator, setExpandedIndicator] = useState<string | null>(null);
+  const [lineVisibility, setLineVisibility] = useState({ unemployment: true, youthUnemployment: true, povertyRate: true });
 
   const currentTheme = THEMES.find((t) => t.id === selectedTheme);
 
-  // Auto-rotate insights
+  // Auto-rotate insights (6s interval)
   useEffect(() => {
     const timer = setInterval(() => {
       setInsightIndex((prev) => (prev + 1) % POLICY_INSIGHTS.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleGenerateBrief = () => {
+  const handleGenerateBrief = useCallback(() => {
     setIsGenerating(true);
+    setBriefGenerated(false);
     setTimeout(() => {
       setIsGenerating(false);
       setBriefGenerated(true);
     }, 2000);
-  };
+  }, []);
+
+  const handlePresetClick = useCallback((label: string) => {
+    setBriefTopic(label);
+    setBriefGenerated(false);
+  }, []);
+
+  const getTrendData = useMemo(() => {
+    switch (trendPeriod) {
+      case '10Y': return TREND_DATA_EXTENDED.slice(-10);
+      case 'All': return TREND_DATA_EXTENDED;
+      default: return TREND_DATA;
+    }
+  }, [trendPeriod]);
 
   const sortedComparison = useMemo(() => {
     if (!sortCol) return PROVINCIAL_COMPARISON;
@@ -163,14 +287,43 @@ export default function PolicyLens() {
     });
   }, [sortCol, sortDir]);
 
-  const handleSort = (col: string) => {
+  const handleSort = useCallback((col: string) => {
     if (sortCol === col) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortCol(col);
       setSortDir('desc');
     }
-  };
+  }, [sortCol]);
+
+  const toggleLine = useCallback((key: string) => {
+    setLineVisibility((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  }, []);
+
+  // National average references for comparison table
+  const getCellColor = useCallback((key: string, value: number) => {
+    const natAvg = NATIONAL_AVERAGES[key as keyof typeof NATIONAL_AVERAGES];
+    if (!natAvg) return 'text-zinc-300';
+    // For negative indicators (unemployment, poverty), below average = green
+    if (key === 'unemployment' || key === 'poverty') {
+      return value < natAvg ? 'text-emerald-400' : value > natAvg * 1.15 ? 'text-red-400' : 'text-amber-400';
+    }
+    // For positive indicators (waterAccess, matricPass), above average = green
+    return value > natAvg ? 'text-emerald-400' : value < natAvg * 0.85 ? 'text-red-400' : 'text-amber-400';
+  }, []);
+
+  const getComparisonRank = useCallback((key: string) => {
+    const isNegative = key === 'unemployment' || key === 'poverty';
+    const sorted = [...PROVINCIAL_COMPARISON].sort((a, b) => {
+      const aVal = a[key as keyof typeof a];
+      const bVal = b[key as keyof typeof b];
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return isNegative ? aVal - bVal : bVal - aVal;
+      }
+      return 0;
+    });
+    return sorted;
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -185,7 +338,7 @@ export default function PolicyLens() {
               className="flex size-10 items-center justify-center rounded-xl border"
               style={{ background: `linear-gradient(135deg, ${ACCENT_FROM}15, ${ACCENT_TO}15)`, borderColor: `${ACCENT_FROM}30` }}
             >
-              <ScrollText className="size-5" style={{ color: ACCENT_TO }} />
+              <BookOpen className="size-5" style={{ color: ACCENT_TO }} />
             </motion.div>
             <motion.div
               className="absolute inset-0 rounded-xl"
@@ -210,47 +363,52 @@ export default function PolicyLens() {
           </div>
           <Badge className="badge-premium badge-phase2 ml-2">Phase 2</Badge>
           <Badge className="badge-premium ml-1" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
-            <Brain className="size-3 mr-1" />Policy Intelligence
+            <BookOpen className="size-3 mr-1" />Policy Intelligence
           </Badge>
         </div>
       </motion.div>
 
-      {/* ── Key Policy Insights (rotating) ───────────────────── */}
+      {/* ── Key Policy Insights (5 rotating cards) ───────────── */}
       <motion.div variants={itemFadeIn} initial="hidden" animate="show">
         <Card className="glass-card-v2 card-hover-lift overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
           <CardContent className="p-0">
-            <div className="relative overflow-hidden" style={{ minHeight: '80px' }}>
-              {POLICY_INSIGHTS.map((insight, i) => (
-                <motion.div
-                  key={insight.title}
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: insightIndex === i ? 1 : 0, x: insightIndex === i ? 0 : 40 }}
-                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                  className="absolute inset-0 flex items-center gap-4 p-4"
-                  style={{ pointerEvents: insightIndex === i ? 'auto' : 'none' }}
-                >
-                  <div className="flex size-10 items-center justify-center rounded-xl shrink-0" style={{ background: `${insight.color}15`, border: `1px solid ${insight.color}25` }}>
-                    <insight.icon className="size-5" style={{ color: insight.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-zinc-200">{insight.title}</p>
-                    <p className="text-[11px] text-zinc-300 leading-relaxed mt-0.5">{insight.description}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {POLICY_INSIGHTS.map((_, j) => (
-                      <button
-                        key={j}
-                        onClick={() => setInsightIndex(j)}
-                        className={cn(
-                          'size-1.5 rounded-full transition-all',
-                          j === insightIndex ? 'bg-cyan-400 w-4' : 'bg-white/20 hover:bg-white/40'
-                        )}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+            <div className="relative overflow-hidden" style={{ minHeight: '88px' }}>
+              <AnimatePresence mode="wait">
+                {POLICY_INSIGHTS.map((insight, i) =>
+                  insightIndex === i ? (
+                    <motion.div
+                      key={insight.title}
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -40 }}
+                      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                      className="absolute inset-0 flex items-center gap-4 p-4"
+                    >
+                      <div className="flex size-10 items-center justify-center rounded-xl shrink-0" style={{ background: `${insight.color}15`, border: `1px solid ${insight.color}25` }}>
+                        <insight.icon className="size-5" style={{ color: insight.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-zinc-200">{insight.title}</p>
+                        <p className="text-[11px] text-zinc-300 leading-relaxed mt-0.5">{insight.description}</p>
+                        <p className="text-[10px] text-cyan-400/80 mt-1 italic">{insight.recommendation}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {POLICY_INSIGHTS.map((_, j) => (
+                          <button
+                            key={j}
+                            onClick={() => setInsightIndex(j)}
+                            className={cn(
+                              'size-1.5 rounded-full transition-all',
+                              j === insightIndex ? 'bg-cyan-400 w-4' : 'bg-white/20 hover:bg-white/40'
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : null
+                )}
+              </AnimatePresence>
             </div>
           </CardContent>
         </Card>
@@ -259,7 +417,7 @@ export default function PolicyLens() {
       <Tabs defaultValue="brief" className="space-y-4">
         <TabsList className="bg-white/[0.03] border border-white/[0.06] h-9">
           <TabsTrigger value="brief" className="text-[11px] data-[state=active]:bg-[#0F766E]/20 data-[state=active]:text-[#06B6D4]">
-            <Brain className="size-3 mr-1" /> Brief Generator
+            <Sparkles className="size-3 mr-1" /> Brief Generator
           </TabsTrigger>
           <TabsTrigger value="explorer" className="text-[11px] data-[state=active]:bg-[#0F766E]/20 data-[state=active]:text-[#06B6D4]">
             <Search className="size-3 mr-1" /> Indicator Explorer
@@ -278,15 +436,38 @@ export default function PolicyLens() {
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-zinc-200">Policy Brief Generator</CardTitle>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Generate evidence-based policy briefs on any topic</p>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-4" style={{ color: ACCENT_TO }} />
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-zinc-200">Policy Brief Generator</CardTitle>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Generate evidence-based policy briefs on any topic</p>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
+                {/* Topic Preset Pills */}
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Quick topics:</span>
+                  {TOPIC_PRESETS.map((preset) => (
+                    <motion.button
+                      key={preset.label}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handlePresetClick(preset.label)}
+                      className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-300 hover:bg-white/[0.06] transition-colors"
+                      style={{ borderLeftWidth: '2px', borderLeftColor: preset.color }}
+                    >
+                      <preset.icon className="size-3" style={{ color: preset.color }} />
+                      {preset.label}
+                    </motion.button>
+                  ))}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-[11px] font-medium text-zinc-400">Topic</label>
                     <Input
-                      placeholder="e.g., Water service delivery gaps"
+                      placeholder="e.g., Water service delivery gaps in rural municipalities"
                       value={briefTopic}
                       onChange={(e) => { setBriefTopic(e.target.value); setBriefGenerated(false); }}
                       className="h-8 text-xs border-white/[0.08] bg-white/[0.03] focus:border-[#06B6D4]/30"
@@ -296,14 +477,20 @@ export default function PolicyLens() {
                     <label className="text-[11px] font-medium text-zinc-400">Geography</label>
                     <Select value={briefGeography} onValueChange={(v) => { setBriefGeography(v); setBriefGenerated(false); }}>
                       <SelectTrigger className="h-8 text-xs border-white/[0.08] bg-white/[0.03]">
-                        <SelectValue placeholder="Select geography" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="south-africa">South Africa</SelectItem>
                         <SelectItem value="national">National</SelectItem>
                         <SelectItem value="eastern-cape">Eastern Cape</SelectItem>
                         <SelectItem value="gauteng">Gauteng</SelectItem>
                         <SelectItem value="kzn">KwaZulu-Natal</SelectItem>
                         <SelectItem value="western-cape">Western Cape</SelectItem>
+                        <SelectItem value="limpopo">Limpopo</SelectItem>
+                        <SelectItem value="free-state">Free State</SelectItem>
+                        <SelectItem value="mpumalanga">Mpumalanga</SelectItem>
+                        <SelectItem value="north-west">North West</SelectItem>
+                        <SelectItem value="northern-cape">Northern Cape</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -311,9 +498,10 @@ export default function PolicyLens() {
                     <label className="text-[11px] font-medium text-zinc-400">Audience</label>
                     <Select value={briefAudience} onValueChange={(v) => { setBriefAudience(v); setBriefGenerated(false); }}>
                       <SelectTrigger className="h-8 text-xs border-white/[0.08] bg-white/[0.03]">
-                        <SelectValue placeholder="Select audience" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="policy-analyst">Policy Analyst</SelectItem>
                         <SelectItem value="policymaker">Policymaker</SelectItem>
                         <SelectItem value="researcher">Researcher</SelectItem>
                         <SelectItem value="media">Media / Journalist</SelectItem>
@@ -323,23 +511,51 @@ export default function PolicyLens() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 mt-5">
-                  {briefGenerated ? (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-5 text-emerald-400" />
-                      <span className="text-xs text-emerald-400 font-medium">Brief generated successfully</span>
-                      <Button variant="outline" size="sm" className="h-7 text-[11px] border-white/[0.08]">Download PDF</Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={handleGenerateBrief}
-                      disabled={isGenerating || !briefTopic}
-                      className="bg-[#0F766E]/20 text-[#06B6D4] border-[#0F766E]/30 hover:bg-[#0F766E]/30 h-9 px-5"
-                      variant="outline"
-                    >
-                      {isGenerating ? <><Loader2 className="size-4 mr-2 animate-spin" />Generating...</> : <><Brain className="size-4 mr-2" />Generate Brief</>}
-                    </Button>
+                  <Button
+                    onClick={handleGenerateBrief}
+                    disabled={isGenerating || !briefTopic}
+                    className="h-9 px-5 text-white border-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${ACCENT_FROM}, ${ACCENT_TO})`,
+                      boxShadow: `0 0 20px ${ACCENT_FROM}30`,
+                    }}
+                  >
+                    {isGenerating ? <><Loader2 className="size-4 mr-2 animate-spin" />Generating...</> : <><Sparkles className="size-4 mr-2" />Generate Brief</>}
+                  </Button>
+                  {briefGenerated && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
+                      <CheckCircle2 className="size-4 text-emerald-400" />
+                      <span className="text-xs text-emerald-400 font-medium">Brief generated</span>
+                    </motion.div>
                   )}
                 </div>
+
+                {/* Brief Preview Card */}
+                {briefGenerated && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-zinc-200">Brief Structure Preview</span>
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1">
+                        <Download className="size-3" />
+                        Download PDF
+                      </Button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {BRIEF_STRUCTURE.map((section, i) => (
+                        <div key={section.section} className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 tabular-nums w-4">{i + 1}.</span>
+                          <span className="text-[11px] text-zinc-300 flex-1">{section.section}</span>
+                          <span className="text-[9px] text-zinc-500">{section.items} items</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -361,8 +577,10 @@ export default function PolicyLens() {
                   >
                     <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: theme.color, opacity: selectedTheme === theme.id ? 1 : 0.3 }} />
                     <CardContent className="p-3 text-center">
-                      <span className="text-2xl">{theme.icon}</span>
-                      <p className="text-xs font-semibold text-zinc-300 mt-1">{theme.label}</p>
+                      <div className="flex size-8 items-center justify-center rounded-lg mx-auto mb-1.5" style={{ background: `${theme.color}15`, border: `1px solid ${theme.color}25` }}>
+                        <theme.icon className="size-4" style={{ color: theme.color }} />
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-300">{theme.label}</p>
                       <p className="text-[10px] text-zinc-400">{theme.indicators.length} indicators</p>
                     </CardContent>
                   </Card>
@@ -374,7 +592,24 @@ export default function PolicyLens() {
                 <Card className="glass-card-v2 overflow-hidden">
                   <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${currentTheme.color}, ${ACCENT_TO})` }} />
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-zinc-200">{currentTheme.icon} {currentTheme.label} Indicators</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <currentTheme.icon className="size-4" style={{ color: currentTheme.color }} />
+                        <CardTitle className="text-sm font-semibold text-zinc-200">{currentTheme.label} Indicators</CardTitle>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1"
+                        onClick={() => {
+                          const tabEl = document.querySelector('[data-value="trends"]') as HTMLElement;
+                          tabEl?.click();
+                        }}
+                      >
+                        <BarChart3 className="size-3" />
+                        View Full Dashboard
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -382,17 +617,30 @@ export default function PolicyLens() {
                         const natAvg = currentTheme.nationalAvg[i];
                         const displayVal = typeof natAvg === 'number' ? natAvg.toFixed(1) : natAvg;
                         const barWidth = typeof natAvg === 'number' ? Math.min(natAvg, 100) : 50;
+                        const trendDir = currentTheme.trendDirs[i];
+                        const isExpanded = expandedIndicator === ind;
+                        const trendIcon = trendDir === 'up' ? ArrowUpRight : trendDir === 'down' ? ArrowDownRight : ArrowRight;
+                        const trendColor = trendDir === 'up' ? '#10B981' : trendDir === 'down' ? '#EF4444' : '#71717a';
+
                         return (
                           <motion.div
                             key={ind}
+                            layout
                             whileHover={{ scale: 1.01, borderColor: `${currentTheme.color}30` }}
-                            className="rounded-lg border border-white/[0.06] p-3 transition-all relative overflow-hidden"
+                            className="rounded-lg border border-white/[0.06] p-3 transition-all relative overflow-hidden cursor-pointer"
                             style={{ borderLeftWidth: '3px', borderLeftColor: currentTheme.color }}
+                            onClick={() => setExpandedIndicator(isExpanded ? null : ind)}
                           >
                             <div className="absolute inset-0 opacity-[0.02]" style={{ background: `linear-gradient(135deg, ${currentTheme.color}, transparent)` }} />
                             <div className="relative">
-                              <p className="text-xs font-semibold text-zinc-200">{ind}</p>
-                              <div className="flex items-center gap-2 mt-2">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-zinc-200 flex-1">{ind}</p>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <MiniSparkline trend={trendDir} color={trendColor} />
+                                  {isExpanded ? <ChevronUp className="size-3 text-zinc-500" /> : <ChevronDown className="size-3 text-zinc-500" />}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
                                 <div className="progress-premium flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
@@ -408,8 +656,58 @@ export default function PolicyLens() {
                                 <span className="text-[9px] text-zinc-400">National Avg</span>
                                 <ArrowRight className="size-2.5 text-zinc-500" />
                                 <span className="text-[9px] font-semibold" style={{ color: currentTheme.color }}>{displayVal}</span>
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="ml-auto flex items-center gap-0.5"
+                                >
+                                  {React.createElement(trendIcon, { className: 'size-2.5', style: { color: trendColor } })}
+                                  <span className="text-[9px] font-medium" style={{ color: trendColor }}>
+                                    {trendDir === 'up' ? '↑' : trendDir === 'down' ? '↓' : '→'}
+                                  </span>
+                                </motion.div>
                               </div>
-                              <p className="text-[10px] text-zinc-400 mt-0.5">Source: Stats SA / Municipal Money</p>
+
+                              {/* Expanded Detail */}
+                              <AnimatePresence>
+                                {isExpanded && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <Separator className="my-2 bg-white/[0.06]" />
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-zinc-500">Trend Direction</span>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[8px] h-4 px-1.5"
+                                          style={{ background: `${trendColor}15`, color: trendColor, borderColor: `${trendColor}25` }}
+                                        >
+                                          {trendDir.charAt(0).toUpperCase() + trendDir.slice(1)}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-zinc-500">Data Source</span>
+                                        <span className="text-[9px] text-zinc-300">Stats SA / Municipal Money</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-zinc-500">Last Updated</span>
+                                        <span className="text-[9px] text-zinc-300">Q4 2024</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-zinc-500">Provincial Range</span>
+                                        <span className="text-[9px] text-zinc-300">
+                                          {typeof natAvg === 'number' ? `${(natAvg * 0.6).toFixed(1)} — ${(natAvg * 1.4).toFixed(1)}` : '—'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           </motion.div>
                         );
@@ -424,17 +722,80 @@ export default function PolicyLens() {
 
         {/* ── Trend Dashboard Tab ──────────────────────────── */}
         <TabsContent value="trends">
-          <motion.div variants={itemFadeIn} initial="hidden" animate="show">
+          <motion.div variants={itemFadeIn} initial="hidden" animate="show" className="space-y-4">
+            {/* Mini Stat Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Unemployment', value: '31.5%', trend: 'down', color: '#3B82F6', prev: '32.1%' },
+                { label: 'Youth Unemployment', value: '44.8%', trend: 'down', color: '#EF4444', prev: '45.5%' },
+                { label: 'Poverty Rate', value: '50.8%', trend: 'down', color: '#F59E0B', prev: '52.3%' },
+                { label: 'Gini Coefficient', value: '0.61', trend: 'down', color: '#8B5CF6', prev: '0.62' },
+              ].map((stat) => (
+                <motion.div
+                  key={stat.label}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${stat.color}, transparent)` }} />
+                    <CardContent className="p-3">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 mb-1">{stat.label}</p>
+                      <div className="flex items-end gap-2">
+                        <span className="text-xl font-bold tabular-nums" style={{ color: stat.color }}>{stat.value}</span>
+                        <div className="flex items-center gap-0.5 mb-0.5">
+                          {stat.trend === 'down' ? (
+                            <TrendingDown className="size-3 text-emerald-400" />
+                          ) : (
+                            <TrendingUp className="size-3 text-red-400" />
+                          )}
+                          <span className="text-[9px] text-zinc-400">from {stat.prev}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-zinc-200">Multi-Indicator Trend Dashboard</CardTitle>
-                <p className="text-[11px] text-zinc-400 mt-0.5">National trend lines for key socio-economic indicators (2018–2024)</p>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-zinc-200">Multi-Indicator Trend Dashboard</CardTitle>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">National trend lines with NDP 2030 targets</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Period Selector */}
+                    <div className="flex items-center rounded-md border border-white/[0.08] bg-white/[0.03]">
+                      {(['5Y', '10Y', 'All'] as const).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setTrendPeriod(period)}
+                          className={cn(
+                            'px-2.5 py-1 text-[10px] font-medium transition-colors',
+                            trendPeriod === period ? 'bg-[#0F766E]/20 text-[#06B6D4]' : 'text-zinc-400 hover:text-zinc-300'
+                          )}
+                        >
+                          {period}
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1"
+                    >
+                      <Download className="size-3" />
+                      Download Trend Data
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="h-[350px]">
+                <div className="h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={TREND_DATA} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <LineChart data={getTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                       <defs>
                         <linearGradient id="unemploymentGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.15} />
@@ -455,12 +816,37 @@ export default function PolicyLens() {
                         }}
                         formatter={(v: number) => `${v}%`}
                       />
-                      {/* National Development Plan target reference lines */}
-                      <ReferenceLine y={14} stroke="#10B981" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'NDP Target: 14%', fill: '#10B981', fontSize: 9, position: 'right' }} />
-                      <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Line type="monotone" dataKey="unemployment" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Unemployment" />
-                      <Line type="monotone" dataKey="youthUnemployment" stroke="#EF4444" strokeWidth={2} dot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Youth Unemployment" />
-                      <Line type="monotone" dataKey="povertyRate" stroke="#F59E0B" strokeWidth={2} dot={{ r: 4, fill: '#F59E0B', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Poverty Rate" />
+                      {/* NDP 2030 Target reference lines */}
+                      <ReferenceLine y={14} stroke="#10B981" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'NDP Unemployment: 14%', fill: '#10B981', fontSize: 9, position: 'right' }} />
+                      <ReferenceLine y={25} stroke="#10B981" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'NDP Poverty: 25%', fill: '#10B98180', fontSize: 9, position: 'right' }} />
+                      {/* Policy milestone annotations */}
+                      {POLICY_MILESTONES.map((ms) => (
+                        <ReferenceLine key={ms.year} x={ms.year} stroke="#06B6D4" strokeDasharray="2 4" strokeWidth={0.8} label={{ value: ms.label, fill: '#06B6D4', fontSize: 8, position: 'top' }} />
+                      ))}
+                      <Legend
+                        wrapperStyle={{ fontSize: '11px' }}
+                        formatter={(value: string) => {
+                          const labels: Record<string, string> = { unemployment: 'Unemployment', youthUnemployment: 'Youth Unemployment', povertyRate: 'Poverty Rate' };
+                          return labels[value] ?? value;
+                        }}
+                        onClick={(e) => {
+                          if (e.dataKey) toggleLine(e.dataKey);
+                        }}
+                        payload={[
+                          { value: 'unemployment', type: 'line', id: 'ID01', color: lineVisibility.unemployment ? '#3B82F6' : '#3B82F640', dataKey: 'unemployment' },
+                          { value: 'youthUnemployment', type: 'line', id: 'ID02', color: lineVisibility.youthUnemployment ? '#EF4444' : '#EF44440', dataKey: 'youthUnemployment' },
+                          { value: 'povertyRate', type: 'line', id: 'ID03', color: lineVisibility.povertyRate ? '#F59E0B' : '#F59E0B40', dataKey: 'povertyRate' },
+                        ]}
+                      />
+                      {lineVisibility.unemployment && (
+                        <Line type="monotone" dataKey="unemployment" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Unemployment" />
+                      )}
+                      {lineVisibility.youthUnemployment && (
+                        <Line type="monotone" dataKey="youthUnemployment" stroke="#EF4444" strokeWidth={2} dot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Youth Unemployment" />
+                      )}
+                      {lineVisibility.povertyRate && (
+                        <Line type="monotone" dataKey="povertyRate" stroke="#F59E0B" strokeWidth={2} dot={{ r: 4, fill: '#F59E0B', stroke: '#fff', strokeWidth: 1 }} activeDot={{ r: 6 }} name="Poverty Rate" />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -475,8 +861,20 @@ export default function PolicyLens() {
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-zinc-200">Provincial Comparison</CardTitle>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Key indicators compared across provinces — click column headers to sort</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-zinc-200">Provincial Comparison</CardTitle>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Key indicators compared across provinces — click column headers to sort</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px] px-2 border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] gap-1"
+                  >
+                    <Download className="size-3" />
+                    Export Comparison
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="h-[280px] mb-4">
@@ -507,48 +905,65 @@ export default function PolicyLens() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-white/[0.06] hover:bg-transparent" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}08, ${ACCENT_TO}08)` }}>
-                      <TableHead className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">Province</TableHead>
-                      {[
-                        { key: 'unemployment', label: 'Unemployment' },
-                        { key: 'poverty', label: 'Poverty' },
-                        { key: 'waterAccess', label: 'Water Access' },
-                        { key: 'matricPass', label: 'Matric Pass' },
-                      ].map((col) => (
-                        <TableHead
-                          key={col.key}
-                          className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider text-right cursor-pointer hover:text-zinc-300 transition-colors"
-                          onClick={() => handleSort(col.key)}
-                        >
-                          {col.label}
-                          {sortCol === col.key && (
-                            <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
-                          )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedComparison.map((row, idx) => (
-                      <TableRow
-                        key={row.name}
-                        className={cn(
-                          'border-white/[0.04] hover:bg-white/[0.04] transition-colors',
-                          idx % 2 === 0 ? 'bg-white/[0.01]' : 'bg-transparent'
-                        )}
-                        style={{ borderLeftWidth: '2px', borderLeftColor: `${ACCENT_FROM}30` }}
-                      >
-                        <TableCell className="text-xs font-medium text-zinc-200">{row.name}</TableCell>
-                        <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.unemployment > 35 ? '#EF4444' : row.unemployment > 30 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.unemployment)}</TableCell>
-                        <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.poverty > 50 ? '#EF4444' : row.poverty > 40 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.poverty)}</TableCell>
-                        <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.waterAccess >= 90 ? '#10B981' : row.waterAccess >= 75 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.waterAccess)}</TableCell>
-                        <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.matricPass >= 75 ? '#10B981' : row.matricPass >= 70 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.matricPass)}</TableCell>
+                <ScrollArea className="max-h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/[0.06] hover:bg-transparent" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}08, ${ACCENT_TO}08)` }}>
+                        <TableHead className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">Province</TableHead>
+                        <TableHead className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider text-center w-10">Rank</TableHead>
+                        {[
+                          { key: 'unemployment', label: 'Unemployment' },
+                          { key: 'poverty', label: 'Poverty' },
+                          { key: 'waterAccess', label: 'Water Access' },
+                          { key: 'matricPass', label: 'Matric Pass' },
+                        ].map((col) => (
+                          <TableHead
+                            key={col.key}
+                            className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider text-right cursor-pointer hover:text-zinc-300 transition-colors"
+                            onClick={() => handleSort(col.key)}
+                          >
+                            {col.label}
+                            {sortCol === col.key && (
+                              <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </TableHead>
+                        ))}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedComparison.map((row, idx) => {
+                        // Calculate overall rank based on sort column or default
+                        const rankData = sortCol ? getComparisonRank(sortCol) : getComparisonRank('unemployment');
+                        const rank = rankData.findIndex((r) => r.name === row.name) + 1;
+
+                        return (
+                          <TableRow
+                            key={row.name}
+                            className={cn(
+                              'border-white/[0.04] hover:bg-white/[0.04] transition-colors',
+                              idx % 2 === 0 ? 'bg-white/[0.01]' : 'bg-transparent'
+                            )}
+                            style={{ borderLeftWidth: '2px', borderLeftColor: `${ACCENT_FROM}30` }}
+                          >
+                            <TableCell className="text-xs font-medium text-zinc-200">{row.name}</TableCell>
+                            <TableCell className="text-center">
+                              <span className={cn(
+                                'text-[10px] font-bold tabular-nums',
+                                rank <= 3 ? 'text-emerald-400' : rank <= 6 ? 'text-amber-400' : 'text-red-400'
+                              )}>
+                                #{rank}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.unemployment > 35 ? '#EF4444' : row.unemployment > 30 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.unemployment)}</TableCell>
+                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.poverty > 50 ? '#EF4444' : row.poverty > 40 ? '#F59E0B' : '#10B981' }}>{formatPercent(row.poverty)}</TableCell>
+                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.waterAccess >= 90 ? '#10B981' : row.waterAccess >= 75 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.waterAccess)}</TableCell>
+                            <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: row.matricPass >= 75 ? '#10B981' : row.matricPass >= 70 ? '#F59E0B' : '#EF4444' }}>{formatPercent(row.matricPass)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               </CardContent>
             </Card>
           </motion.div>

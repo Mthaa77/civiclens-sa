@@ -2973,3 +2973,217 @@ Stage Summary:
 6. **LOW**: Performance optimization with React.lazy code splitting
 7. **LOW**: Real data integration via API routes and Prisma database
 8. **LOW**: WCAG 2.1 AA accessibility audit and remediation
+
+---
+Task ID: CR-10-a
+Agent: Visual Overhaul + Feature Builder
+Task: Overhaul AGASAlert and PolicyLens modules (6/10 → 8.5+/10)
+
+Work Log:
+
+### 1. AGASAlert Overhaul (`/src/components/modules/AGASAlert.tsx`)
+
+**Module Header Enhancement:**
+- Changed icon from ClipboardCheck to ShieldCheck per requirement
+- Gradient accent bar (blue → amber, w-1 h-10) with animated glow pulse
+- "AGASAlert" gradient text (from-blue-400 to-amber-400 with bg-clip-text)
+- "Audit Intelligence" badge with BarChart3 icon and premium styling
+- Phase 2 badge maintained
+
+**Quick Actions Bar (NEW):**
+- "Export Audit Report" button with Download icon (blue accent)
+- "View Full AGSA Report" button with ExternalLink icon (amber accent)
+- "Compare Years" button with GitCompareArrows icon (green accent)
+- Premium glass morphism buttons with hover effects and backdrop-blur
+
+**5-Year Audit Outcome Trajectory (NEW):**
+- Stacked bar chart showing 5 years (2019/20 to 2023/24)
+- Breakdown: Clean, Unqualified, Qualified, Adverse, Disclaimer counts per year
+- Color-coded using standard audit outcome colors (green, blue, amber, orange, red)
+- Interactive Recharts legend
+- Custom dark tooltip (AuditTrendTooltip component) showing exact counts
+- Title: "5-Year Audit Outcome Trajectory" with TrendingUp icon
+- Trend badge: "Improving" / "Stable" / "Declining" with dynamic color based on clean audit trend (+5 over 5 years → Improving, green)
+
+**Municipality Audit Outcomes (NEW):**
+- Horizontal stacked bar chart showing audit opinions by municipality
+- Each bar segmented with audit outcome colors
+- Sortable: "By Name" and "By Clean Audit" toggle buttons with active state highlighting
+- Interactive municipality buttons below chart: click to navigate to MuniLens via useNavigationStore
+- Building2 icon in card header
+- Title: "Municipality Audit Outcomes"
+
+**Clean Audit Probability Enhancement:**
+- Top 3 municipalities highlighted with Crown icon (gold #1, silver #2, bronze #3)
+- "Most Likely to Achieve Clean Audit" callout card with Trophy icon showing top 3 with crown and percentages
+- Category badges: "High Probability" (≥70%, green), "Moderate" (40-69%, amber), "Low" (<40%, red)
+- Animated progress bars with gradient fill (progress-bar with --progress-from/--progress-to)
+- Pulsing green dot on top 3 performers
+- Three-tier probability color scheme: ≥70 green, ≥40 amber, <40 red
+
+**Material Irregularity Enhancement:**
+- 3px severity left border (red for critical, orange for high, amber for medium)
+- Amount displayed in large font-extrabold with formatZAR (full ZAR formatting, e.g., R420,000,000)
+- "Investigate" button with Search icon on each item
+- Pulsing red dot for critical severity items (1.5s animation)
+- Status badges with color-coded styling: Resolved (emerald), Under Investigation (amber), Open (red)
+- Added 6th MI item: City of Johannesburg fleet management irregularity (R95M, Resolved status)
+- Amount and status now on same row for better layout
+
+**Audit Grades Table Enhancement:**
+- Row click now navigates to MuniLens module via useNavigationStore
+
+**Imports Added:**
+- ShieldCheck, Download, ExternalLink, GitCompareArrows, Search, Building2, Trophy, Crown from lucide-react
+- BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend from recharts
+- Button from shadcn/ui
+- useNavigationStore from @/store/navigation
+- formatZAR from @/lib/formatters
+- useState, useMemo from React
+
+### 2. PolicyLens Overhaul (`/src/components/modules/PolicyLens.tsx`)
+
+**Module Header Enhancement:**
+- Changed icon from ScrollText to BookOpen per requirement
+- Gradient accent bar (teal → cyan, w-1 h-10) with animated glow pulse
+- "PolicyLens" gradient text (from-teal-400 to-cyan-400 with bg-clip-text)
+- "Policy Intelligence" badge with BookOpen icon and premium styling
+- Phase 2 badge maintained
+
+**Key Policy Insights Enhancement:**
+- Expanded from 3 to 5 rotating insight cards
+- 6-second auto-rotation interval
+- Each card now includes: icon, title, key finding, policy recommendation (italic cyan text)
+- Topics: Youth Unemployment Crisis, Water Infrastructure Decline, Healthcare Outcome Disparities, Education Performance Gap, Housing Delivery Shortfall
+- AnimatePresence mode="wait" for smooth transitions between cards
+- Navigation dots for manual selection
+- Icons: Users, Droplets, Heart, GraduationCap, Home
+
+**Brief Generator Enhancement:**
+- Topic field: placeholder "e.g., Water service delivery gaps in rural municipalities"
+- Geography: pre-populated with "south-africa" default (South Africa selected)
+- Audience: pre-populated with "policy-analyst" default (Policy Analyst selected)
+- Added all 9 SA provinces to geography dropdown
+- Topic preset pills: "Youth Unemployment", "Water Access", "Healthcare", "Education", "Housing"
+  - Each pill with themed icon (Users, Droplets, Heart, GraduationCap, Home) and colored accent border
+  - Clicking a pill fills the topic field and resets brief state
+- "Generate Brief" button: gradient background (teal → cyan) with Sparkles icon and loading state
+  - Box shadow glow effect using accent color
+  - Full gradient styling instead of outline variant
+- Brief preview card (shown after generation):
+  - 6-section structure outline (Executive Summary, Context & Background, Key Findings, Data Analysis, Policy Recommendations, Appendix)
+  - Item count per section
+  - "Download PDF" button with Download icon
+  - Smooth entrance animation
+
+**Indicator Explorer Enhancement:**
+- Theme cards now use themed icons (Users, Scale, Heart, GraduationCap, Droplets, Target) instead of emoji
+- Each indicator card enhanced with:
+  - Mini sparkline chart (inline SVG showing trend direction: up/down/stable line path)
+  - National average comparison with trend direction icon (ArrowUpRight/ArrowDownRight/ArrowRight)
+  - Trend direction badge (Up/Down/Stable) with color coding
+  - Click to expand/collapse for full details (ChevronDown/ChevronUp)
+  - Expanded detail shows: Trend Direction badge, Data Source, Last Updated, Provincial Range
+  - AnimatePresence for smooth expand/collapse transitions
+  - Separator between compact and expanded views
+- "View Full Dashboard" button in header that navigates to Trends tab
+- Trend direction data (trendDirs array) for each indicator per theme
+
+**Trend Dashboard Enhancement:**
+- Mini stat cards above chart (4 cards):
+  - Unemployment (31.5%), Youth Unemployment (44.8%), Poverty Rate (50.8%), Gini Coefficient (0.61)
+  - Each with previous value comparison and trend arrow icon
+  - Accent color per indicator
+  - Hover scale animation
+- NDP 2030 target reference lines:
+  - Unemployment target: 14% (green dashed line)
+  - Poverty target: 25% (green dashed line)
+- Policy milestone annotations:
+  - 2012: "NDP Adopted" (cyan dashed vertical line)
+  - 2020: "COVID-19" (cyan dashed vertical line)
+  - 2023: "Medium-Term Strategy" (cyan dashed vertical line)
+- Interactive legend: click to toggle line visibility (unemployment, youthUnemployment, povertyRate)
+  - Lines dimmed (40% opacity) when toggled off
+  - Custom Legend payload with toggle support
+- "Download Trend Data" button with Download icon
+- Period selector: 5Y / 10Y / All toggle buttons
+  - 5Y: 2018-2024 (7 data points)
+  - 10Y: 2015-2024 (10 data points)
+  - All: 2010-2024 (15 data points)
+  - Extended TREND_DATA_EXTENDED dataset for 10Y and All modes
+  - Active period highlighted with teal accent
+
+**Comparison Tables Enhancement:**
+- Sortable column headers with sort direction indicators (↑/↓)
+- Row hover highlights with bg-white/[0.04]
+- Color-coded cell values (better=green, worse=red vs national avg)
+- "Export Comparison" button with Download icon in card header
+- Provincial rank column:
+  - Rank displayed as #1, #2, etc.
+  - Color-coded: top 3 = emerald, 4-6 = amber, 7-9 = red
+  - Rank calculated based on active sort column (or default unemployment)
+  - getComparisonRank utility function
+
+**Imports Added:**
+- BookOpen, TrendingDown, ArrowUpRight, ArrowDownRight, Sparkles, Download, Droplets, Heart, GraduationCap, Home, Users, ChevronDown, ChevronUp, Scale from lucide-react
+- AnimatePresence from framer-motion
+- ScrollArea from shadcn/ui
+- useCallback from React
+- formatZAR removed (not needed), added formatPercent, formatNumber
+
+Stage Summary:
+- AGASAlert: Complete overhaul with 5 new major features (Quick Actions, 5-Year Trend, Municipality Outcomes, Enhanced Clean Audit with crowns/callout, Enhanced MI with status badges/investigate)
+- PolicyLens: Complete overhaul with 6 enhanced sections (Rotating insights, Brief presets, Sparkline indicators, Trend enhancements, Comparison ranks, NDP targets)
+- Both modules now feature premium visual design consistent with the platform aesthetic
+- All existing functionality preserved and enhanced
+- ESLint passes cleanly with no errors
+- Dev server compiles successfully (200 status)
+- No new npm packages added
+
+---
+Task ID: CR-10-b
+Agent: Visual Overhaul + Feature Builder
+Task: Enhance GeoLens, EarlyAlert, and Dashboard modules (7/10 → 8.5+/10)
+
+Work Log:
+
+### 1. GeoLens.tsx Enhancements
+- Updated IndicatorTrendChart title from "Trend:" to "5-Year Trend: [Indicator Name]" as specified
+- Added `Area` component import from Recharts for gradient fill under the trend line
+- Added `<Area type="monotone" dataKey="value" stroke="none" fill="url(#trendGradient)" />` to render gradient fill beneath the Line chart, using the existing `trendGradient` linearGradient definition (gold #B45309 with 0.3→0 opacity)
+- Fixed deterministic trend data in province rankings: Replaced `Math.random()` with a per-province trend map (`provinceTrendMap`) containing deterministic direction and delta values for all 9 provinces (e.g., Western Cape: up +2, Limpopo: down -4, Mpumalanga: stable 0)
+- Verified existing features already in place:
+  - Province Drill-Down with full municipality list, FHS score badge, audit outcome badge, "View All in MuniLens" button ✅
+  - Trend badge on mini chart ✅
+  - Gold (#B45309) / Silver (#94A3B8) / Bronze (#92400E) rank badge styling for top 3 ✅
+  - TrendingUp/TrendingDown/Minus icons in rankings ✅
+  - Footer with "Sources: Stats SA, National Treasury MFMA, Auditor-General SA" and "GeoLens v2.1 — Spatial Intelligence Module" ✅
+
+### 2. EarlyAlert.tsx Enhancements
+- Updated Risk Signal Feed "Investigate" button to "Investigate →" with ArrowRight icon (replaced Search icon with ArrowRight icon, moved icon to after text)
+- Verified existing features already in place:
+  - "Active Signals: X of Y total" counter in header ✅
+  - Building2 icon on each municipality name in risk feed ✅
+  - Time urgency badges ("Critical" if <24h, "Recent" if <7d) ✅
+  - Q4 2026 Risk Forecast section with Brain icon and 6 municipality prediction cards ✅
+  - Quick Actions Bar with 3 buttons (Generate MEC Briefing, Export Risk Report, View Full History) with glass morphism styling ✅
+  - Intervention History with outcome badges (Successful=emerald, Ongoing=amber, Withdrawn=zinc) ✅
+  - "View Details" button on each timeline item ✅
+
+### 3. Dashboard.tsx Verification
+- Verified all requested enhancements already implemented from previous agent work:
+  - LiveActivityFeed: Each event is clickable with cursor-pointer and hover:brightness-125, onClick navigates to correct module (TenderAward→tenderlens, RiskAlert→risklens, AuditUpdate→agasalert, Section139→earlyalert, ServiceUpdate→servicelens) ✅
+  - Section Dividers: Gradient divider lines between all major sections (`h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent`) ✅
+  - SectionHeader component with left accent bar (2px), title in font-semibold, optional action button ✅
+  - "View Distressed Municipalities →" button on Financial Distress Alert navigating to munilens ✅
+  - Critical pulse badge on Critical severity items in Risk Signals sidebar ✅
+  - Closing countdown badge (amber ≤14d, red ≤7d) on Active Tenders sidebar ✅
+  - "Expand" links on both Risk Signals and Active Tenders sidebars ✅
+
+Stage Summary:
+- GeoLens: Enhanced trend chart with 5-Year title and gradient fill area; fixed random trend data to use deterministic per-province values
+- EarlyAlert: Updated Investigate button to "Investigate →" with arrow navigation
+- Dashboard: All features already implemented and verified — no changes needed
+- All existing functionality preserved
+- ESLint passes cleanly with no errors
+- Dev server compiles successfully

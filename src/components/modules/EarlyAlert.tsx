@@ -24,15 +24,31 @@ import {
   Siren,
   Eye,
   TrendingUp,
+  TrendingDown,
+  Minus,
+  Building2,
+  Brain,
+  Download,
+  Clock,
+  ChevronRight,
+  ArrowRight,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MOCK_MUNICIPALITIES } from '@/lib/mock-data';
 import { formatSADate, formatNumber, formatPercent } from '@/lib/formatters';
+import { useNavigationStore } from '@/store/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // ── Accent Colors: rose (#F43F5E) → red (#DC2626) ──────────────────────────
 const ACCENT_FROM = '#F43F5E';
@@ -66,15 +82,68 @@ const ECRS_TRENDS: Record<string, { quarter: string; score: number }[]> = {
   ETH: [{ quarter: 'Q1', score: 58 }, { quarter: 'Q2', score: 62 }, { quarter: 'Q3', score: 65 }, { quarter: 'Q4', score: 68 }, { quarter: 'Q5', score: 68 }, { quarter: 'Q6', score: 68 }],
 };
 
+// ── Risk Signals for Feed ───────────────────────────────────────────────────
+
+interface RiskSignal {
+  id: string;
+  municipality: string;
+  municipalityCode: string;
+  type: string;
+  description: string;
+  severity: 'Critical' | 'High' | 'Medium' | 'Low';
+  detectedAt: string;
+  status: 'Active' | 'Reviewed';
+}
+
+const RISK_FEED_SIGNALS: RiskSignal[] = [
+  { id: 'rs-1', municipality: 'Ekurhuleni', municipalityCode: 'EKU', type: 'Cash Flow Crisis', description: 'Cash coverage dropped below 15 days. Immediate intervention required to avoid service delivery collapse.', severity: 'Critical', detectedAt: '2026-03-03T08:00:00', status: 'Active' },
+  { id: 'rs-2', municipality: 'Mangaung', municipalityCode: 'MAN', type: 'Governance Dysfunction', description: 'Council failed to pass adjustment budget for third consecutive quarter. Section 139 escalation likely.', severity: 'Critical', detectedAt: '2026-03-03T06:30:00', status: 'Active' },
+  { id: 'rs-3', municipality: 'eThekwini', municipalityCode: 'ETH', type: 'Service Delivery Gap', description: 'Water supply interruptions affecting 40% of households. Infrastructure maintenance backlog R2.3B.', severity: 'High', detectedAt: '2026-03-02T14:00:00', status: 'Active' },
+  { id: 'rs-4', municipality: 'Buffalo City', municipalityCode: 'BUF', type: 'Irregular Expenditure', description: 'R890M in irregular expenditure identified in Q2 audit. Pattern suggests procurement irregularities.', severity: 'High', detectedAt: '2026-02-28T10:00:00', status: 'Active' },
+  { id: 'rs-5', municipality: 'Msunduzi', municipalityCode: 'MSU', type: 'Budget Overrun', description: 'Operating expenditure 23% above approved budget at Q3. Revenue collection declining at 8% per quarter.', severity: 'High', detectedAt: '2026-02-27T16:00:00', status: 'Active' },
+  { id: 'rs-6', municipality: 'Johannesburg', municipalityCode: 'JHB', type: 'Debt Escalation', description: 'Total debt service ratio exceeding 25% of operating revenue. Credit rating downgrade imminent.', severity: 'Medium', detectedAt: '2026-02-25T09:00:00', status: 'Active' },
+  { id: 'rs-7', municipality: 'Tshwane', municipalityCode: 'TSH', type: 'Grant Underspend', description: 'Only 42% of conditional grants spent by Q3. Risk of grant clawback R1.2B.', severity: 'Medium', detectedAt: '2026-02-20T11:00:00', status: 'Reviewed' },
+  { id: 'rs-8', municipality: 'Cape Town', municipalityCode: 'CPT', type: 'Supplier Concentration', description: 'Top 5 suppliers receiving 68% of procurement value. Concentration index above threshold.', severity: 'Low', detectedAt: '2026-02-15T08:00:00', status: 'Reviewed' },
+];
+
 // ── Intervention History ────────────────────────────────────────────────────
 
-const INTERVENTIONS = [
-  { municipality: 'Mangaung', province: 'Free State', date: '2022-04-01', type: 'Full Administration', status: 'Active', reason: 'Financial crisis and service delivery collapse' },
-  { municipality: 'Buffalo City', province: 'Eastern Cape', date: '2023-02-15', type: 'Partial Intervention', status: 'Active', reason: 'Persistent financial mismanagement' },
-  { municipality: 'Ekurhuleni', province: 'Gauteng', date: '2024-06-01', type: 'Full Administration', status: 'Active', reason: 'Disclaimer audit and cash flow crisis' },
-  { municipality: 'Msunduzi', province: 'KwaZulu-Natal', date: '2023-08-20', type: 'Financial Recovery', status: 'Active', reason: 'Adverse audit outcome and irregular expenditure' },
-  { municipality: 'Tshwane', province: 'Gauteng', date: '2020-03-01', type: 'Full Administration', status: 'Withdrawn', reason: 'Governance dysfunction (withdrawn 2022)' },
-  { municipality: 'eThekwini', province: 'KwaZulu-Natal', date: '2024-11-01', type: 'Support Programme', status: 'Active', reason: 'Qualified audit and service delivery failures' },
+interface Intervention {
+  municipality: string;
+  province: string;
+  date: string;
+  type: string;
+  status: 'Active' | 'Withdrawn' | 'Completed';
+  reason: string;
+  outcome?: 'Successful' | 'Ongoing' | 'Withdrawn';
+}
+
+const INTERVENTIONS: Intervention[] = [
+  { municipality: 'Mangaung', province: 'Free State', date: '2022-04-01', type: 'Full Administration', status: 'Active', reason: 'Financial crisis and service delivery collapse', outcome: 'Ongoing' },
+  { municipality: 'Buffalo City', province: 'Eastern Cape', date: '2023-02-15', type: 'Partial Intervention', status: 'Active', reason: 'Persistent financial mismanagement', outcome: 'Ongoing' },
+  { municipality: 'Ekurhuleni', province: 'Gauteng', date: '2024-06-01', type: 'Full Administration', status: 'Active', reason: 'Disclaimer audit and cash flow crisis', outcome: 'Ongoing' },
+  { municipality: 'Msunduzi', province: 'KwaZulu-Natal', date: '2023-08-20', type: 'Financial Recovery', status: 'Active', reason: 'Adverse audit outcome and irregular expenditure', outcome: 'Ongoing' },
+  { municipality: 'Tshwane', province: 'Gauteng', date: '2020-03-01', type: 'Full Administration', status: 'Withdrawn', reason: 'Governance dysfunction (withdrawn 2022)', outcome: 'Withdrawn' },
+  { municipality: 'eThekwini', province: 'KwaZulu-Natal', date: '2024-11-01', type: 'Support Programme', status: 'Active', reason: 'Qualified audit and service delivery failures', outcome: 'Ongoing' },
+];
+
+// ── Risk Forecast Data ──────────────────────────────────────────────────────
+
+interface RiskForecast {
+  municipality: string;
+  code: string;
+  currentECRS: number;
+  predictedECRS: number;
+  direction: 'up' | 'down' | 'stable';
+}
+
+const RISK_FORECASTS: RiskForecast[] = [
+  { municipality: 'Ekurhuleni', code: 'EKU', currentECRS: 78, predictedECRS: 82, direction: 'up' },
+  { municipality: 'Mangaung', code: 'MAN', currentECRS: 88, predictedECRS: 85, direction: 'down' },
+  { municipality: 'Buffalo City', code: 'BUF', currentECRS: 82, predictedECRS: 84, direction: 'up' },
+  { municipality: 'Msunduzi', code: 'MSU', currentECRS: 80, predictedECRS: 78, direction: 'down' },
+  { municipality: 'Johannesburg', code: 'JHB', currentECRS: 55, predictedECRS: 60, direction: 'up' },
+  { municipality: 'eThekwini', code: 'ETH', currentECRS: 68, predictedECRS: 68, direction: 'stable' },
 ];
 
 // ── Risk Distribution Data ──────────────────────────────────────────────────
@@ -105,15 +174,43 @@ function getRiskLabel(score: number): string {
   return 'Low';
 }
 
+function getUrgencyBadge(detectedAt: string): { label: string; color: string; bg: string; border: string } {
+  const detected = new Date(detectedAt);
+  const now = new Date('2026-03-03T12:00:00');
+  const hoursDiff = (now.getTime() - detected.getTime()) / (1000 * 60 * 60);
+
+  if (hoursDiff < 24) return { label: 'Critical', color: '#EF4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' };
+  if (hoursDiff < 168) return { label: 'Recent', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' };
+  return { label: '', color: '', bg: '', border: '' };
+}
+
+function getOutcomeBadge(outcome?: string): { label: string; color: string; bg: string; border: string } | null {
+  if (outcome === 'Successful') return { label: 'Successful', color: '#10B981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' };
+  if (outcome === 'Ongoing') return { label: 'Ongoing', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' };
+  if (outcome === 'Withdrawn') return { label: 'Withdrawn', color: '#71717A', bg: 'rgba(113,113,122,0.15)', border: 'rgba(113,113,122,0.3)' };
+  return null;
+}
+
+function calculateDuration(startDate: string): number {
+  const start = new Date(startDate);
+  const now = new Date('2026-03-03');
+  return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function EarlyAlert() {
+  const { setActiveModule } = useNavigationStore();
   const [selectedMuni, setSelectedMuni] = useState('EKU');
   const [isGenerating, setIsGenerating] = useState(false);
   const [briefGenerated, setBriefGenerated] = useState(false);
 
   const trendData = ECRS_TRENDS[selectedMuni] || ECRS_TRENDS['EKU'];
   const selectedMuniData = MOCK_MUNICIPALITIES.find((m) => m.code === selectedMuni);
+
+  // Signal counts
+  const activeSignals = RISK_FEED_SIGNALS.filter((s) => s.status === 'Active').length;
+  const totalSignals = RISK_FEED_SIGNALS.length;
 
   const handleGenerateBrief = () => {
     setIsGenerating(true);
@@ -123,14 +220,16 @@ export default function EarlyAlert() {
     }, 2000);
   };
 
+  const handleInvestigate = () => {
+    setActiveModule('risklens');
+  };
+
   return (
     <div className="space-y-5">
       {/* ── Enhanced Module Header ─────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-1">
-          {/* Gradient accent bar */}
           <div className="w-1 h-10 rounded-full shrink-0" style={{ background: `linear-gradient(180deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
-          {/* Icon with animated glow pulse */}
           <div className="relative">
             <motion.div
               className="flex size-10 items-center justify-center rounded-xl border"
@@ -163,10 +262,48 @@ export default function EarlyAlert() {
           <Badge className="badge-premium ml-1" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` }}>
             <Siren className="size-3 mr-1" />Intervention Risk
           </Badge>
+
+          {/* Active Signals Counter */}
+          <Badge className="badge-premium ml-1" style={{ background: `${ACCENT_TO}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
+            <Activity className="size-3 mr-1" />
+            Active Signals: {activeSignals} of {totalSignals} total
+          </Badge>
         </div>
       </motion.div>
 
-      {/* ── Risk Dashboard — Traffic Light Grid with larger cells and hover glow ── */}
+      {/* ── Quick Actions Bar ──────────────────────────────────── */}
+      <motion.div variants={itemFadeIn} initial="hidden" animate="show">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={handleGenerateBrief}
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-[11px] bg-white/[0.04] backdrop-blur-sm border-white/[0.08] text-zinc-300 hover:bg-[#F43F5E]/10 hover:border-[#F43F5E]/30 hover:text-[#F43F5E] transition-all"
+          >
+            <FileText className="size-3.5" />
+            Generate MEC Briefing
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-[11px] bg-white/[0.04] backdrop-blur-sm border-white/[0.08] text-zinc-300 hover:bg-[#F43F5E]/10 hover:border-[#F43F5E]/30 hover:text-[#F43F5E] transition-all"
+            onClick={() => setActiveModule('reportlens')}
+          >
+            <Download className="size-3.5" />
+            Export Risk Report
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-[11px] bg-white/[0.04] backdrop-blur-sm border-white/[0.08] text-zinc-300 hover:bg-[#F43F5E]/10 hover:border-[#F43F5E]/30 hover:text-[#F43F5E] transition-all"
+          >
+            <Clock className="size-3.5" />
+            View Full History
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* ── Risk Dashboard — Traffic Light Grid ── */}
       <motion.div variants={itemFadeIn} initial="hidden" animate="show">
         <Card className="glass-card-v2 card-hover-lift overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
@@ -198,12 +335,10 @@ export default function EarlyAlert() {
                         opacity: 0.4 + (score / 100) * 0.6,
                       }}
                     >
-                      {/* Hover glow overlay */}
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity" style={{ background: `radial-gradient(circle, white 0%, transparent 70%)` }} />
                       <span className="text-[10px] font-bold text-white/90">{muni.code}</span>
                       <span className="text-[8px] font-medium text-white/70">{score}</span>
                     </button>
-                    {/* Enhanced tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-52">
                       <div className="tooltip-premium p-3 text-[11px]">
                         <p className="font-semibold text-zinc-200">{muni.name}</p>
@@ -243,9 +378,116 @@ export default function EarlyAlert() {
         </Card>
       </motion.div>
 
+      {/* ── Risk Feed Signals ── */}
+      <motion.div variants={itemFadeIn} initial="hidden" animate="show">
+        <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                  <Eye className="size-4" style={{ color: ACCENT_FROM }} />
+                  Risk Signal Feed
+                </CardTitle>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Latest detected risk signals — hover for details</p>
+              </div>
+              <Badge style={{ background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` }}>
+                {activeSignals} active / {totalSignals} total
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ScrollArea className="max-h-72">
+              <div className="space-y-2">
+                {RISK_FEED_SIGNALS.map((signal, i) => {
+                  const urgency = getUrgencyBadge(signal.detectedAt);
+                  return (
+                    <TooltipProvider key={signal.id}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06, duration: 0.35 }}
+                        className="group"
+                      >
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 hover:border-white/[0.12] hover:bg-white/[0.04] transition-all cursor-default">
+                              {/* Severity indicator */}
+                              <div
+                                className="size-2 rounded-full shrink-0"
+                                style={{
+                                  backgroundColor: signal.severity === 'Critical' ? '#EF4444' : signal.severity === 'High' ? '#F97316' : signal.severity === 'Medium' ? '#F59E0B' : '#10B981',
+                                  boxShadow: `0 0 6px ${signal.severity === 'Critical' ? 'rgba(239,68,68,0.5)' : signal.severity === 'High' ? 'rgba(249,115,22,0.4)' : 'transparent'}`,
+                                }}
+                              />
+                              {/* Municipality with Building2 icon */}
+                              <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+                                <Building2 className="size-3 text-zinc-500" />
+                                <span className="text-[11px] font-semibold text-zinc-200 truncate">{signal.municipality}</span>
+                              </div>
+                              {/* Signal type */}
+                              <span className="text-[11px] text-zinc-400 flex-1 truncate">{signal.type}</span>
+                              {/* Urgency badge */}
+                              {urgency.label && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[8px] h-4 px-1.5 shrink-0"
+                                  style={{ color: urgency.color, background: urgency.bg, borderColor: urgency.border }}
+                                >
+                                  {urgency.label}
+                                </Badge>
+                              )}
+                              {/* Severity badge */}
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  'text-[8px] h-4 px-1.5 shrink-0',
+                                  signal.severity === 'Critical' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                                  signal.severity === 'High' ? 'bg-orange-500/15 text-orange-400 border-orange-500/25' :
+                                  signal.severity === 'Medium' ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' :
+                                  'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                )}
+                              >
+                                {signal.severity}
+                              </Badge>
+                              {/* Investigate button */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleInvestigate}
+                                className="h-6 gap-1 text-[9px] text-zinc-400 hover:text-[#F43F5E] shrink-0"
+                              >
+                                Investigate
+                                <ArrowRight className="size-2.5" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="left"
+                            className="max-w-xs bg-[#0d1224]/95 backdrop-blur-xl border border-white/[0.1] text-zinc-200 text-[11px] shadow-2xl"
+                          >
+                            <p className="font-semibold text-zinc-100 mb-1">{signal.type}</p>
+                            <p className="text-zinc-400 leading-relaxed">{signal.description}</p>
+                            <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-white/[0.06]">
+                              <span className="text-zinc-500">Detected: {formatSADate(signal.detectedAt)}</span>
+                              <span className="text-zinc-600">·</span>
+                              <span className="text-zinc-500">{signal.status}</span>
+                            </div>
+                          </TooltipContent>
+                        </UITooltip>
+                      </motion.div>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* ── ECRS Trend + Briefing Generator + Risk Distribution ── */}
       <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* ECRS Trend — premium chart with gradient fill */}
+        {/* ECRS Trend */}
         <motion.div variants={itemFadeIn} className="lg:col-span-2">
           <Card className="glass-card-v2 card-hover-lift overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
@@ -349,7 +591,80 @@ export default function EarlyAlert() {
         </motion.div>
       </motion.div>
 
-      {/* ── Risk Distribution Section ─────────────────────────── */}
+      {/* ── Risk Forecast Section (NEW) ── */}
+      <motion.div variants={itemSlideUp} initial="hidden" animate="show">
+        <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Brain className="size-4" style={{ color: ACCENT_FROM }} />
+              <CardTitle className="text-sm font-semibold text-zinc-200">Q4 2026 Risk Forecast</CardTitle>
+              <Badge className="text-[9px] h-5 px-1.5" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` }}>
+                ML Predicted
+              </Badge>
+            </div>
+            <p className="text-[11px] text-zinc-400 mt-0.5">Predicted ECRS direction for next quarter — ▲ Up = increasing risk, ▼ Down = decreasing risk, → Stable</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {RISK_FORECASTS.map((fc, i) => (
+                <motion.div
+                  key={fc.code}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.4 }}
+                  className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-all"
+                  style={{
+                    borderLeftWidth: '3px',
+                    borderLeftColor: fc.direction === 'up' ? '#EF4444' : fc.direction === 'down' ? '#10B981' : '#F59E0B',
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Building2 className="size-3 text-zinc-500" />
+                    <span className="text-[10px] font-semibold text-zinc-200 truncate">{fc.municipality}</span>
+                  </div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div>
+                      <p className="text-[9px] text-zinc-500">Current</p>
+                      <p className="text-sm font-bold tabular-nums" style={{ color: getRiskColor(fc.currentECRS) }}>
+                        {fc.currentECRS}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      {fc.direction === 'up' ? (
+                        <TrendingUp className="size-5 text-red-400" />
+                      ) : fc.direction === 'down' ? (
+                        <TrendingDown className="size-5 text-emerald-400" />
+                      ) : (
+                        <Minus className="size-5 text-amber-400" />
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] text-zinc-500">Predicted</p>
+                      <p className="text-sm font-bold tabular-nums" style={{ color: getRiskColor(fc.predictedECRS) }}>
+                        {fc.predictedECRS}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[8px] h-4 px-1.5 w-full justify-center',
+                      fc.direction === 'up' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                      fc.direction === 'down' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' :
+                      'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                    )}
+                  >
+                    {fc.direction === 'up' ? '▲ Risk Increasing' : fc.direction === 'down' ? '▼ Risk Decreasing' : '→ Stable'}
+                  </Badge>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ── Risk Distribution + Key Risk Indicators ── */}
       <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pie Chart */}
         <motion.div variants={itemFadeIn}>
@@ -447,66 +762,100 @@ export default function EarlyAlert() {
         </motion.div>
       </motion.div>
 
-      {/* ── Intervention History — timeline with gradient line ── */}
+      {/* ── Intervention History — Enhanced ── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <Card className="glass-card-v2 card-hover-lift overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-zinc-200">Section 139 Intervention History</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-zinc-200">Section 139 Intervention History</CardTitle>
+              <Badge className="text-[9px] h-5 px-1.5" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` }}>
+                {INTERVENTIONS.filter((int) => int.status === 'Active').length} Active
+              </Badge>
+            </div>
             <p className="text-[11px] text-zinc-400 mt-0.5">Timeline of past and current interventions</p>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="relative">
-              {/* Gradient timeline line */}
               <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ background: `linear-gradient(180deg, ${ACCENT_FROM}, ${ACCENT_TO}, transparent)` }} />
-              {INTERVENTIONS.map((int, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08, duration: 0.4 }}
-                  className="relative pl-8 pb-6 last:pb-0"
-                >
-                  {/* Timeline dot */}
-                  <div className={cn(
-                    'absolute left-1 top-1 size-3.5 rounded-full border-2',
-                    int.status === 'Active' ? '' : 'bg-zinc-600 border-zinc-600/50'
-                  )} style={int.status === 'Active' ? { background: ACCENT_FROM, borderColor: `${ACCENT_FROM}50`, boxShadow: `0 0 8px ${ACCENT_FROM}40` } : {}} />
+              {INTERVENTIONS.map((int, i) => {
+                const outcomeBadge = getOutcomeBadge(int.outcome);
+                const durationMonths = calculateDuration(int.date);
+
+                return (
                   <motion.div
-                    whileHover={{ scale: 1.01, borderColor: `${ACCENT_FROM}25` }}
-                    className={cn(
-                      'rounded-lg border border-white/[0.06] p-3 transition-all relative overflow-hidden',
-                      i % 2 === 0 ? 'bg-white/[0.01]' : 'bg-transparent'
-                    )}
-                    style={{ borderLeftWidth: '2px', borderLeftColor: int.status === 'Active' ? ACCENT_FROM : '#52525b' }}
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.4 }}
+                    className="relative pl-8 pb-6 last:pb-0"
                   >
-                    <div className="absolute inset-0 opacity-[0.02]" style={{ background: `linear-gradient(135deg, ${int.status === 'Active' ? ACCENT_FROM : '#52525b'}, transparent)` }} />
-                    <div className="relative flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-zinc-200">{int.municipality}</p>
-                        <p className="text-[11px] text-zinc-300 mt-0.5">{int.reason}</p>
+                    <div className={cn(
+                      'absolute left-1 top-1 size-3.5 rounded-full border-2',
+                      int.status === 'Active' ? '' : 'bg-zinc-600 border-zinc-600/50'
+                    )} style={int.status === 'Active' ? { background: ACCENT_FROM, borderColor: `${ACCENT_FROM}50`, boxShadow: `0 0 8px ${ACCENT_FROM}40` } : {}} />
+                    <motion.div
+                      whileHover={{ scale: 1.01, borderColor: `${ACCENT_FROM}25` }}
+                      className={cn(
+                        'rounded-lg border border-white/[0.06] p-3 transition-all relative overflow-hidden',
+                        i % 2 === 0 ? 'bg-white/[0.01]' : 'bg-transparent'
+                      )}
+                      style={{ borderLeftWidth: '2px', borderLeftColor: int.status === 'Active' ? ACCENT_FROM : '#52525b' }}
+                    >
+                      <div className="absolute inset-0 opacity-[0.02]" style={{ background: `linear-gradient(135deg, ${int.status === 'Active' ? ACCENT_FROM : '#52525b'}, transparent)` }} />
+                      <div className="relative">
+                        <div className="flex items-start justify-between mb-1.5">
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-200">{int.municipality}</p>
+                            <p className="text-[11px] text-zinc-300 mt-0.5">{int.reason}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Outcome badge */}
+                            {outcomeBadge && (
+                              <Badge
+                                variant="outline"
+                                className="text-[8px] h-4 px-1.5"
+                                style={{ color: outcomeBadge.color, background: outcomeBadge.bg, borderColor: outcomeBadge.border }}
+                              >
+                                {outcomeBadge.label}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'text-[9px] h-5 px-1.5 shrink-0',
+                                int.status === 'Active' ? '' : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                              )}
+                              style={int.status === 'Active' ? { background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` } : {}}
+                            >
+                              {int.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px]">
+                          <span className="text-zinc-400">{int.type}</span>
+                          <span className="text-zinc-600">·</span>
+                          <span className="text-zinc-400">{int.province}</span>
+                          <span className="text-zinc-600">·</span>
+                          <span className="text-zinc-400">{formatSADate(int.date)}</span>
+                          <span className="text-zinc-600">·</span>
+                          <span className="text-zinc-400">Duration: {durationMonths} months</span>
+                        </div>
+                        {/* View Details button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 mt-2 gap-1 text-[9px] text-zinc-500 hover:text-[#F43F5E] p-0"
+                          onClick={() => setActiveModule('munilens')}
+                        >
+                          View Details
+                          <ChevronRight className="size-2.5" />
+                        </Button>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-[9px] h-5 px-1.5 shrink-0',
-                          int.status === 'Active' ? '' : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
-                        )}
-                        style={int.status === 'Active' ? { background: `${ACCENT_FROM}15`, color: ACCENT_FROM, borderColor: `${ACCENT_FROM}25` } : {}}
-                      >
-                        {int.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 mt-2 text-[10px]">
-                      <span className="text-zinc-400">{int.type}</span>
-                      <span className="text-zinc-600">·</span>
-                      <span className="text-zinc-400">{int.province}</span>
-                      <span className="text-zinc-600">·</span>
-                      <span className="text-zinc-400">{formatSADate(int.date)}</span>
-                    </div>
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

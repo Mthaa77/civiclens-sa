@@ -41,6 +41,7 @@ import {
   Gavel,
   FileCheck,
   Droplets,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -304,17 +305,20 @@ function getFHSBarColor(score: number): string {
 
 // ── Section Header Component ────────────────────────────────────────────────
 
-function SectionHeader({ title, subtitle, accentColor = '#0077B6' }: { title: string; subtitle?: string; accentColor?: string }) {
+function SectionHeader({ title, subtitle, accentColor = '#0077B6', action }: { title: string; subtitle?: string; accentColor?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <div
-        className="w-1 h-6 rounded-full shrink-0"
-        style={{ background: `linear-gradient(180deg, ${accentColor}, ${accentColor}40)` }}
-      />
-      <div>
-        <h2 className="text-base font-bold text-zinc-100 tracking-tight">{title}</h2>
-        {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3">
+        <div
+          className="w-[2px] h-6 rounded-full shrink-0"
+          style={{ background: `linear-gradient(180deg, ${accentColor}, ${accentColor}40)` }}
+        />
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-200 tracking-tight">{title}</h2>
+          {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
+        </div>
       </div>
+      {action && <div>{action}</div>}
     </div>
   );
 }
@@ -496,18 +500,31 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           </div>
         </div>
 
-        {/* Click to explore hover text with animated arrow */}
-        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <span className="text-[10px] font-semibold text-zinc-400 group-hover:text-zinc-300 flex items-center gap-1">
-            Click to explore
-            <motion.span
-              className="inline-flex"
-              animate={{ x: [0, 3, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+        {/* Quick Action dropdown (appears on hover) */}
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+          <div className="flex flex-col gap-0.5 bg-[#0d1224]/95 backdrop-blur-xl border border-white/[0.1] rounded-lg shadow-xl overflow-hidden">
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveModule(data.targetModule); }}
+              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
             >
-              <ArrowRight className="size-3" />
-            </motion.span>
-          </span>
+              <Eye className="size-2.5" />
+              View Details
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toast.success('Data exported successfully'); }}
+              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
+            >
+              <Download className="size-2.5" />
+              Export Data
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toast.success('Alert created'); }}
+              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
+            >
+              <ShieldAlert className="size-2.5" />
+              Set Alert
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -1717,17 +1734,26 @@ function RiskSignalsPanel() {
                     style={{ borderLeft: `4px solid ${severityColor}` }}
                   >
                     <div className="flex items-start gap-2.5">
-                      <Badge
-                        className={cn(
-                          'shrink-0 text-[9px] h-5 px-1.5 font-bold border',
-                          severityStyle.bgColor,
-                          severityStyle.color,
-                          severityStyle.borderColor
+                      <div className="flex items-center gap-1">
+                        <Badge
+                          className={cn(
+                            'shrink-0 text-[9px] h-5 px-1.5 font-bold border',
+                            severityStyle.bgColor,
+                            severityStyle.color,
+                            severityStyle.borderColor
+                          )}
+                          variant="outline"
+                        >
+                          {signal.severity}
+                        </Badge>
+                        {/* Critical pulse badge */}
+                        {signal.severity === 'Critical' && (
+                          <span className="relative flex size-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full size-2 bg-red-500" />
+                          </span>
                         )}
-                        variant="outline"
-                      >
-                        {signal.severity}
-                      </Badge>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-zinc-200 truncate">
                           {signal.type}
@@ -1752,16 +1778,27 @@ function RiskSignalsPanel() {
             </div>
           </ScrollArea>
           <Separator className="my-3 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-          <button
-            onClick={() => setActiveModule('risklens' as ModuleId)}
-            className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            <span className="relative">
-              View all risk signals
-              <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
-            </span>
-            <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setActiveModule('risklens' as ModuleId)}
+              className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              <span className="relative">
+                View all risk signals
+                <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
+              </span>
+              <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveModule('risklens' as ModuleId)}
+              className="h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300"
+            >
+              Expand
+              <ArrowRight className="size-2.5" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -1844,6 +1881,26 @@ function TenderHighlightsPanel() {
                       <div className="flex items-center gap-1 text-[10px] text-zinc-400">
                         <Clock className="size-2.5" />
                         <span>Closes {formatSADate(tender.closingDate ?? '')}</span>
+                        {/* Closing countdown badge */}
+                        {tender.closingDate && (() => {
+                          const daysToClose = Math.ceil((new Date(tender.closingDate).getTime() - new Date('2026-03-03').getTime()) / (1000 * 60 * 60 * 24));
+                          if (daysToClose <= 14 && daysToClose > 0) {
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  'text-[8px] h-3.5 px-1',
+                                  daysToClose <= 7
+                                    ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                                    : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                                )}
+                              >
+                                {daysToClose}d left
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                   </motion.div>
@@ -1852,16 +1909,27 @@ function TenderHighlightsPanel() {
             </div>
           </ScrollArea>
           <Separator className="my-3 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-          <button
-            onClick={() => setActiveModule('tenderlens' as ModuleId)}
-            className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            <span className="relative">
-              View all tenders
-              <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
-            </span>
-            <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setActiveModule('tenderlens' as ModuleId)}
+              className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              <span className="relative">
+                View all tenders
+                <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
+              </span>
+              <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveModule('tenderlens' as ModuleId)}
+              className="h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300"
+            >
+              Expand
+              <ArrowRight className="size-2.5" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -1894,17 +1962,25 @@ const ACTIVITY_EVENTS: ActivityEvent[] = [
   { type: 'RiskAlert', text: 'Supplier concentration risk flagged in Northern Cape health procurement', entity: 'Northern Cape', time: '3h ago' },
 ];
 
-const ACTIVITY_TYPE_CONFIG: Record<ActivityEventType, { icon: React.ReactNode; color: string; glow: string }> = {
-  TenderAward: { icon: <Building2 className="size-3" />, color: 'text-emerald-400', glow: '0 0 6px rgba(16,185,129,0.4)' },
-  RiskAlert: { icon: <AlertTriangle className="size-3" />, color: 'text-red-400', glow: '0 0 6px rgba(239,68,68,0.4)' },
-  AuditUpdate: { icon: <FileCheck className="size-3" />, color: 'text-blue-400', glow: '0 0 6px rgba(59,130,246,0.4)' },
-  Section139: { icon: <Gavel className="size-3" />, color: 'text-amber-400', glow: '0 0 6px rgba(245,158,11,0.4)' },
-  ServiceUpdate: { icon: <Droplets className="size-3" />, color: 'text-teal-400', glow: '0 0 6px rgba(20,184,166,0.4)' },
+const ACTIVITY_TYPE_CONFIG: Record<ActivityEventType, { icon: React.ReactNode; color: string; glow: string; targetModule: ModuleId }> = {
+  TenderAward: { icon: <Building2 className="size-3" />, color: 'text-emerald-400', glow: '0 0 6px rgba(16,185,129,0.4)', targetModule: 'tenderlens' as ModuleId },
+  RiskAlert: { icon: <AlertTriangle className="size-3" />, color: 'text-red-400', glow: '0 0 6px rgba(239,68,68,0.4)', targetModule: 'risklens' as ModuleId },
+  AuditUpdate: { icon: <FileCheck className="size-3" />, color: 'text-blue-400', glow: '0 0 6px rgba(59,130,246,0.4)', targetModule: 'agasalert' as ModuleId },
+  Section139: { icon: <Gavel className="size-3" />, color: 'text-amber-400', glow: '0 0 6px rgba(245,158,11,0.4)', targetModule: 'earlyalert' as ModuleId },
+  ServiceUpdate: { icon: <Droplets className="size-3" />, color: 'text-teal-400', glow: '0 0 6px rgba(20,184,166,0.4)', targetModule: 'servicelens' as ModuleId },
 };
 
 function LiveActivityFeed() {
+  const { setActiveModule } = useNavigationStore();
   // Duplicate events for seamless loop
   const duplicatedEvents = [...ACTIVITY_EVENTS, ...ACTIVITY_EVENTS];
+
+  const handleEventClick = (type: ActivityEventType) => {
+    const config = ACTIVITY_TYPE_CONFIG[type];
+    if (config?.targetModule) {
+      setActiveModule(config.targetModule);
+    }
+  };
 
   return (
     <motion.div
@@ -1924,7 +2000,7 @@ function LiveActivityFeed() {
         <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Activity Feed</span>
       </div>
 
-      {/* Right: Scrolling events */}
+      {/* Right: Scrolling events - Clickable */}
       <div className="flex-1 overflow-hidden relative">
         {/* Fade edges */}
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0e1a]/80 to-transparent z-10 pointer-events-none" />
@@ -1934,20 +2010,24 @@ function LiveActivityFeed() {
           {duplicatedEvents.map((event, idx) => {
             const config = ACTIVITY_TYPE_CONFIG[event.type];
             return (
-              <div key={`event-${idx}`} className="flex items-center gap-2 shrink-0">
+              <button
+                key={`event-${idx}`}
+                onClick={() => handleEventClick(event.type)}
+                className="flex items-center gap-2 shrink-0 cursor-pointer hover:brightness-125 transition-all group/event"
+              >
                 {/* Category icon with glow */}
                 <span className={cn('flex items-center justify-center size-5 rounded', config.color)} style={{ boxShadow: config.glow }}>
                   {config.icon}
                 </span>
                 {/* Event text */}
-                <span className="text-[11px] text-zinc-300 font-medium">{event.text}</span>
+                <span className="text-[11px] text-zinc-300 font-medium group-hover/event:underline underline-offset-2">{event.text}</span>
                 {/* Entity tag */}
                 <span className="text-[9px] font-semibold text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">{event.entity}</span>
                 {/* Relative timestamp */}
                 <span className="text-[9px] text-zinc-500 font-mono">{event.time}</span>
                 {/* Dot divider */}
                 <span className="text-zinc-700 ml-2">•</span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -2127,15 +2207,16 @@ export default function Dashboard() {
               162 of 257 municipalities below Financial Health Score threshold of 45 — up 8.2% year-on-year
             </p>
           </div>
-          {/* Animated chevron CTA */}
-          <motion.div
-            animate={{ x: [0, 4, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="shrink-0 flex items-center gap-1 text-red-400/60 hover:text-red-300 cursor-pointer transition-colors"
+          {/* View Distressed Municipalities button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => useNavigationStore.getState().setActiveModule('munilens')}
+            className="h-7 gap-1.5 text-[10px] border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/50 shrink-0"
           >
-            <span className="text-[10px] font-semibold hidden sm:inline">View Details</span>
-            <ArrowRight className="size-3.5" />
-          </motion.div>
+            View Distressed Municipalities
+            <ArrowRight className="size-3" />
+          </Button>
         </div>
       </motion.div>
 
@@ -2158,6 +2239,9 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
       {/* ── AI Insights Panel ──────────────────────────────────── */}
       <motion.div
         variants={containerStagger}
@@ -2166,6 +2250,9 @@ export default function Dashboard() {
       >
         <AIInsightsPanel />
       </motion.div>
+
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
       {/* ── National Overview Charts ────────────────────────────── */}
       <div>
@@ -2185,6 +2272,9 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
       {/* ── Service Delivery Heatmap ────────────────────────────── */}
       <div>
         <SectionHeader
@@ -2200,6 +2290,9 @@ export default function Dashboard() {
           <ServiceDeliveryChart />
         </motion.div>
       </div>
+
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
       {/* ── Budget Treemap Chart ─────────────────────────────────── */}
       <div>
@@ -2217,6 +2310,9 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
       {/* ── Provincial Intelligence Table ───────────────────────── */}
       <div>
         <SectionHeader
@@ -2233,6 +2329,9 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
       {/* ── Municipality Comparison ─────────────────────────────── */}
       <div>
         <SectionHeader
@@ -2248,6 +2347,9 @@ export default function Dashboard() {
           <MunicipalityComparison />
         </motion.div>
       </div>
+
+      {/* Section Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
       {/* ── Watchlist, Risk Signals & Tender Highlights ──────────── */}
       <div>
