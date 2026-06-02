@@ -263,3 +263,37 @@ export const TENDER_CATEGORIES = [
   'Security',
   'Office Supplies',
 ] as const;
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+export type NotificationCategory = 'alert' | 'tender' | 'municipality' | 'system';
+
+export interface NotificationItem {
+  id: string;
+  category: NotificationCategory;
+  title: string;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  actionLabel: string;
+  actionModule: ModuleId;
+}
+
+// ─── DATA EXPORT ──────────────────────────────────────────────────────────────
+
+export type ExportFormat = 'csv' | 'json' | 'pdf' | 'xlsx';
+
+export type ExportScope = 'current' | 'all' | 'filtered';
+
+export interface ExportColumn {
+  key: string;
+  label: string;
+  selected: boolean;
+}
+
+export interface ExportConfig {
+  format: ExportFormat;
+  scope: ExportScope;
+  columns: ExportColumn[];
+  filename: string;
+}

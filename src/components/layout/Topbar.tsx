@@ -14,11 +14,15 @@ import {
   Settings,
   ChevronRight,
   Command,
+  Building2,
+  FileSearch,
+  ShieldAlert,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useNavigationStore } from '@/store/navigation';
-import { MODULES } from '@/lib/mock-data';
+import { MODULES, MOCK_MUNICIPALITIES, MOCK_TENDERS, MOCK_RISK_SIGNALS } from '@/lib/mock-data';
+import { formatCompactZAR, getScoreBand } from '@/lib/formatters';
 import type { ModuleId } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +77,9 @@ function SouthAfricanDate() {
   if (!dateStr) return <span className="text-xs text-zinc-500">Loading...</span>;
 
   return (
-    <span className="hidden lg:inline text-xs font-medium text-zinc-500 tracking-wide">
+    <span className="hidden lg:inline text-xs font-medium text-zinc-400 tracking-wide">
+      <span className="text-zinc-500">ZA</span>{' '}
+      <span className="text-[#B45309]/70">●</span>{' '}
       {dateStr}
     </span>
   );
@@ -85,11 +91,20 @@ export default function Topbar() {
   const { theme, setTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
     () => false
   );
+
+  // Recent modules - derived from active module + defaults
+  const recentModules = useMemo(() => {
+    const defaultIds: ModuleId[] = ['dashboard', 'munilens', 'tenderlens', 'geolens', 'ai-analyst'];
+    const filtered = defaultIds.filter((id) => id !== activeModule);
+    const ids = [activeModule, ...filtered].slice(0, 5);
+    return ids.map((id) => MODULES.find((m) => m.id === id)).filter(Boolean);
+  }, [activeModule]);
 
   // Ctrl+K to open command palette
   useEffect(() => {
@@ -118,14 +133,23 @@ export default function Topbar() {
       <header
         className={cn(
           'sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-white/[0.06] px-4 lg:px-6',
-          'bg-[#0a0e1a]/80 backdrop-blur-xl'
+          'bg-[#0a0e1a]/85 backdrop-blur-2xl',
+          'relative'
         )}
       >
+        {/* ── Bottom gradient border (blue to gold, low opacity) ── */}
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(0,119,182,0.2) 25%, rgba(180,83,9,0.2) 75%, transparent)',
+          }}
+        />
+
         {/* Mobile menu toggle */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]"
+          className="lg:hidden text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200 hover:brightness-110"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <Menu className="size-5" />
@@ -136,7 +160,7 @@ export default function Topbar() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink
-                className="text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer"
+                className="text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer transition-colors duration-200"
                 onClick={() => setActiveModule('dashboard')}
               >
                 CivicLens
@@ -146,7 +170,10 @@ export default function Topbar() {
               <ChevronRight className="size-3" />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-zinc-200 text-xs font-medium">
+              <BreadcrumbPage
+                className="text-sm font-medium"
+                style={{ color: currentModule?.color ?? '#d4d4d8' }}
+              >
                 {currentModule?.name ?? 'Dashboard'}
               </BreadcrumbPage>
             </BreadcrumbItem>
@@ -154,7 +181,10 @@ export default function Topbar() {
         </Breadcrumb>
 
         {/* Mobile breadcrumb - just current module name */}
-        <span className="sm:hidden text-xs font-medium text-zinc-200 truncate">
+        <span
+          className="sm:hidden text-sm font-medium truncate"
+          style={{ color: currentModule?.color ?? '#e4e4e7' }}
+        >
           {currentModule?.name ?? 'Dashboard'}
         </span>
 
@@ -164,17 +194,34 @@ export default function Topbar() {
         {/* SA Date */}
         <SouthAfricanDate />
 
-        {/* Search bar (desktop) */}
+        {/* Search bar (desktop) — enhanced with glow & gradient border */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => setCommandOpen(true)}
               className={cn(
-                'hidden md:flex items-center gap-2 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03]',
-                'px-3 text-xs text-zinc-500 hover:border-white/[0.15] hover:bg-white/[0.06]',
-                'transition-all duration-200 cursor-pointer w-56 lg:w-64'
+                'hidden md:flex items-center gap-2 h-9 rounded-lg border bg-white/[0.03]',
+                'px-3 text-xs text-zinc-500 transition-all duration-300 cursor-pointer w-60 lg:w-72',
+                searchFocused
+                  ? 'border-transparent shadow-[0_0_16px_rgba(0,119,182,0.15),0_0_4px_rgba(0,119,182,0.1)] bg-white/[0.05]'
+                  : 'border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.06]'
               )}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
             >
+              {/* Gradient border on focus wrapper */}
+              {searchFocused && (
+                <span
+                  className="pointer-events-none absolute inset-0 rounded-lg"
+                  style={{
+                    padding: '1px',
+                    background: 'linear-gradient(135deg, #0077B6, #0F766E)',
+                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                  }}
+                />
+              )}
               <Search className="size-3.5" />
               <span className="flex-1 text-left">Search modules...</span>
               <kbd className="pointer-events-none hidden h-5 items-center gap-1 rounded border border-white/[0.1] bg-white/[0.05] px-1.5 font-mono text-[10px] font-medium text-zinc-500 lg:flex">
@@ -185,36 +232,42 @@ export default function Topbar() {
           <TooltipContent>Search modules (Ctrl+K)</TooltipContent>
         </Tooltip>
 
-        {/* AI Analyst quick launch */}
+        {/* AI Analyst quick launch — more prominent pulse */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               className={cn(
-                'relative size-8 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10',
-                'transition-all duration-200'
+                'relative size-8 text-zinc-400 transition-all duration-200',
+                'hover:text-emerald-400 hover:bg-emerald-500/10 hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]'
               )}
               onClick={() => setActiveModule('ai-analyst')}
             >
               <Sparkles className="size-4" />
-              <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-emerald-400 animate-pulse" />
+              {/* More prominent pulse indicator */}
+              <span className="absolute -top-0.5 -right-0.5 flex">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+              </span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>AI Analyst</TooltipContent>
         </Tooltip>
 
-        {/* Notification bell */}
+        {/* Notification bell — more visible badge with glow */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="relative size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200"
+              className="relative size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all duration-200"
               onClick={() => setNotificationsOpen(true)}
             >
               <Bell className="size-4" />
-              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[#0a0e1a]">
+              <span
+                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[#0a0e1a] shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+              >
                 3
               </span>
             </Button>
@@ -228,7 +281,7 @@ export default function Topbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200"
+              className="size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               {mounted && theme === 'dark' ? (
@@ -241,22 +294,26 @@ export default function Topbar() {
           <TooltipContent>Toggle theme</TooltipContent>
         </Tooltip>
 
-        {/* User avatar dropdown */}
+        {/* User avatar dropdown — with online status & themed accent */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               className="relative size-8 rounded-full hover:bg-white/[0.06] transition-all duration-200"
             >
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold border border-[#0077B6]/30">
-                  SA
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="size-8">
+                  <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold border border-[#0077B6]/30">
+                    SA
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online status green dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-2 border-[#0a0e1a]" />
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-56 bg-[#0d1224] border-white/[0.08]" 
+            className="w-56 bg-[#0d1224] border-white/[0.08]"
             align="end"
             forceMount
           >
@@ -267,20 +324,29 @@ export default function Topbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
-            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer" onClick={() => setActiveModule('settings' as ModuleId)}>
-              <User className="mr-2 size-4" />
+            <DropdownMenuItem
+              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer transition-all duration-150"
+              onClick={() => setActiveModule('settings' as ModuleId)}
+            >
+              <User className="mr-2 size-4 text-[#0077B6]/70" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06]" onClick={() => setActiveModule('settings')}>
-              <Settings className="mr-2 size-4" />
+            <DropdownMenuItem
+              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] transition-all duration-150"
+              onClick={() => setActiveModule('settings')}
+            >
+              <Settings className="mr-2 size-4 text-zinc-500" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06]">
-              <Bot className="mr-2 size-4" />
+            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] transition-all duration-150">
+              <Bot className="mr-2 size-4 text-[#0F766E]/70" />
               AI Preferences
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
-            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer" onClick={() => useNavigationStore.getState().setAuthenticated(false)}>
+            <DropdownMenuItem
+              className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer transition-all duration-150"
+              onClick={() => useNavigationStore.getState().setAuthenticated(false)}
+            >
               <LogOut className="mr-2 size-4" />
               Sign out
             </DropdownMenuItem>
@@ -295,21 +361,46 @@ export default function Topbar() {
       <CommandDialog
         open={commandOpen}
         onOpenChange={setCommandOpen}
-        title="Search Modules"
-        description="Navigate to any module in CivicLens SA"
+        title="Search CivicLens SA"
+        description="Search modules, municipalities, tenders, and risk signals"
       >
-        <CommandInput placeholder="Type a module name..." />
+        <CommandInput placeholder="Search everything..." />
         <CommandList>
-          <CommandEmpty>No modules found.</CommandEmpty>
+          <CommandEmpty>No results found.</CommandEmpty>
+
+          {/* Recent Modules */}
+          {recentModules.length > 0 && (
+            <CommandGroup heading="Recent">
+              {recentModules.map((mod) => (
+                <CommandItem
+                  key={`recent-${mod.id}`}
+                  value={`recent-${mod.name}`}
+                  onSelect={() => handleModuleSelect(mod.id)}
+                  className="text-zinc-300"
+                >
+                  <div
+                    className="mr-2 size-2 rounded-full"
+                    style={{ backgroundColor: mod.color }}
+                  />
+                  <span>{mod.name}</span>
+                  <span className="ml-auto text-[10px] text-zinc-600">
+                    {mod.shortName}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {/* Modules */}
           {(['MVP', 'Phase 2', 'Phase 3'] as const).map((phase) => {
             const phaseModules = MODULES.filter((m) => m.phase === phase);
             if (phaseModules.length === 0) return null;
             return (
-              <CommandGroup key={phase} heading={phase}>
+              <CommandGroup key={phase} heading={`Modules — ${phase}`}>
                 {phaseModules.map((mod) => (
                   <CommandItem
                     key={mod.id}
-                    value={mod.name}
+                    value={`module-${mod.name}`}
                     onSelect={() => handleModuleSelect(mod.id)}
                     className="text-zinc-300"
                   >
@@ -326,6 +417,104 @@ export default function Topbar() {
               </CommandGroup>
             );
           })}
+
+          {/* Municipalities */}
+          <CommandGroup heading="Municipalities">
+            {MOCK_MUNICIPALITIES.map((muni) => {
+              const band = getScoreBand(muni.financialHealthScore);
+              const dotColor = muni.financialHealthScore !== null
+                ? muni.financialHealthScore >= 65 ? '#22C55E'
+                  : muni.financialHealthScore >= 45 ? '#F59E0B'
+                  : muni.financialHealthScore >= 25 ? '#F97316'
+                  : '#EF4444'
+                : '#71717a';
+              return (
+                <CommandItem
+                  key={`muni-${muni.id}`}
+                  value={`municipality-${muni.name}-${muni.code}-${muni.province}`}
+                  onSelect={() => handleModuleSelect('munilens')}
+                  className="text-zinc-300"
+                >
+                  <div
+                    className="mr-2 size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: dotColor }}
+                  />
+                  <Building2 className="size-3 mr-1.5 text-zinc-500 shrink-0" />
+                  <span className="truncate">{muni.name}</span>
+                  <span className="ml-1 text-[10px] text-zinc-600 shrink-0">{muni.province}</span>
+                  <Badge
+                    variant="outline"
+                    className="ml-auto text-[9px] h-4 px-1 font-bold tabular-nums shrink-0 border-current/20"
+                    style={{ color: dotColor, backgroundColor: `${dotColor}12` }}
+                  >
+                    FHS {muni.financialHealthScore ?? '—'}
+                  </Badge>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+
+          {/* Tenders */}
+          <CommandGroup heading="Tenders">
+            {MOCK_TENDERS.map((tender) => {
+              const statusColor = tender.status === 'Active' ? '#10B981'
+                : tender.status === 'Awarded' ? '#3B82F6'
+                : tender.status === 'Cancelled' ? '#EF4444'
+                : '#71717a';
+              return (
+                <CommandItem
+                  key={`tender-${tender.id}`}
+                  value={`tender-${tender.title}-${tender.buyerName}-${tender.category}`}
+                  onSelect={() => handleModuleSelect('tenderlens')}
+                  className="text-zinc-300"
+                >
+                  <div
+                    className="mr-2 size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: statusColor }}
+                  />
+                  <FileSearch className="size-3 mr-1.5 text-zinc-500 shrink-0" />
+                  <span className="truncate flex-1">{tender.title}</span>
+                  <span className="text-[10px] text-zinc-500 ml-1 shrink-0">{tender.buyerName}</span>
+                  <span className="ml-auto text-[10px] font-bold text-[#B45309] tabular-nums shrink-0">
+                    {formatCompactZAR(tender.estimatedValue)}
+                  </span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+
+          {/* Risk Signals */}
+          <CommandGroup heading="Risk Signals">
+            {MOCK_RISK_SIGNALS.map((signal) => {
+              const severityColor = signal.severity === 'Critical' ? '#EF4444'
+                : signal.severity === 'High' ? '#F97316'
+                : signal.severity === 'Medium' ? '#F59E0B'
+                : '#22C55E';
+              return (
+                <CommandItem
+                  key={`risk-${signal.id}`}
+                  value={`risk-${signal.type}-${signal.entityId}-${signal.description}`}
+                  onSelect={() => handleModuleSelect('risklens')}
+                  className="text-zinc-300"
+                >
+                  <div
+                    className="mr-2 size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: severityColor }}
+                  />
+                  <ShieldAlert className="size-3 mr-1.5 text-zinc-500 shrink-0" />
+                  <span className="truncate flex-1">{signal.type}</span>
+                  <span className="text-[10px] text-zinc-500 ml-1 shrink-0">{signal.entityId}</span>
+                  <Badge
+                    variant="outline"
+                    className="ml-auto text-[9px] h-4 px-1 font-bold shrink-0 border-current/20"
+                    style={{ color: severityColor, backgroundColor: `${severityColor}12` }}
+                  >
+                    {signal.severity}
+                  </Badge>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
         </CommandList>
       </CommandDialog>
     </>

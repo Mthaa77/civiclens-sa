@@ -139,7 +139,7 @@ function getDaysUntilClosing(closingDate: string | null): number | null {
 }
 
 function getValueBand(value: number | null): { label: string; color: string } {
-  if (value === null) return { label: 'Unknown', color: 'text-zinc-500' };
+  if (value === null) return { label: 'Unknown', color: 'text-zinc-400' };
   if (value >= 100_000_000) return { label: 'Major', color: 'text-amber-400' };
   if (value >= 10_000_000) return { label: 'Mid', color: 'text-emerald-400' };
   return { label: 'Small', color: 'text-zinc-400' };
@@ -233,16 +233,16 @@ function FilterBar() {
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       className="sticky top-0 z-20 -mx-4 lg:-mx-6 -mt-4 lg:-mt-6 mb-4"
     >
-      <div className="bg-[#0a0e1a]/95 backdrop-blur-xl border-b border-white/[0.06] px-4 lg:px-6 py-3">
+      <div className="bg-[#0a0e1a]/95 backdrop-blur-xl px-4 lg:px-6 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', backgroundImage: 'linear-gradient(to right, #2D6A4F20, transparent)' }}>
         {/* Primary search row */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
             <Input
               placeholder="Search tenders by title, buyer, description..."
               value={filters.search}
               onChange={(e) => setFilters({ search: e.target.value })}
-              className="pl-9 h-9 bg-white/[0.04] border-white/[0.08] text-zinc-200 placeholder:text-zinc-600 text-sm focus-visible:border-[#2D6A4F]/50 focus-visible:ring-[#2D6A4F]/20"
+              className="pl-9 h-10 bg-white/[0.04] border-white/[0.08] text-zinc-200 placeholder:text-zinc-500 text-sm focus-visible:border-[#2D6A4F]/50 focus-visible:ring-[#2D6A4F]/30 focus-visible:shadow-[0_0_12px_rgba(45,106,79,0.15)]"
             />
           </div>
 
@@ -251,7 +251,7 @@ function FilterBar() {
             onValueChange={(v) => setFilters({ province: v === '__all__' ? '' : v })}
           >
             <SelectTrigger className="w-[160px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
-              <MapPin className="size-3.5 mr-1 text-zinc-500" />
+              <MapPin className="size-3.5 mr-1 text-zinc-400" />
               <SelectValue placeholder="Province" />
             </SelectTrigger>
             <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -267,7 +267,7 @@ function FilterBar() {
             onValueChange={(v) => setFilters({ category: v === '__all__' ? '' : v })}
           >
             <SelectTrigger className="w-[170px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
-              <Tag className="size-3.5 mr-1 text-zinc-500" />
+              <Tag className="size-3.5 mr-1 text-zinc-400" />
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -306,7 +306,7 @@ function FilterBar() {
             <Filter className="size-3.5 mr-1.5" />
             More Filters
             {activeFilterCount > 0 && (
-              <Badge className="ml-1.5 size-5 p-0 flex items-center justify-center bg-[#2D6A4F] text-white text-[9px] border-0">
+              <Badge className="ml-1.5 size-5 p-0 flex items-center justify-center bg-[#2D6A4F] text-white text-[9px] border-0 animate-pulse shadow-[0_0_6px_rgba(45,106,79,0.5)]">
                 {activeFilterCount}
               </Badge>
             )}
@@ -347,7 +347,7 @@ function FilterBar() {
               <div className="flex items-center gap-4 flex-wrap pt-3 border-t border-white/[0.06] mt-3">
                 {/* Value Range Slider */}
                 <div className="flex items-center gap-3 min-w-[300px]">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider font-medium whitespace-nowrap">
+                  <span className="text-[11px] text-zinc-400 uppercase tracking-wider font-medium whitespace-nowrap">
                     Value Range
                   </span>
                   <Slider
@@ -370,7 +370,7 @@ function FilterBar() {
                   onValueChange={(v) => setFilters({ bbbeeLevel: v === '__all__' ? '' : v })}
                 >
                   <SelectTrigger className="w-[140px] h-8 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
-                    <Shield className="size-3 mr-1 text-zinc-500" />
+                    <Shield className="size-3 mr-1 text-zinc-400" />
                     <SelectValue placeholder="B-BBEE" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -433,11 +433,11 @@ function ResultsSummaryBar({
       className="flex items-center justify-between gap-3 py-2"
     >
       <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-zinc-400">
           Showing{' '}
-          <span className="text-zinc-300 font-semibold tabular-nums">{filteredCount}</span>
+          <span className="text-white font-bold tabular-nums">{filteredCount}</span>
           {' '}of{' '}
-          <span className="text-zinc-300 font-semibold tabular-nums">{totalCount}</span>
+          <span className="text-white font-bold tabular-nums">{totalCount}</span>
           {' '}tenders
         </span>
       </div>
@@ -459,14 +459,14 @@ function ResultsSummaryBar({
         </Select>
 
         {/* View toggle */}
-        <div className="flex items-center border border-white/[0.06] rounded-md overflow-hidden">
+        <div className="flex items-center border border-white/[0.08] rounded-md overflow-hidden">
           <button
             onClick={() => onViewModeChange('grid')}
             className={cn(
-              'flex items-center justify-center size-8 transition-colors',
+              'flex items-center justify-center size-8 transition-all duration-200',
               viewMode === 'grid'
-                ? 'bg-white/[0.08] text-zinc-200'
-                : 'text-zinc-600 hover:text-zinc-400',
+                ? 'bg-[#2D6A4F]/20 text-[#4ade80] shadow-[0_0_8px_rgba(45,106,79,0.3)]'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]',
             )}
           >
             <LayoutGrid className="size-3.5" />
@@ -474,10 +474,10 @@ function ResultsSummaryBar({
           <button
             onClick={() => onViewModeChange('list')}
             className={cn(
-              'flex items-center justify-center size-8 transition-colors',
+              'flex items-center justify-center size-8 transition-all duration-200',
               viewMode === 'list'
-                ? 'bg-white/[0.08] text-zinc-200'
-                : 'text-zinc-600 hover:text-zinc-400',
+                ? 'bg-[#2D6A4F]/20 text-[#4ade80] shadow-[0_0_8px_rgba(45,106,79,0.3)]'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]',
             )}
           >
             <List className="size-3.5" />
@@ -511,7 +511,7 @@ function TenderCard({
   return (
     <motion.div
       variants={cardFadeIn}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      whileHover={{ y: -4, transition: { duration: 0.25 } }}
       className="group"
     >
       <div
@@ -519,21 +519,27 @@ function TenderCard({
         className={cn(
           'relative overflow-hidden rounded-xl border border-white/[0.06] cursor-pointer',
           'bg-white/[0.02] backdrop-blur-sm',
-          'hover:border-white/[0.12] hover:bg-white/[0.04]',
+          'hover:border-[#2D6A4F]/30 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(45,106,79,0.1)]',
           'transition-all duration-300',
           isGrid ? 'p-4' : 'p-4 flex gap-4',
         )}
       >
         {/* Top accent line */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70 group-hover:opacity-100 transition-opacity"
           style={{
             background: `linear-gradient(90deg, ${tender.status === 'Active' ? '#10B981' : tender.status === 'Awarded' ? '#3B82F6' : tender.status === 'Cancelled' ? '#EF4444' : '#6B7280'}, transparent)`,
           }}
         />
 
         {/* Background glow on hover */}
-        <div className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-[0.05] blur-2xl transition-opacity duration-500 bg-[#2D6A4F]" />
+        <div className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-[0.08] blur-2xl transition-opacity duration-500 bg-[#2D6A4F]" />
+
+        {/* Diagonal pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.03) 10px, rgba(255,255,255,0.03) 11px)' }} />
+
+        {/* Bottom gradient overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
 
         {isGrid ? (
           /* ── Grid Layout ── */
@@ -543,21 +549,22 @@ function TenderCard({
               <div className="flex items-center gap-2">
                 <Badge
                   className={cn(
-                    'text-[9px] h-5 px-1.5 font-semibold border',
+                    'text-[10px] h-6 px-2 font-semibold border',
                     statusStyle.bgColor,
                     statusStyle.color,
                     'border-current/20',
+                    tender.status === 'Active' && 'shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse',
                   )}
                   variant="outline"
                 >
                   {tender.status === 'Active' && (
-                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse-glow mr-1" />
+                    <span className="size-1.5 rounded-full bg-emerald-400 mr-1" />
                   )}
                   {tender.status}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="text-[9px] h-5 px-1.5 border-white/[0.08] text-zinc-500"
+                  className="text-[9px] h-5 px-1.5 border-white/[0.10] text-zinc-400"
                 >
                   {tender.category}
                 </Badge>
@@ -585,17 +592,17 @@ function TenderCard({
 
             {/* Buyer */}
             <div className="flex items-center gap-1.5">
-              <Building2 className="size-3 text-zinc-600" />
-              <span className="text-xs text-zinc-500 truncate">{tender.buyerName}</span>
+              <Building2 className="size-3 text-zinc-400" />
+              <span className="text-xs text-zinc-400 truncate">{tender.buyerName}</span>
             </div>
 
             {/* Value */}
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-[#B45309] tabular-nums">
+              <span className="text-xl font-bold text-[#B45309] tabular-nums drop-shadow-[0_0_6px_rgba(180,83,9,0.3)]">
                 {formatCompactZAR(tender.estimatedValue)}
               </span>
               {tender.awardValue && (
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-[10px] text-zinc-400">
                   (Awarded: {formatCompactZAR(tender.awardValue)})
                 </span>
               )}
@@ -603,7 +610,7 @@ function TenderCard({
 
             {/* Dates */}
             <div className="flex items-center gap-3 text-[11px]">
-              <div className="flex items-center gap-1 text-zinc-500">
+              <div className="flex items-center gap-1 text-zinc-400">
                 <Clock className="size-3" />
                 <span>Published {formatSADate(tender.publishedDate)}</span>
               </div>
@@ -629,7 +636,7 @@ function TenderCard({
             {/* Province + B-BBEE */}
             <div className="flex items-center gap-2 flex-wrap">
               {tender.province && (
-                <div className="flex items-center gap-1 text-[10px] text-zinc-600">
+                <div className="flex items-center gap-1 text-[10px] text-zinc-400">
                   <MapPin className="size-2.5" />
                   <span>{tender.province}</span>
                 </div>
@@ -637,7 +644,7 @@ function TenderCard({
               {tender.bbbeeRequirement && (
                 <Badge
                   variant="outline"
-                  className="text-[9px] h-4 px-1.5 border-[#2D6A4F]/30 text-[#2D6A4F] bg-[#2D6A4F]/5"
+                  className="text-[9px] h-4 px-1.5 border-[#2D6A4F]/40 text-[#4ade80] bg-[#2D6A4F]/10 shadow-[0_0_6px_rgba(45,106,79,0.2)]"
                 >
                   <Shield className="size-2.5 mr-0.5" />
                   B-BBEE {tender.bbbeeRequirement}
@@ -653,7 +660,7 @@ function TenderCard({
                     e.stopPropagation();
                     setSummaryExpanded(!summaryExpanded);
                   }}
-                  className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                  className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-400 transition-colors"
                 >
                   <Sparkles className="size-3 text-[#2D6A4F]/60" />
                   <span>AI Summary</span>
@@ -672,7 +679,7 @@ function TenderCard({
                       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                       className="overflow-hidden"
                     >
-                      <p className="text-[11px] text-zinc-500 leading-relaxed mt-1.5 pl-4 border-l-2 border-[#2D6A4F]/20">
+                      <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5 pl-4 border-l-2 border-[#2D6A4F]/20">
                         {tender.aiSummary}
                       </p>
                     </motion.div>
@@ -700,12 +707,12 @@ function TenderCard({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-12 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div className="w-14 h-2 rounded-full bg-white/[0.06] overflow-hidden shadow-[inset_0_0_3px_rgba(0,0,0,0.3)]">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${tender.confidenceScore * 100}%` }}
                               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
-                              className="h-full rounded-full"
+                              className="h-full rounded-full shadow-[0_0_4px_rgba(16,185,129,0.3)]"
                               style={{ backgroundColor: confidenceColor }}
                             />
                           </div>
@@ -764,16 +771,16 @@ function TenderCard({
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="text-[9px] h-4 px-1.5 border-white/[0.08] text-zinc-500"
+                  className="text-[9px] h-4 px-1.5 border-white/[0.08] text-zinc-400"
                 >
                   {tender.category}
                 </Badge>
-                <div className="flex items-center gap-1 text-[11px] text-zinc-500">
+                <div className="flex items-center gap-1 text-[11px] text-zinc-400">
                   <Building2 className="size-3" />
                   <span className="truncate max-w-[200px]">{tender.buyerName}</span>
                 </div>
                 {tender.province && (
-                  <div className="flex items-center gap-1 text-[11px] text-zinc-600">
+                  <div className="flex items-center gap-1 text-[11px] text-zinc-400">
                     <MapPin className="size-2.5" />
                     <span>{tender.province}</span>
                   </div>
@@ -789,7 +796,7 @@ function TenderCard({
               </div>
 
               {tender.aiSummary && (
-                <p className="text-[11px] text-zinc-600 leading-relaxed line-clamp-1">
+                <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-1">
                   <Sparkles className="size-3 text-[#2D6A4F]/40 inline mr-1" />
                   {tender.aiSummary}
                 </p>
@@ -839,7 +846,7 @@ function TenderCard({
               <span className={cn('text-[10px]', valueBand.color, 'font-semibold uppercase tracking-wider')}>
                 {valueBand.label}
               </span>
-              <div className="flex items-center gap-1 text-[10px] text-zinc-600">
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400">
                 <Clock className="size-2.5" />
                 {tender.status === 'Active' && tender.closingDate
                   ? `Closes ${formatRelativeDate(tender.closingDate)}`
@@ -916,11 +923,11 @@ function TenderDetailPanel({
             </Badge>
             <Badge
               variant="outline"
-              className="text-[9px] h-5 px-1.5 border-white/[0.08] text-zinc-500"
+              className="text-[9px] h-5 px-1.5 border-white/[0.08] text-zinc-400"
             >
               {tender.category}
             </Badge>
-            <span className="text-[10px] text-zinc-600 ml-auto font-mono">{tender.ocid}</span>
+            <span className="text-[10px] text-zinc-400 ml-auto font-mono">{tender.ocid}</span>
           </div>
           <SheetTitle className="text-base font-semibold text-zinc-100 leading-snug">
             {tender.title}
@@ -935,7 +942,7 @@ function TenderDetailPanel({
             {/* Value & Key Metrics */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">
                   Estimated Value
                 </p>
                 <p className="text-xl font-bold text-[#B45309] tabular-nums mt-1">
@@ -948,7 +955,7 @@ function TenderDetailPanel({
                 )}
               </div>
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">
                   Closing Date
                 </p>
                 <p className="text-sm font-semibold text-zinc-200 mt-1">
@@ -978,21 +985,21 @@ function TenderDetailPanel({
               </h4>
               <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-[11px]">
                 <div>
-                  <span className="text-zinc-600">Buyer</span>
+                  <span className="text-zinc-400">Buyer</span>
                   <p className="text-zinc-300 font-medium mt-0.5">{tender.buyerName}</p>
                 </div>
                 <div>
-                  <span className="text-zinc-600">Province</span>
+                  <span className="text-zinc-400">Province</span>
                   <p className="text-zinc-300 font-medium mt-0.5">{tender.province || '—'}</p>
                 </div>
                 <div>
-                  <span className="text-zinc-600">Published</span>
+                  <span className="text-zinc-400">Published</span>
                   <p className="text-zinc-300 font-medium mt-0.5">
                     {formatSADate(tender.publishedDate)}
                   </p>
                 </div>
                 <div>
-                  <span className="text-zinc-600">Contract Period</span>
+                  <span className="text-zinc-400">Contract Period</span>
                   <p className="text-zinc-300 font-medium mt-0.5">
                     {tender.contractPeriodDays
                       ? `${tender.contractPeriodDays} days (${Math.round((tender.contractPeriodDays / 30.44) * 10) / 10} months)`
@@ -1000,13 +1007,13 @@ function TenderDetailPanel({
                   </p>
                 </div>
                 <div>
-                  <span className="text-zinc-600">B-BBEE Requirement</span>
+                  <span className="text-zinc-400">B-BBEE Requirement</span>
                   <p className="text-zinc-300 font-medium mt-0.5">
                     {tender.bbbeeRequirement || '—'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-zinc-600">Award Date</span>
+                  <span className="text-zinc-400">Award Date</span>
                   <p className="text-zinc-300 font-medium mt-0.5">
                     {formatSADate(tender.awardDate)}
                   </p>
@@ -1058,7 +1065,7 @@ function TenderDetailPanel({
 
                   {tender.confidenceScore !== null && (
                     <div className="mt-3 flex items-center gap-3">
-                      <span className="text-[10px] text-zinc-600 uppercase tracking-wider">
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
                         Confidence
                       </span>
                       <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
@@ -1095,13 +1102,13 @@ function TenderDetailPanel({
 
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-500">Buyer:</span>
+                  <span className="text-[11px] text-zinc-400">Buyer:</span>
                   <span className="text-[11px] text-zinc-200 font-medium">{tender.buyerName}</span>
                 </div>
 
                 {/* Past 24 months awards from this buyer */}
                 <div>
-                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">
+                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
                     Past Awards (Sample Data)
                   </span>
                   {buyerTenders.length > 0 ? (
@@ -1133,7 +1140,7 @@ function TenderDetailPanel({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-zinc-600 mt-1">No other tenders from this buyer in sample data</p>
+                    <p className="text-[10px] text-zinc-400 mt-1">No other tenders from this buyer in sample data</p>
                   )}
                 </div>
               </div>
@@ -1168,7 +1175,7 @@ function TenderDetailPanel({
                           >
                             Level {supplier.bbbeeLevel}
                           </Badge>
-                          <span className="text-[9px] text-zinc-600">
+                          <span className="text-[9px] text-zinc-400">
                             {supplier.awardCount} awards
                           </span>
                         </div>
@@ -1212,23 +1219,23 @@ function TenderDetailPanel({
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">Audit Outcome</span>
+                      <span className="text-zinc-400">Audit Outcome</span>
                       <p className="text-zinc-300 font-medium mt-0.5">{municipality.auditOutcome}</p>
                     </div>
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">Cash Coverage</span>
+                      <span className="text-zinc-400">Cash Coverage</span>
                       <p className="text-zinc-300 font-medium mt-0.5">
                         {municipality.cashCoverageDays} days
                       </p>
                     </div>
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">Debtor Collection</span>
+                      <span className="text-zinc-400">Debtor Collection</span>
                       <p className="text-zinc-300 font-medium mt-0.5">
                         {formatPercent(municipality.debtorCollectionRate)}
                       </p>
                     </div>
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">§139 Status</span>
+                      <span className="text-zinc-400">§139 Status</span>
                       <p
                         className={cn(
                           'font-medium mt-0.5',
@@ -1247,7 +1254,7 @@ function TenderDetailPanel({
                   {/* Financial Health Progress */}
                   <div>
                     <div className="flex items-center justify-between text-[10px] mb-1">
-                      <span className="text-zinc-600">Financial Health Score</span>
+                      <span className="text-zinc-400">Financial Health Score</span>
                       <span className={cn('font-semibold', muniHealthBand?.color)}>
                         {municipality.financialHealthScore}/100
                       </span>
@@ -1261,7 +1268,7 @@ function TenderDetailPanel({
                   {/* Procurement Score */}
                   <div>
                     <div className="flex items-center justify-between text-[10px] mb-1">
-                      <span className="text-zinc-600">Procurement Score</span>
+                      <span className="text-zinc-400">Procurement Score</span>
                       <span className={cn('font-semibold', muniProcurementBand?.color)}>
                         {municipality.procurementScore}/100
                       </span>
@@ -1275,13 +1282,13 @@ function TenderDetailPanel({
                   {/* Operating & Capital Budget */}
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/[0.04]">
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">Operating Budget</span>
+                      <span className="text-zinc-400">Operating Budget</span>
                       <p className="text-zinc-300 font-medium mt-0.5 tabular-nums">
                         {formatCompactZAR(municipality.operatingBudget)}
                       </p>
                     </div>
                     <div className="text-[10px]">
-                      <span className="text-zinc-600">Capital Budget</span>
+                      <span className="text-zinc-400">Capital Budget</span>
                       <p className="text-zinc-300 font-medium mt-0.5 tabular-nums">
                         {formatCompactZAR(municipality.capitalBudget)}
                       </p>
@@ -1368,10 +1375,10 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       className="flex flex-col items-center justify-center py-16 text-center"
     >
       <div className="flex size-16 items-center justify-center rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-4">
-        <Search className="size-7 text-zinc-600" />
+        <Search className="size-7 text-zinc-400" />
       </div>
       <h3 className="text-base font-semibold text-zinc-300 mb-1">No tenders found</h3>
-      <p className="text-sm text-zinc-600 max-w-sm mb-4">
+      <p className="text-sm text-zinc-400 max-w-sm mb-4">
         Try adjusting your filters or search terms to find what you&apos;re looking for.
       </p>
       <Button
@@ -1516,12 +1523,15 @@ export default function TenderLens() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-zinc-100">TenderLens</h1>
-            <p className="text-[11px] text-zinc-600">
+            <p className="text-[11px] text-zinc-400">
               Procurement intelligence — {MOCK_TENDERS.length} tenders in database
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-[10px] text-zinc-400 hidden sm:block">
+            Updated {new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </span>
           <Badge className="bg-[#2D6A4F]/10 text-[#2D6A4F] border-[#2D6A4F]/20 text-[10px] h-6 px-2">
             <Zap className="size-3 mr-1" />
             AI-Powered

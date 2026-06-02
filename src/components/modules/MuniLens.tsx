@@ -55,6 +55,7 @@ import {
 } from '@/lib/formatters';
 import { SA_PROVINCES } from '@/types';
 import type { Municipality, RiskSignal } from '@/types';
+import WatchlistStar from '@/components/shared/WatchlistStar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -297,6 +298,8 @@ function ScoreGauge({
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="relative" style={{ width: size, height: size }}>
+        {/* Glow behind gauge */}
+        <div className="absolute inset-0 rounded-full opacity-20 blur-md" style={{ backgroundColor: color }} />
         <svg width={size} height={size} className="-rotate-90">
           <circle
             cx={size / 2}
@@ -321,14 +324,14 @@ function ScoreGauge({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold tabular-nums" style={{ color }}>
+          <span className="text-xl font-extrabold tabular-nums" style={{ color }}>
             {score !== null ? score : '—'}
           </span>
         </div>
       </div>
       {showLabel && (
         <div className="text-center">
-          <p className="text-[10px] text-zinc-500 leading-tight">{label}</p>
+          <p className="text-[10px] text-zinc-400 leading-tight">{label}</p>
           {score !== null && (
             <p className={cn('text-[9px] font-semibold', band.color)}>{band.label}</p>
           )}
@@ -347,17 +350,17 @@ function MiniScoreBar({ score, label }: { score: number | null; label: string })
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-zinc-500">{label}</span>
+        <span className="text-[9px] text-zinc-400">{label}</span>
         <span className="text-[9px] font-semibold tabular-nums" style={{ color }}>
           {score !== null ? score : '—'}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden shadow-[inset_0_0_2px_rgba(0,0,0,0.3)]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: score !== null ? `${score}%` : '0%' }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          className="h-full rounded-full"
+          className="h-full rounded-full shadow-[0_0_3px_rgba(123,45,142,0.2)]"
           style={{ backgroundColor: color }}
         />
       </div>
@@ -389,7 +392,7 @@ function MunicipalityCard({
   return (
     <motion.div
       variants={cardFadeIn}
-      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      whileHover={{ y: -4, transition: { duration: 0.25 } }}
       className="group"
     >
       <div
@@ -400,21 +403,33 @@ function MunicipalityCard({
             ? 'border-[#7B2D8E]/50 bg-[#7B2D8E]/08'
             : 'border-white/[0.06] bg-white/[0.02]',
           'backdrop-blur-sm',
-          !isSelected && 'hover:border-white/[0.15] hover:bg-white/[0.04]',
+          !isSelected && 'hover:border-[#7B2D8E]/30 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(123,45,142,0.12)]',
           disabled && 'opacity-50 cursor-not-allowed',
           'transition-all duration-300 p-4',
         )}
       >
         {/* Top accent line */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity"
           style={{
             background: `linear-gradient(90deg, ${MODULE_COLOR}, transparent)`,
           }}
         />
 
+        {/* Left border accent by score band */}
+        {(() => {
+          const avg = [muni.financialHealthScore, muni.serviceDeliveryScore, muni.socioEconomicIndex, muni.procurementScore].filter(s => s !== null) as number[];
+          const overall = avg.length > 0 ? Math.round(avg.reduce((a, b) => a + b, 0) / avg.length) : null;
+          const band = getScoreBand(overall);
+          const color = getScoreColor(overall);
+          return <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl opacity-40 group-hover:opacity-80 transition-opacity" style={{ backgroundColor: color }} />;
+        })()}
+
         {/* Background glow */}
-        <div className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-[0.05] blur-2xl transition-opacity duration-500" style={{ backgroundColor: MODULE_COLOR }} />
+        <div className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-[0.08] blur-2xl transition-opacity duration-500" style={{ backgroundColor: MODULE_COLOR }} />
+
+        {/* Gradient overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
 
         <div className="relative space-y-3">
           {/* Compare mode checkbox */}
@@ -436,13 +451,13 @@ function MunicipalityCard({
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-zinc-200 leading-snug group-hover:text-white transition-colors truncate">
+              <h3 className="text-sm font-bold text-zinc-200 leading-snug group-hover:text-white transition-colors truncate">
                 {muni.name}
               </h3>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-mono text-zinc-600">{muni.code}</span>
-                <span className="text-zinc-700">•</span>
-                <span className="text-[10px] text-zinc-500 truncate">{muni.province}</span>
+                <span className="text-[10px] font-mono text-zinc-400">{muni.code}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-[10px] text-zinc-400 truncate">{muni.province}</span>
               </div>
             </div>
             {!compareMode && (
@@ -485,8 +500,8 @@ function MunicipalityCard({
 
             {/* Population */}
             <div className="flex items-center gap-1 ml-auto">
-              <Users className="size-2.5 text-zinc-600" />
-              <span className="text-[10px] text-zinc-500 tabular-nums">
+              <Users className="size-2.5 text-zinc-400" />
+              <span className="text-[10px] text-zinc-400 tabular-nums">
                 {formatPopulation(muni.population2022)}
               </span>
             </div>
@@ -537,7 +552,7 @@ function ServiceComparisonChart({
           <span className="text-xs font-semibold tabular-nums" style={{ color: barColor }}>
             {formatPercent(muniValue)}
           </span>
-          <span className="text-[10px] text-zinc-600">
+          <span className="text-[10px] text-zinc-400">
             vs {formatPercent(nationalAvg)} national
           </span>
         </div>
@@ -634,7 +649,7 @@ function ScorecardTab({ muni }: { muni: Municipality }) {
                 <div className="space-y-2">
                   {components.map((comp) => (
                     <div key={comp.name} className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-500 min-w-[100px]">{comp.name}</span>
+                      <span className="text-[10px] text-zinc-400 min-w-[100px]">{comp.name}</span>
                       <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
@@ -694,20 +709,20 @@ function FinanceTab({ muni }: { muni: Municipality }) {
       {/* Key Financial Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Operating Budget</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Operating Budget</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.operatingBudget)}</p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Capital Budget</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Capital Budget</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.capitalBudget)}</p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Cash Coverage</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Cash Coverage</p>
           <div className="flex items-baseline gap-1.5 mt-1">
             <p className={cn('text-lg font-bold tabular-nums', cashCoverageColor)}>
               {formatNumber(muni.cashCoverageDays)}
             </p>
-            <span className="text-[10px] text-zinc-600">days</span>
+            <span className="text-[10px] text-zinc-400">days</span>
           </div>
           {muni.cashCoverageDays !== null && muni.cashCoverageDays < 30 && (
             <div className="flex items-center gap-1 mt-1">
@@ -717,7 +732,7 @@ function FinanceTab({ muni }: { muni: Municipality }) {
           )}
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Debtor Collection</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Debtor Collection</p>
           <div className="flex items-baseline gap-1.5 mt-1">
             <p className={cn('text-lg font-bold tabular-nums', debtorColor)}>
               {formatPercent(muni.debtorCollectionRate)}
@@ -753,7 +768,7 @@ function FinanceTab({ muni }: { muni: Municipality }) {
       {/* Operating Surplus Ratio (calculated) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Operating Surplus Ratio</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Operating Surplus Ratio</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
             {muni.operatingBudget && muni.capitalBudget
               ? formatPercent(((muni.operatingBudget - muni.capitalBudget) / muni.operatingBudget) * 100)
@@ -761,7 +776,7 @@ function FinanceTab({ muni }: { muni: Municipality }) {
           </p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Capex / Opex Ratio</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Capex / Opex Ratio</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
             {muni.operatingBudget && muni.capitalBudget
               ? `${((muni.capitalBudget / muni.operatingBudget) * 100).toFixed(1)}%`
@@ -772,6 +787,13 @@ function FinanceTab({ muni }: { muni: Municipality }) {
 
       {/* MFMA Section 139 Trigger Panel */}
       <div className="glass-card p-4">
+        {/* Warning banner if any triggers are Not Met */}
+        {triggerStatuses.some(t => t.status === 'Met') && (
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.15)]">
+            <AlertOctagon className="size-4 text-red-400" />
+            <span className="text-xs text-red-300 font-medium">Section 139 intervention triggers have been met — legal review recommended</span>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Scale className="size-4 text-[#7B2D8E]" />
@@ -784,10 +806,10 @@ function FinanceTab({ muni }: { muni: Municipality }) {
             className={cn(
               'text-[10px] h-6 px-2',
               metCount >= 3
-                ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.2)]'
                 : metCount >= 1
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.2)]'
+                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.2)]',
             )}
           >
             {metCount} of 6 triggers met
@@ -808,13 +830,15 @@ function FinanceTab({ muni }: { muni: Municipality }) {
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 border',
                   statusConfig.bgColor,
                   statusConfig.borderColor,
+                  trigger.status === 'Met' && 'shadow-[0_0_6px_rgba(239,68,68,0.1)]',
+                  trigger.status === 'Not Met' && 'shadow-[0_0_4px_rgba(245,158,11,0.1)]',
                 )}
               >
                 <div className={statusConfig.color}>{statusConfig.icon}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-zinc-300 font-medium">{trigger.name}</span>
-                    <span className="text-[9px] text-zinc-600 font-mono">{trigger.citation}</span>
+                    <span className="text-[9px] text-zinc-400 font-mono bg-white/[0.03] px-1.5 py-0.5 rounded">{trigger.citation}</span>
                   </div>
                 </div>
                 <Badge
@@ -874,8 +898,8 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
         {demoMetrics.map((metric) => (
           <div key={metric.label} className="glass-card p-4">
             <div className="flex items-center gap-2 mb-2">
-              <metric.icon className="size-3.5 text-zinc-600" />
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">{metric.label}</p>
+              <metric.icon className="size-3.5 text-zinc-400" />
+              <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">{metric.label}</p>
             </div>
             <p className={cn('text-lg font-bold tabular-nums', metric.color)}>{metric.value}</p>
           </div>
@@ -901,7 +925,7 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
             <Bar dataKey="female" fill="#EC4899" radius={[0, 0, 0, 0]} />
           </BarChart>
         </ChartContainer>
-        <p className="text-[9px] text-zinc-600 mt-2 text-center">Population distribution by age group and sex (estimated)</p>
+        <p className="text-[9px] text-zinc-400 mt-2 text-center">Population distribution by age group and sex (estimated)</p>
       </div>
 
       {/* Additional context */}
@@ -909,12 +933,12 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
         <div className="glass-card p-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Ward Count</p>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Ward Count</p>
               <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{muni.wardCount}</p>
             </div>
             {muni.geographicAreaKm2 && (
               <div>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Geographic Area</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Geographic Area</p>
                 <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
                   {formatNumber(muni.geographicAreaKm2)} km²
                 </p>
@@ -922,7 +946,7 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
             )}
             {muni.population2022 && muni.geographicAreaKm2 && (
               <div>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Population Density</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Population Density</p>
                 <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
                   {formatNumber(Math.round(muni.population2022 / muni.geographicAreaKm2))}/km²
                 </p>
@@ -930,7 +954,7 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
             )}
             {muni.population2022 && (
               <div>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Approx. Households</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Approx. Households</p>
                 <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
                   {formatNumber(Math.round(muni.population2022 / 3.3))}
                 </p>
@@ -1005,17 +1029,17 @@ function ServicesTab({ muni }: { muni: Municipality }) {
       {/* Service Delivery Pressure Score */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Service Delivery Pressure Score</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Service Delivery Pressure Score</p>
           <div className="flex items-center gap-3 mt-2">
             <ScoreGauge score={muni.serviceDeliveryScore} label="" size={60} strokeWidth={5} showLabel={false} />
             <div>
               <p className="text-sm font-semibold text-zinc-200">{getScoreBand(muni.serviceDeliveryScore).label}</p>
-              <p className="text-[10px] text-zinc-500">Higher = more pressure</p>
+              <p className="text-[10px] text-zinc-400">Higher = more pressure</p>
             </div>
           </div>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Avg Service Access</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Avg Service Access</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
             {services.reduce((sum, s) => sum + (s.value ?? 0), 0) / services.filter((s) => s.value !== null).length > 0
               ? formatPercent(
@@ -1023,7 +1047,7 @@ function ServicesTab({ muni }: { muni: Municipality }) {
                 )
               : '—'}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-1">
+          <p className="text-[10px] text-zinc-400 mt-1">
             vs {formatPercent(Object.values(NATIONAL_AVERAGES).reduce((a, b) => a + b, 0) / Object.values(NATIONAL_AVERAGES).length)} national average
           </p>
         </div>
@@ -1065,7 +1089,7 @@ function AuditTab({ muni }: { muni: Municipality }) {
             <FileCheck className="size-6" style={{ color: auditStyle.color.replace('text-', '') === 'emerald-400' ? '#34D399' : auditStyle.color.replace('text-', '') === 'blue-400' ? '#60A5FA' : auditStyle.color.replace('text-', '') === 'amber-400' ? '#FBBF24' : auditStyle.color.replace('text-', '') === 'orange-400' ? '#FB923C' : '#F87171' }} />
           </div>
           <div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Latest Audit Outcome ({muni.auditYear})</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Latest Audit Outcome ({muni.auditYear})</p>
             <p className={cn('text-2xl font-bold mt-0.5', auditStyle.color)}>{muni.auditOutcome ?? 'Not Available'}</p>
           </div>
         </div>
@@ -1074,20 +1098,20 @@ function AuditTab({ muni }: { muni: Municipality }) {
       {/* Key Audit Metrics */}
       <div className="grid grid-cols-3 gap-3">
         <div className="glass-card p-4 text-center">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Trajectory</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Trajectory</p>
           <div className={cn('flex items-center justify-center gap-1 mt-2', trajectoryColor)}>
             {trajectoryIcon}
             <span className="text-sm font-bold">{trajectoryLabel}</span>
           </div>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Material Irregularities</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Material Irregularities</p>
           <p className={cn('text-lg font-bold tabular-nums mt-2', materialIrregularities > 0 ? 'text-red-400' : 'text-emerald-400')}>
             {materialIrregularities}
           </p>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Audit Year</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Audit Year</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-2">{muni.auditYear ?? '—'}</p>
         </div>
       </div>
@@ -1101,7 +1125,7 @@ function AuditTab({ muni }: { muni: Municipality }) {
             const isLatest = i === auditHistory.length - 1;
             return (
               <div key={item.year} className={cn('flex items-center gap-3 px-3 py-2 rounded-lg', isLatest && 'bg-white/[0.04]')}>
-                <span className="text-xs font-mono text-zinc-500 w-16">{item.year}</span>
+                <span className="text-xs font-mono text-zinc-400 w-16">{item.year}</span>
                 <div className={cn('flex items-center gap-1.5 rounded-md px-2 py-0.5', style.bgColor)}>
                   <span className={cn('size-1.5 rounded-full', style.dotColor)} />
                   <span className={cn('text-[10px] font-semibold', style.color)}>{item.outcome}</span>
@@ -1161,21 +1185,21 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
       {/* Key Procurement Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Tender Value Per Capita</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Tender Value Per Capita</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
             {tenderValuePerCapita !== null ? formatCompactZAR(tenderValuePerCapita) : '—'}
           </p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Total Tender Value</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Total Tender Value</p>
           <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(totalTenderValue)}</p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Active Tenders</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Active Tenders</p>
           <p className="text-lg font-bold text-emerald-400 tabular-nums mt-1">{activeCount}</p>
         </div>
         <div className="glass-card p-4">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Awards This Year</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Awards This Year</p>
           <p className="text-lg font-bold text-blue-400 tabular-nums mt-1">{awardCount}</p>
         </div>
       </div>
@@ -1191,7 +1215,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
               <p className={cn('text-lg font-bold', getScoreBand(muni.procurementScore).color)}>
                 {getScoreBand(muni.procurementScore).label}
               </p>
-              <p className="text-[10px] text-zinc-500 mt-1">
+              <p className="text-[10px] text-zinc-400 mt-1">
                 Based on transparency, diversity, compliance & value for money
               </p>
             </div>
@@ -1223,7 +1247,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
             {diversityData.map((item) => (
               <div key={item.name} className="flex items-center gap-1">
                 <div className="size-2 rounded-sm" style={{ backgroundColor: item.fill }} />
-                <span className="text-[9px] text-zinc-500">{item.name} ({item.value}%)</span>
+                <span className="text-[9px] text-zinc-400">{item.name} ({item.value}%)</span>
               </div>
             ))}
           </div>
@@ -1245,7 +1269,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
                       <Badge variant="outline" className={cn('text-[8px] h-4 px-1', statusColor, 'border-current/20')}>
                         {tender.status}
                       </Badge>
-                      <span className="text-[9px] text-zinc-600">{tender.category}</span>
+                      <span className="text-[9px] text-zinc-400">{tender.category}</span>
                     </div>
                   </div>
                   <span className="text-xs font-semibold text-zinc-200 tabular-nums shrink-0">
@@ -1261,7 +1285,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
       {muniTenders.length === 0 && (
         <div className="glass-card p-6 text-center">
           <BarChart3 className="size-8 text-zinc-700 mx-auto mb-2" />
-          <p className="text-sm text-zinc-500">No tender data available for this municipality</p>
+          <p className="text-sm text-zinc-400">No tender data available for this municipality</p>
         </div>
       )}
     </motion.div>
@@ -1290,7 +1314,7 @@ function RiskTab({ muni }: { muni: Municipality }) {
           const style = getSeverityStyle(severity);
           return (
             <div key={severity} className="glass-card p-3 text-center">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">{severity}</p>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">{severity}</p>
               <p className={cn('text-2xl font-bold tabular-nums mt-1', style.color)}>
                 {severityCounts[severity]}
               </p>
@@ -1304,11 +1328,11 @@ function RiskTab({ muni }: { muni: Municipality }) {
         <div className="flex items-center gap-4">
           <ScoreGauge score={muni.earlyAlertScore} label="" size={90} strokeWidth={7} showLabel={false} />
           <div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Early Alert Score</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Early Alert Score</p>
             <p className={cn('text-lg font-bold', getScoreBand(muni.earlyAlertScore).color)}>
               {getScoreBand(muni.earlyAlertScore).label}
             </p>
-            <p className="text-[10px] text-zinc-500 mt-1">
+            <p className="text-[10px] text-zinc-400 mt-1">
               Higher score = higher risk of Section 139 intervention
             </p>
           </div>
@@ -1348,12 +1372,12 @@ function RiskTab({ muni }: { muni: Municipality }) {
                     </div>
                     <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">{risk.description}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[9px] text-zinc-600">Indicator: {risk.indicator}</span>
+                      <span className="text-[9px] text-zinc-400">Indicator: {risk.indicator}</span>
                       {risk.indicatorValue !== null && (
-                        <span className="text-[9px] text-zinc-500">Value: {risk.indicatorValue}</span>
+                        <span className="text-[9px] text-zinc-400">Value: {risk.indicatorValue}</span>
                       )}
                       {risk.threshold !== null && (
-                        <span className="text-[9px] text-zinc-500">Threshold: {risk.threshold}</span>
+                        <span className="text-[9px] text-zinc-400">Threshold: {risk.threshold}</span>
                       )}
                     </div>
                   </div>
@@ -1364,7 +1388,7 @@ function RiskTab({ muni }: { muni: Municipality }) {
         ) : (
           <div className="text-center py-6">
             <CheckCircle2 className="size-8 text-emerald-500/40 mx-auto mb-2" />
-            <p className="text-sm text-zinc-500">No active risk signals for this municipality</p>
+            <p className="text-sm text-zinc-400">No active risk signals for this municipality</p>
           </div>
         )}
       </div>
@@ -1404,9 +1428,9 @@ function ClimateTab({ muni }: { muni: Municipality }) {
         <div className="flex items-center gap-4">
           <ScoreGauge score={muni.climateRiskScore} label="" size={100} strokeWidth={8} showLabel={false} />
           <div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Climate Vulnerability Score</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Climate Vulnerability Score</p>
             <p className={cn('text-xl font-bold', climateScoreBand.color)}>{climateScoreBand.label}</p>
-            <p className="text-[10px] text-zinc-500 mt-1">
+            <p className="text-[10px] text-zinc-400 mt-1">
               Composite score based on flood, drought, heat stress, sea level rise & water scarcity risk
             </p>
           </div>
@@ -1474,7 +1498,7 @@ function ClimateTab({ muni }: { muni: Municipality }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Province Risk Zone</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Province Risk Zone</p>
             <p className="text-sm text-zinc-300 font-medium mt-1">
               {muni.province === 'Western Cape' ? 'Moderate-High (Drought)' :
                muni.province === 'KwaZulu-Natal' ? 'High (Flood/Drought)' :
@@ -1488,7 +1512,7 @@ function ClimateTab({ muni }: { muni: Municipality }) {
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Adaptation Priority</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Adaptation Priority</p>
             <p className={cn(
               'text-sm font-medium mt-1',
               muni.climateRiskScore !== null && muni.climateRiskScore >= 60 ? 'text-red-400' :
@@ -1564,7 +1588,7 @@ function MunicipalityComparisonView({
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="mb-3 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] -ml-2"
+        className="mb-3 text-zinc-300 hover:text-white hover:bg-[#7B2D8E]/10 border border-white/[0.08] hover:border-[#7B2D8E]/30 -ml-2 shadow-[0_0_8px_rgba(123,45,142,0.1)]"
       >
         <ArrowLeft className="size-4 mr-1.5" />
         Back to Municipalities
@@ -1612,7 +1636,7 @@ function MunicipalityComparisonView({
                 <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: COMPARE_COLORS[i] }} />
                 <h3 className="text-sm font-semibold text-zinc-200 truncate">{m.name}</h3>
               </div>
-              <p className="text-[10px] text-zinc-600 font-mono">{m.code} · {m.province}</p>
+              <p className="text-[10px] text-zinc-400 font-mono">{m.code} · {m.province}</p>
 
               <div className="flex items-center justify-center my-3">
                 <ScoreGauge score={avgScore} label="Overall" size={80} strokeWidth={6} />
@@ -1676,7 +1700,7 @@ function MunicipalityComparisonView({
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-white/[0.06]">
-              <th className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium py-2 pr-4 whitespace-nowrap">Metric</th>
+              <th className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium py-2 pr-4 whitespace-nowrap">Metric</th>
               {munis.map((m, i) => (
                 <th key={m.code} className="text-[10px] uppercase tracking-wider font-medium py-2 px-3 whitespace-nowrap" style={{ color: COMPARE_COLORS[i] }}>
                   {m.name}
@@ -1742,7 +1766,7 @@ function MunicipalityDetail({
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="mb-3 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] -ml-2"
+          className="mb-3 text-zinc-300 hover:text-white hover:bg-[#7B2D8E]/10 border border-white/[0.08] hover:border-[#7B2D8E]/30 -ml-2 shadow-[0_0_8px_rgba(123,45,142,0.1)]"
         >
           <ArrowLeft className="size-4 mr-1.5" />
           Back to Municipalities
@@ -1757,12 +1781,15 @@ function MunicipalityDetail({
 
             {/* Name & Info */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-zinc-100">{muni.name}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-zinc-100">{muni.name}</h2>
+                <WatchlistStar municipalityId={muni.id} size={18} />
+              </div>
               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                <span className="text-xs font-mono text-zinc-500">{muni.code}</span>
+                <span className="text-xs font-mono text-zinc-400">{muni.code}</span>
                 <span className="text-zinc-700">•</span>
                 <div className="flex items-center gap-1">
-                  <MapPin className="size-3 text-zinc-600" />
+                  <MapPin className="size-3 text-zinc-400" />
                   <span className="text-xs text-zinc-400">{muni.province}</span>
                 </div>
                 <Badge variant="outline" className="text-[9px] h-5 px-1.5 border-white/[0.08] text-zinc-400">
@@ -1783,8 +1810,8 @@ function MunicipalityDetail({
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Users className="size-3 text-zinc-600" />
-                  <span className="text-xs text-zinc-500 tabular-nums">{formatPopulation(muni.population2022)}</span>
+                  <Users className="size-3 text-zinc-400" />
+                  <span className="text-xs text-zinc-400 tabular-nums">{formatPopulation(muni.population2022)}</span>
                 </div>
               </div>
             </div>
@@ -1818,7 +1845,7 @@ function MunicipalityDetail({
                 <div className="flex size-7 items-center justify-center rounded-lg" style={{ background: `${getScoreColor(dim.score)}15`, border: `1px solid ${getScoreColor(dim.score)}25` }}>
                   <dim.icon className="size-3.5" style={{ color: getScoreColor(dim.score) }} />
                 </div>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{dim.label}</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">{dim.label}</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold tabular-nums" style={{ color: getScoreColor(dim.score) }}>
@@ -2038,7 +2065,7 @@ export default function MuniLens() {
                       placeholder="Search by municipality name or code..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="pl-9 h-9 bg-white/[0.04] border-white/[0.08] text-zinc-200 placeholder:text-zinc-600 text-sm focus-visible:border-[#7B2D8E]/50 focus-visible:ring-[#7B2D8E]/20"
+                      className="pl-9 h-9 bg-white/[0.04] border-white/[0.08] text-zinc-200 placeholder:text-zinc-400 text-sm focus-visible:border-[#7B2D8E]/50 focus-visible:ring-[#7B2D8E]/20"
                     />
                   </div>
 
@@ -2075,7 +2102,7 @@ export default function MuniLens() {
                     </SelectContent>
                   </Select>
 
-                  <span className="text-xs text-zinc-600 ml-1">
+                  <span className="text-xs text-zinc-400 ml-1">
                     <span className="text-zinc-300 font-semibold tabular-nums">{filteredMunicipalities.length}</span>
                     {' '}of {MOCK_MUNICIPALITIES.length}
                   </span>
@@ -2089,7 +2116,7 @@ export default function MuniLens() {
                       'text-[10px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap',
                       provinceFilter === '__all__'
                         ? 'bg-[#7B2D8E]/20 border-[#7B2D8E]/30 text-[#A855F7]'
-                        : 'border-white/[0.06] text-zinc-600 hover:text-zinc-400 hover:border-white/[0.1]',
+                        : 'border-white/[0.06] text-zinc-400 hover:text-zinc-400 hover:border-white/[0.1]',
                     )}
                   >
                     All
@@ -2102,7 +2129,7 @@ export default function MuniLens() {
                         'text-[10px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap',
                         provinceFilter === prov
                           ? 'bg-[#7B2D8E]/20 border-[#7B2D8E]/30 text-[#A855F7]'
-                          : 'border-white/[0.06] text-zinc-600 hover:text-zinc-400 hover:border-white/[0.1]',
+                          : 'border-white/[0.06] text-zinc-400 hover:text-zinc-400 hover:border-white/[0.1]',
                       )}
                     >
                       {prov}
@@ -2139,7 +2166,7 @@ export default function MuniLens() {
                 className="flex flex-col items-center justify-center py-16 text-center"
               >
                 <Building2 className="size-10 text-zinc-700 mb-3" />
-                <p className="text-sm text-zinc-500">No municipalities match your filters</p>
+                <p className="text-sm text-zinc-400">No municipalities match your filters</p>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -2205,7 +2232,7 @@ export default function MuniLens() {
                   'ml-2 gap-1.5 text-xs h-8 px-4 rounded-lg',
                   selectedMunicipalities.length >= 2
                     ? 'bg-[#7B2D8E] hover:bg-[#7B2D8E]/80 text-white'
-                    : 'bg-white/[0.05] text-zinc-600 cursor-not-allowed'
+                    : 'bg-white/[0.05] text-zinc-400 cursor-not-allowed'
                 )}
               >
                 <GitCompareArrows className="size-3.5" />

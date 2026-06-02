@@ -116,27 +116,46 @@ export default function ActivityTicker() {
   return (
     <div
       className={cn(
-        'relative flex items-center h-7 border-b border-white/[0.06]',
-        'bg-[#080b14]'
+        'relative flex items-center h-8 border-b border-white/[0.06]',
+        'bg-gradient-to-r from-[#080b14] via-[#0a0f1a] to-[#080b14]'
       )}
     >
+      {/* Subtle scan-line effect */}
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px)',
+        }}
+      />
+
       {/* Bottom accent gradient */}
       <div
         className="absolute bottom-0 left-0 right-0 h-px"
         style={{
           background:
-            'linear-gradient(90deg, transparent, rgba(16,185,129,0.2), rgba(59,130,246,0.2), transparent)',
+            'linear-gradient(90deg, transparent, rgba(16,185,129,0.25), rgba(59,130,246,0.25), transparent)',
         }}
       />
 
-      <div className="flex items-center w-full px-4 lg:px-6">
-        {/* LIVE indicator */}
+      <div className="relative flex items-center w-full px-4 lg:px-6">
+        {/* LIVE indicator — breathing glow */}
         <div className="flex items-center gap-1.5 shrink-0 mr-4">
-          <span className="relative flex size-1.5">
+          <span className="relative flex size-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
+            <span
+              className="relative inline-flex size-2 rounded-full bg-emerald-400"
+              style={{
+                boxShadow: '0 0 6px rgba(16,185,129,0.6), 0 0 12px rgba(16,185,129,0.3)',
+              }}
+            />
           </span>
-          <span className="text-[11px] font-semibold text-emerald-400/80 tracking-wide">
+          <span
+            className="text-[11px] font-semibold tracking-wide"
+            style={{
+              color: '#10B981',
+              textShadow: '0 0 8px rgba(16,185,129,0.4)',
+            }}
+          >
             LIVE
           </span>
         </div>
@@ -146,25 +165,31 @@ export default function ActivityTicker() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ y: 12, opacity: 0 }}
+              initial={{ y: 14, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -12, opacity: 0 }}
+              exit={{ y: -14, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="flex items-center gap-2 whitespace-nowrap"
             >
+              {/* Category-colored left border */}
+              <span
+                className="w-[3px] h-3.5 rounded-full shrink-0"
+                style={{ backgroundColor: dotColor, boxShadow: `0 0 6px ${dotColor}40` }}
+              />
+
               {/* Type dot */}
               <span
                 className="size-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: dotColor }}
               />
 
-              {/* Description */}
-              <span className="text-[11px] text-zinc-400 truncate">
+              {/* Description — increased contrast */}
+              <span className="text-[11px] text-zinc-300 truncate">
                 {currentEvent.description}
               </span>
 
-              {/* Timestamp */}
-              <span className="text-[11px] text-zinc-600 shrink-0">
+              {/* Timestamp — increased contrast */}
+              <span className="text-[11px] text-zinc-500 shrink-0">
                 {currentEvent.timestamp}
               </span>
             </motion.div>
@@ -173,7 +198,7 @@ export default function ActivityTicker() {
 
         {/* View All link */}
         <button
-          className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 ml-4 cursor-pointer"
+          className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 ml-4 cursor-pointer hover:brightness-110"
           onClick={() => {}}
         >
           View All

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   PieChart,
   Pie,
@@ -28,12 +28,11 @@ import {
   Shield,
   Map,
   Download,
-  FileSpreadsheet,
-  FileDown,
   RefreshCw,
   Loader2,
   GitCompareArrows,
   Users,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -58,12 +57,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -81,7 +74,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import type { ModuleId } from '@/types';
+import DataExport from '@/components/shared/DataExport';
+import WatchlistWidget from '@/components/shared/WatchlistWidget';
+import type { ModuleId, ExportColumn } from '@/types';
 
 // ── Live Data Indicator Hook ───────────────────────────────────────────────
 
@@ -133,6 +128,46 @@ const itemSlideUp = {
 const itemFadeIn = {
   hidden: { opacity: 0, scale: 0.96 },
   show: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] } },
+};
+
+const listItemStagger = {
+  hidden: { opacity: 0, x: -12 },
+  show: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+  }),
+};
+
+// ── Province Accent Colors ──────────────────────────────────────────────────
+
+const PROVINCE_ACCENT_COLORS: Record<string, string> = {
+  'Gauteng': '#0077B6',
+  'Western Cape': '#22C55E',
+  'KwaZulu-Natal': '#F59E0B',
+  'Eastern Cape': '#EF4444',
+  'Free State': '#8B5CF6',
+  'Limpopo': '#2D6A4F',
+  'Mpumalanga': '#F97316',
+  'North West': '#06B6D4',
+  'Northern Cape': '#EC4899',
+};
+
+// ── Tender Category Colors ──────────────────────────────────────────────────
+
+const CATEGORY_COLORS: Record<string, string> = {
+  'Infrastructure': '#3B82F6',
+  'Water & Sanitation': '#06B6D4',
+  'ICT': '#8B5CF6',
+  'Professional Services': '#F59E0B',
+  'Health': '#10B981',
+  'Energy': '#F97316',
+  'Education': '#22C55E',
+  'Transport': '#EF4444',
+  'Housing': '#EC4899',
+  'Waste Management': '#6B7280',
+  'Security': '#DC2626',
+  'Agriculture': '#84CC16',
 };
 
 // ── KPI Card Data ───────────────────────────────────────────────────────────
@@ -251,6 +286,23 @@ function getFHSBarColor(score: number): string {
   return '#EF4444';
 }
 
+// ── Section Header Component ────────────────────────────────────────────────
+
+function SectionHeader({ title, subtitle, accentColor = '#0077B6' }: { title: string; subtitle?: string; accentColor?: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div
+        className="w-1 h-6 rounded-full shrink-0"
+        style={{ background: `linear-gradient(180deg, ${accentColor}, ${accentColor}40)` }}
+      />
+      <div>
+        <h2 className="text-base font-bold text-zinc-100 tracking-tight">{title}</h2>
+        {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ── Sub-Components ──────────────────────────────────────────────────────────
 
 function KPICard({ data, index }: { data: KPICardData; index: number }) {
@@ -263,7 +315,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
   return (
     <motion.div
       variants={itemSlideUp}
-      whileHover={{ scale: 1.02, y: -2 }}
+      whileHover={{ scale: 1.03, y: -3 }}
       transition={{ duration: 0.2 }}
       className="relative group cursor-pointer"
       onClick={handleClick}
@@ -277,12 +329,18 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           'backdrop-blur-sm transition-all duration-300 cursor-pointer',
           'hover:shadow-lg hover:shadow-black/20'
         )}
-        style={{ cursor: 'pointer', borderColor: undefined }}
+        style={{
+          cursor: 'pointer',
+          borderColor: undefined,
+          boxShadow: `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04`,
+        }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = `${data.accentColor}30`;
+          e.currentTarget.style.boxShadow = `inset 0 1px 40px ${data.accentColor}12, inset 0 0 80px ${data.accentColor}06, 0 8px 32px ${data.accentColor}10`;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = '';
+          e.currentTarget.style.boxShadow = `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04`;
         }}
       >
         {/* Top accent line */}
@@ -293,29 +351,50 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           }}
         />
 
-        {/* Shimmer effect on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-          <div
-            className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
+        {/* Subtle background pattern — diagonal lines */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 8px,
+              ${data.accentColor}15 8px,
+              ${data.accentColor}15 9px
+            )`,
+          }}
+        />
+
+        {/* Shimmer effect on hover — KPI shimmer */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 overflow-hidden">
+          <motion.div
+            className="absolute inset-0"
+            initial={{ x: '-100%' }}
+            whileHover={{ x: '100%' }}
+            transition={{ duration: 1.2, ease: 'easeInOut' }}
             style={{
-              background: `linear-gradient(90deg, transparent, ${data.accentColor}08, transparent)`,
+              background: `linear-gradient(90deg, transparent 0%, ${data.accentColor}10 40%, ${data.accentColor}18 50%, ${data.accentColor}10 60%, transparent 100%)`,
             }}
           />
         </div>
 
-        {/* Background glow */}
+        {/* Background glow — two layers for depth */}
         <div
-          className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.07] blur-2xl group-hover:opacity-[0.14] transition-opacity duration-500"
+          className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.07] blur-2xl group-hover:opacity-[0.16] transition-opacity duration-500"
+          style={{ backgroundColor: data.accentColor }}
+        />
+        <div
+          className="absolute -bottom-4 -left-4 size-16 rounded-full opacity-[0.04] blur-xl group-hover:opacity-[0.10] transition-opacity duration-500"
           style={{ backgroundColor: data.accentColor }}
         />
 
         <div className="relative flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
               {data.label}
             </p>
             <p
-              className="text-2xl lg:text-3xl font-bold tabular-nums tracking-tight"
+              className="text-2xl lg:text-3xl font-extrabold tabular-nums tracking-tight"
               style={{ color: data.accentColor }}
             >
               {data.value}
@@ -324,7 +403,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               {data.trend.direction === 'up' ? (
                 <TrendingUp
                   className={cn(
-                    'size-3.5',
+                    'size-4',
                     data.sentiment === 'negative'
                       ? 'text-red-400'
                       : data.sentiment === 'warning'
@@ -335,7 +414,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               ) : (
                 <TrendingDown
                   className={cn(
-                    'size-3.5',
+                    'size-4',
                     data.sentiment === 'positive'
                       ? 'text-emerald-400'
                       : 'text-red-400'
@@ -344,27 +423,27 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               )}
               <span
                 className={cn(
-                  'text-xs font-medium tabular-nums',
+                  'text-sm font-bold tabular-nums',
                   data.sentiment === 'negative'
                     ? 'text-red-400'
                     : data.sentiment === 'warning'
                       ? 'text-amber-400'
                       : data.sentiment === 'positive'
                         ? 'text-emerald-400'
-                        : 'text-zinc-400'
+                        : 'text-zinc-300'
                 )}
               >
                 {data.trend.value}
               </span>
-              <span className="text-[10px] text-zinc-600">vs prev. year</span>
+              <span className="text-[10px] text-zinc-500 ml-0.5">vs prev. year</span>
             </div>
           </div>
 
           <div
-            className="flex size-10 items-center justify-center rounded-lg shrink-0"
+            className="flex size-10 items-center justify-center rounded-lg shrink-0 group-hover:scale-110 transition-transform duration-300"
             style={{
-              background: `${data.accentColor}15`,
-              border: `1px solid ${data.accentColor}25`,
+              background: `${data.accentColor}18`,
+              border: `1px solid ${data.accentColor}30`,
             }}
           >
             <div style={{ color: data.accentColor }}>{data.icon}</div>
@@ -372,9 +451,9 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
         </div>
 
         {/* Click to explore hover text */}
-        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <span className="text-[9px] font-medium text-zinc-500 group-hover:text-zinc-400 flex items-center gap-0.5">
-            Click to explore <ArrowRight className="size-2.5" />
+        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 translate-x-1">
+          <span className="text-[10px] font-semibold text-zinc-400 group-hover:text-zinc-300 flex items-center gap-1">
+            Click to explore <ArrowRight className="size-3" />
           </span>
         </div>
       </div>
@@ -389,12 +468,20 @@ function AuditOutcomeChart() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+        {/* Module-themed accent frame */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #0077B6, #2D6A4F, transparent)' }}
+        />
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-zinc-200">
+          <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+            <span className="flex size-5 items-center justify-center rounded bg-[#0077B6]/10 border border-[#0077B6]/20">
+              <Shield className="size-3 text-[#0077B6]" />
+            </span>
             Audit Outcome Distribution
           </CardTitle>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
+          <p className="text-[11px] text-zinc-400 mt-0.5">
             2023/24 MFMA audit outcomes — {total} municipalities
           </p>
         </CardHeader>
@@ -432,24 +519,33 @@ function AuditOutcomeChart() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              {/* Center label */}
+              {/* Center label with radial gradient background */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-zinc-100 tabular-nums">{total}</span>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Total</span>
+                <div
+                  className="absolute inset-[30%] rounded-full opacity-30"
+                  style={{
+                    background: `radial-gradient(circle, #0077B615 0%, transparent 70%)`,
+                  }}
+                />
+                <span className="relative text-2xl font-extrabold text-zinc-100 tabular-nums">{total}</span>
+                <span className="relative text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">Total</span>
               </div>
             </div>
             <div className="flex-1 space-y-2.5">
               {AUDIT_OUTCOMES_DISTRIBUTION.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
+                <div key={item.name} className="flex items-center gap-2.5 group/legend">
                   <div
-                    className="size-2.5 rounded-sm shrink-0"
-                    style={{ backgroundColor: item.color }}
+                    className="size-3 rounded-sm shrink-0 group-hover/legend:scale-125 transition-transform duration-200"
+                    style={{
+                      backgroundColor: item.color,
+                      boxShadow: `0 0 6px ${item.color}40`,
+                    }}
                   />
-                  <span className="text-xs text-zinc-400 flex-1">{item.name}</span>
-                  <span className="text-xs font-semibold text-zinc-200 tabular-nums">
+                  <span className="text-xs text-zinc-300 flex-1 font-medium">{item.name}</span>
+                  <span className="text-xs font-bold text-zinc-200 tabular-nums">
                     {item.value}
                   </span>
-                  <span className="text-[10px] text-zinc-600 tabular-nums w-10 text-right">
+                  <span className="text-[10px] text-zinc-400 tabular-nums w-10 text-right font-semibold">
                     {((item.value / total) * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -469,12 +565,20 @@ function ProvincialFHSChart() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+        {/* Module-themed accent frame */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #2D6A4F, #F59E0B, transparent)' }}
+        />
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-zinc-200">
+          <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+            <span className="flex size-5 items-center justify-center rounded bg-[#2D6A4F]/10 border border-[#2D6A4F]/20">
+              <TrendingUp className="size-3 text-[#2D6A4F]" />
+            </span>
             Provincial Financial Health
           </CardTitle>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
+          <p className="text-[11px] text-zinc-400 mt-0.5">
             Average Financial Health Score by province — colour-coded by score band
           </p>
         </CardHeader>
@@ -494,7 +598,7 @@ function ProvincialFHSChart() {
                 <XAxis
                   type="number"
                   domain={[0, 100]}
-                  tick={{ fill: '#71717a', fontSize: 10 }}
+                  tick={{ fill: '#a1a1aa', fontSize: 10 }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
                   tickLine={false}
                 />
@@ -502,7 +606,7 @@ function ProvincialFHSChart() {
                   type="category"
                   dataKey="province"
                   width={95}
-                  tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                  tick={{ fill: '#d4d4d8', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -535,14 +639,22 @@ function ProvincialFHSChart() {
 function ServiceDeliveryChart() {
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+        {/* Module-themed accent frame */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #F59E0B, transparent)' }}
+        />
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <CardTitle className="text-sm font-semibold text-zinc-200">
+              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded bg-[#3B82F6]/10 border border-[#3B82F6]/20">
+                  <Building2 className="size-3 text-[#3B82F6]" />
+                </span>
                 Service Delivery by Province
               </CardTitle>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
+              <p className="text-[11px] text-zinc-400 mt-0.5">
                 Household access to basic services (%)
               </p>
             </div>
@@ -553,12 +665,15 @@ function ServiceDeliveryChart() {
                 { key: 'electricity', label: 'Electricity', color: SERVICE_COLORS.electricity },
                 { key: 'refuse', label: 'Refuse', color: SERVICE_COLORS.refuse },
               ].map((item) => (
-                <div key={item.key} className="flex items-center gap-1.5">
+                <div key={item.key} className="flex items-center gap-1.5 group/legend">
                   <div
-                    className="size-2 rounded-sm"
-                    style={{ backgroundColor: item.color }}
+                    className="size-2.5 rounded-sm group-hover/legend:scale-125 transition-transform duration-200"
+                    style={{
+                      backgroundColor: item.color,
+                      boxShadow: `0 0 5px ${item.color}40`,
+                    }}
                   />
-                  <span className="text-[10px] text-zinc-500">{item.label}</span>
+                  <span className="text-[10px] text-zinc-400 font-medium">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -578,7 +693,7 @@ function ServiceDeliveryChart() {
                 />
                 <XAxis
                   dataKey="province"
-                  tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                  tick={{ fill: '#d4d4d8', fontSize: 10 }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
                   tickLine={false}
                   interval={0}
@@ -588,7 +703,7 @@ function ServiceDeliveryChart() {
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fill: '#71717a', fontSize: 10 }}
+                  tick={{ fill: '#a1a1aa', fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `${v}%`}
@@ -632,20 +747,23 @@ function ProvincialTable() {
 
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-semibold text-zinc-200">
+              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded bg-[#B45309]/10 border border-[#B45309]/20">
+                  <Map className="size-3 text-[#B45309]" />
+                </span>
                 Provincial Intelligence Table
               </CardTitle>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
+              <p className="text-[11px] text-zinc-400 mt-0.5">
                 Key metrics by province — click row to explore in GeoLens
               </p>
             </div>
             <Badge
               variant="outline"
-              className="border-white/[0.08] text-zinc-500 text-[10px] cursor-pointer hover:border-white/[0.15] hover:text-zinc-300 transition-all"
+              className="border-white/[0.08] text-zinc-400 text-[10px] cursor-pointer hover:border-[#B45309]/30 hover:text-[#B45309] transition-all"
               onClick={handleRowClick}
             >
               <Map className="size-3 mr-1" />
@@ -654,88 +772,112 @@ function ProvincialTable() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/[0.06] hover:bg-transparent">
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">
-                  Province
-                </TableHead>
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider text-right">
-                  Municipalities
-                </TableHead>
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider text-right">
-                  Avg FHS
-                </TableHead>
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider text-right">
-                  Avg SDS
-                </TableHead>
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider text-right">
-                  §139
-                </TableHead>
-                <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider text-right">
-                  Clean Audits
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {PROVINCE_SUMMARY.map((prov) => {
-                const fhsBand = getScoreBand(prov.avgFHS);
-                const sdsBand = getScoreBand(100 - prov.avgSDS); // lower SDS is better
-                return (
-                  <TableRow
-                    key={prov.province}
-                    className="border-white/[0.04] cursor-pointer hover:bg-white/[0.04] transition-colors"
-                    onClick={handleRowClick}
-                  >
-                    <TableCell className="font-medium text-zinc-200 text-xs">
-                      {prov.province}
-                    </TableCell>
-                    <TableCell className="text-right text-zinc-400 text-xs tabular-nums">
-                      {prov.municipalities}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={cn(
-                          'inline-flex items-center text-xs font-semibold tabular-nums',
-                          fhsBand.textColor
-                        )}
-                      >
-                        {prov.avgFHS}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={cn(
-                          'inline-flex items-center text-xs font-semibold tabular-nums',
-                          sdsBand.textColor
-                        )}
-                      >
-                        {prov.avgSDS}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {prov.section139 > 0 ? (
-                        <Badge className="bg-red-500/15 text-red-400 border-red-500/25 text-[10px] h-5 px-1.5">
-                          {prov.section139}
-                        </Badge>
-                      ) : (
-                        <span className="text-zinc-600 text-xs">—</span>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow
+                  className="hover:bg-transparent"
+                  style={{
+                    borderBottom: '1px solid transparent',
+                    backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.06), rgba(255,255,255,0.1), rgba(255,255,255,0.06))',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
+                  }}
+                >
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
+                    Province
+                  </TableHead>
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                    Municipalities
+                  </TableHead>
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                    Avg FHS
+                  </TableHead>
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                    Avg SDS
+                  </TableHead>
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                    §139
+                  </TableHead>
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                    Clean Audits
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {PROVINCE_SUMMARY.map((prov, rowIdx) => {
+                  const fhsBand = getScoreBand(prov.avgFHS);
+                  const sdsBand = getScoreBand(100 - prov.avgSDS);
+                  const provinceAccent = PROVINCE_ACCENT_COLORS[prov.province] || '#71717a';
+                  return (
+                    <TableRow
+                      key={prov.province}
+                      className={cn(
+                        'cursor-pointer transition-colors',
+                        rowIdx % 2 === 0 ? 'bg-white/[0.01]' : '',
+                        'hover:bg-white/[0.04]'
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {prov.cleanAudit > 0 ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px] h-5 px-1.5">
-                          {prov.cleanAudit}
-                        </Badge>
-                      ) : (
-                        <span className="text-zinc-600 text-xs">0</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      onClick={handleRowClick}
+                      style={{
+                        borderLeft: `3px solid ${provinceAccent}30`,
+                      }}
+                    >
+                      <TableCell className="font-semibold text-zinc-200 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="size-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: provinceAccent }}
+                          />
+                          {prov.province}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-zinc-300 text-xs tabular-nums">
+                        {prov.municipalities}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={cn(
+                            'inline-flex items-center text-xs font-bold tabular-nums',
+                            fhsBand.textColor
+                          )}
+                        >
+                          {prov.avgFHS}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={cn(
+                            'inline-flex items-center text-xs font-bold tabular-nums',
+                            sdsBand.textColor
+                          )}
+                        >
+                          {prov.avgSDS}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {prov.section139 > 0 ? (
+                          <Badge className="bg-red-500/15 text-red-400 border-red-500/25 text-[10px] h-5 px-1.5 font-semibold">
+                            {prov.section139}
+                          </Badge>
+                        ) : (
+                          <span className="text-zinc-500 text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {prov.cleanAudit > 0 ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px] h-5 px-1.5 font-semibold">
+                            {prov.cleanAudit}
+                          </Badge>
+                        ) : (
+                          <span className="text-zinc-500 text-xs">0</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -745,6 +887,8 @@ function ProvincialTable() {
 
 
 // ── Municipality Comparison Widget ──────────────────────────────────────────
+
+const COMPARISON_COLORS = ['#0077B6', '#2D6A4F', '#B45309'];
 
 function MunicipalityComparison() {
   const [selected1, setSelected1] = useState('2'); // Johannesburg
@@ -784,7 +928,7 @@ function MunicipalityComparison() {
   };
 
   const getScoreColor = (score: number | null) => {
-    if (score === null) return 'text-zinc-500';
+    if (score === null) return 'text-zinc-400';
     if (score >= 65) return 'text-emerald-400';
     if (score >= 45) return 'text-amber-400';
     if (score >= 25) return 'text-orange-400';
@@ -793,17 +937,17 @@ function MunicipalityComparison() {
 
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-md bg-[#7B2D8E]/10 border border-[#7B2D8E]/20">
               <GitCompareArrows className="size-3.5 text-[#7B2D8E]" />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold text-zinc-200">
+              <CardTitle className="text-sm font-bold text-zinc-200">
                 Municipality Comparison
               </CardTitle>
-              <p className="text-[10px] text-zinc-500 mt-0.5">
+              <p className="text-[10px] text-zinc-400 mt-0.5">
                 Select municipalities to compare key metrics side by side
               </p>
             </div>
@@ -815,15 +959,18 @@ function MunicipalityComparison() {
             {[selected1, selected2, selected3].map((val, idx) => {
               const setter = [setSelected1, setSelected2, setSelected3][idx];
               const labels = ['Municipality A', 'Municipality B', 'Municipality C'];
-              const colors = ['#0077B6', '#2D6A4F', '#B45309'];
+              const colors = COMPARISON_COLORS;
               return (
                 <div key={idx} className="space-y-1">
-                  <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                    <div className="size-2 rounded-full" style={{ backgroundColor: colors[idx] }} />
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <div className="size-2.5 rounded-full" style={{ backgroundColor: colors[idx] }} />
                     {labels[idx]}
                   </label>
                   <Select value={val} onValueChange={setter}>
-                    <SelectTrigger className="w-full bg-[#0d1224] border-white/[0.08] text-zinc-300 text-xs h-8">
+                    <SelectTrigger
+                      className="w-full bg-[#0d1224] text-zinc-300 text-xs h-8"
+                      style={{ borderColor: `${colors[idx]}30` }}
+                    >
                       <SelectValue placeholder="Select municipality" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -843,14 +990,26 @@ function MunicipalityComparison() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-white/[0.06] hover:bg-transparent">
-                  <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-[160px]">
+                <TableRow
+                  className="hover:bg-transparent"
+                  style={{
+                    background: 'linear-gradient(90deg, rgba(0,119,182,0.04), rgba(45,106,79,0.04), rgba(180,83,9,0.04))',
+                    borderBottom: '1px solid transparent',
+                    backgroundImage: 'linear-gradient(to right, #0077B620, #2D6A4F20, #B4530920), linear-gradient(to right, rgba(255,255,255,0.06), rgba(255,255,255,0.1), rgba(255,255,255,0.06))',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
+                  }}
+                >
+                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider w-[160px]">
                     Metric
                   </TableHead>
                   {selectedMunicipalities.map((m, i) => {
-                    const colors = ['#0077B6', '#2D6A4F', '#B45309'];
                     return (
-                      <TableHead key={m!.id} className="text-right text-[11px] font-semibold uppercase tracking-wider" style={{ color: colors[i] }}>
+                      <TableHead
+                        key={m!.id}
+                        className="text-right text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: COMPARISON_COLORS[i] }}
+                      >
                         {m!.name}
                       </TableHead>
                     );
@@ -860,15 +1019,15 @@ function MunicipalityComparison() {
               <TableBody>
                 {/* Financial Health Score */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium">Financial Health Score</TableCell>
-                  {selectedMunicipalities.map((m) => (
+                  <TableCell className="text-xs text-zinc-300 font-semibold">Financial Health Score</TableCell>
+                  {selectedMunicipalities.map((m, i) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.span
                         key={`fhs-${m!.id}-${m!.financialHealthScore}`}
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className={cn('text-xs font-semibold tabular-nums', getScoreColor(m!.financialHealthScore))}
+                        className={cn('text-sm font-bold tabular-nums', getScoreColor(m!.financialHealthScore))}
                       >
                         {m!.financialHealthScore ?? '—'}/100
                       </motion.span>
@@ -876,9 +1035,9 @@ function MunicipalityComparison() {
                   ))}
                 </TableRow>
                 {/* Service Delivery Score */}
-                <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium">Service Delivery Score</TableCell>
-                  {selectedMunicipalities.map((m) => {
+                <TableRow className="border-white/[0.04] bg-white/[0.01]">
+                  <TableCell className="text-xs text-zinc-300 font-semibold">Service Delivery Score</TableCell>
+                  {selectedMunicipalities.map((m, i) => {
                     const sds = m!.serviceDeliveryScore !== null ? 100 - m!.serviceDeliveryScore : null;
                     return (
                       <TableCell key={m!.id} className="text-right">
@@ -887,7 +1046,7 @@ function MunicipalityComparison() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25 }}
-                          className={cn('text-xs font-semibold tabular-nums', getScoreColor(sds))}
+                          className={cn('text-sm font-bold tabular-nums', getScoreColor(sds))}
                         >
                           {m!.serviceDeliveryScore !== null ? `${m!.serviceDeliveryScore}/100` : '—'}
                         </motion.span>
@@ -895,9 +1054,34 @@ function MunicipalityComparison() {
                     );
                   })}
                 </TableRow>
-                {/* Audit Outcome */}
+                {/* FHS vs SDS comparison row */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium">Audit Outcome</TableCell>
+                  <TableCell className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+                    <ArrowLeftRight className="size-3" /> FHS vs SDS Gap
+                  </TableCell>
+                  {selectedMunicipalities.map((m) => {
+                    const fhs = m!.financialHealthScore ?? 0;
+                    const sds = m!.serviceDeliveryScore ?? 0;
+                    const gap = Math.abs(fhs - sds);
+                    const gapColor = gap > 30 ? 'text-red-400' : gap > 15 ? 'text-amber-400' : 'text-emerald-400';
+                    return (
+                      <TableCell key={m!.id} className="text-right">
+                        <motion.span
+                          key={`gap-${m!.id}-${fhs}-${sds}`}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className={cn('text-sm font-bold tabular-nums', gapColor)}
+                        >
+                          {m!.financialHealthScore !== null && m!.serviceDeliveryScore !== null ? `${gap} pts` : '—'}
+                        </motion.span>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+                {/* Audit Outcome */}
+                <TableRow className="border-white/[0.04] bg-white/[0.01]">
+                  <TableCell className="text-xs text-zinc-300 font-semibold">Audit Outcome</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.div
@@ -906,7 +1090,7 @@ function MunicipalityComparison() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Badge className={cn('text-[10px] h-5 px-1.5 border', getAuditBadgeStyle(m!.auditOutcome))}>
+                        <Badge className={cn('text-[10px] h-5 px-1.5 border font-semibold', getAuditBadgeStyle(m!.auditOutcome))}>
                           {m!.auditOutcome ?? '—'}
                         </Badge>
                       </motion.div>
@@ -915,7 +1099,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Population */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
+                  <TableCell className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
                     <Users className="size-3" /> Population
                   </TableCell>
                   {selectedMunicipalities.map((m) => (
@@ -925,7 +1109,7 @@ function MunicipalityComparison() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="text-xs font-medium text-zinc-300 tabular-nums"
+                        className="text-sm font-semibold text-zinc-200 tabular-nums"
                       >
                         {formatPopulation(m!.population2022)}
                       </motion.span>
@@ -933,8 +1117,8 @@ function MunicipalityComparison() {
                   ))}
                 </TableRow>
                 {/* Section 139 Status */}
-                <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium">§139 Status</TableCell>
+                <TableRow className="border-white/[0.04] bg-white/[0.01]">
+                  <TableCell className="text-xs text-zinc-300 font-semibold">§139 Status</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.div
@@ -943,7 +1127,7 @@ function MunicipalityComparison() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Badge className={cn('text-[10px] h-5 px-1.5 border', getSection139BadgeStyle(m!.section139Status))}>
+                        <Badge className={cn('text-[10px] h-5 px-1.5 border font-semibold', getSection139BadgeStyle(m!.section139Status))}>
                           {m!.section139Status ?? '—'}
                         </Badge>
                       </motion.div>
@@ -952,7 +1136,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Province */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-400 font-medium">Province</TableCell>
+                  <TableCell className="text-xs text-zinc-300 font-semibold">Province</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.span
@@ -960,7 +1144,7 @@ function MunicipalityComparison() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="text-xs text-zinc-400"
+                        className="text-xs text-zinc-300 font-medium"
                       >
                         {m!.province}
                       </motion.span>
@@ -988,7 +1172,12 @@ function RiskSignalsPanel() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full overflow-hidden">
+        {/* Accent frame */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #EF4444, #F59E0B, transparent)' }}
+        />
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -996,10 +1185,10 @@ function RiskSignalsPanel() {
                 <ShieldAlert className="size-3.5 text-red-400" />
               </div>
               <div>
-                <CardTitle className="text-sm font-semibold text-zinc-200">
+                <CardTitle className="text-sm font-bold text-zinc-200">
                   Recent Risk Signals
                 </CardTitle>
-                <p className="text-[10px] text-zinc-600">
+                <p className="text-[10px] text-zinc-400">
                   {DASHBOARD_KPIS.riskSignalsActive} active signals
                 </p>
               </div>
@@ -1008,21 +1197,24 @@ function RiskSignalsPanel() {
         </CardHeader>
         <CardContent className="pt-0">
           <ScrollArea className="max-h-[340px]">
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {recentSignals.map((signal, i) => {
                 const severityStyle = getSeverityStyle(signal.severity);
+                const severityColor = signal.severity === 'Critical' ? '#EF4444' : signal.severity === 'High' ? '#F97316' : signal.severity === 'Medium' ? '#F59E0B' : '#22C55E';
                 return (
                   <motion.div
                     key={signal.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.3 }}
-                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.02] transition-all duration-200 cursor-pointer"
+                    custom={i}
+                    variants={listItemStagger}
+                    initial="hidden"
+                    animate="show"
+                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    style={{ borderLeft: `4px solid ${severityColor}` }}
                   >
                     <div className="flex items-start gap-2.5">
                       <Badge
                         className={cn(
-                          'shrink-0 text-[9px] h-5 px-1.5 font-semibold border',
+                          'shrink-0 text-[9px] h-5 px-1.5 font-bold border',
                           severityStyle.bgColor,
                           severityStyle.color,
                           severityStyle.borderColor
@@ -1032,18 +1224,18 @@ function RiskSignalsPanel() {
                         {signal.severity}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-zinc-300 truncate">
+                        <p className="text-xs font-semibold text-zinc-200 truncate">
                           {signal.type}
                         </p>
-                        <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2 leading-relaxed">
+                        <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-2 leading-relaxed">
                           {signal.description}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-[10px] text-zinc-600 font-medium">
+                          <span className="text-[10px] text-zinc-400 font-medium">
                             {signal.entityId}
                           </span>
-                          <span className="text-[10px] text-zinc-700">·</span>
-                          <span className="text-[10px] text-zinc-600">
+                          <span className="text-[10px] text-zinc-600">·</span>
+                          <span className="text-[10px] text-zinc-400">
                             {formatSADate(signal.detectedAt)}
                           </span>
                         </div>
@@ -1054,12 +1246,15 @@ function RiskSignalsPanel() {
               })}
             </div>
           </ScrollArea>
-          <Separator className="my-3 bg-white/[0.06]" />
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
           <button
             onClick={() => setActiveModule('risklens' as ModuleId)}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors group"
+            className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            <span>View all risk signals</span>
+            <span className="relative">
+              View all risk signals
+              <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
+            </span>
             <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </CardContent>
@@ -1078,7 +1273,12 @@ function TenderHighlightsPanel() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full">
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full overflow-hidden">
+        {/* Accent frame */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #2D6A4F, #B45309, transparent)' }}
+        />
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1086,10 +1286,10 @@ function TenderHighlightsPanel() {
                 <FileSearch className="size-3.5 text-[#2D6A4F]" />
               </div>
               <div>
-                <CardTitle className="text-sm font-semibold text-zinc-200">
+                <CardTitle className="text-sm font-bold text-zinc-200">
                   Active Tender Highlights
                 </CardTitle>
-                <p className="text-[10px] text-zinc-600">
+                <p className="text-[10px] text-zinc-400">
                   Top {activeTenders.length} by estimated value
                 </p>
               </div>
@@ -1098,50 +1298,63 @@ function TenderHighlightsPanel() {
         </CardHeader>
         <CardContent className="pt-0">
           <ScrollArea className="max-h-[340px]">
-            <div className="space-y-3">
-              {activeTenders.map((tender, i) => (
-                <motion.div
-                  key={tender.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.3 }}
-                  className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.02] transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-zinc-300 line-clamp-1 leading-snug">
-                        {tender.title}
-                      </p>
-                      <p className="text-[11px] text-zinc-500 mt-1">
-                        {tender.buyerName}
-                      </p>
+            <div className="space-y-2.5">
+              {activeTenders.map((tender, i) => {
+                const categoryColor = CATEGORY_COLORS[tender.category] || '#71717a';
+                return (
+                  <motion.div
+                    key={tender.id}
+                    custom={i}
+                    variants={listItemStagger}
+                    initial="hidden"
+                    animate="show"
+                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    style={{ borderLeft: `4px solid ${categoryColor}` }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-zinc-200 line-clamp-1 leading-snug">
+                          {tender.title}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 mt-1">
+                          {tender.buyerName}
+                        </p>
+                      </div>
+                      <span className="text-xs font-extrabold text-[#B45309] tabular-nums shrink-0">
+                        {formatCompactZAR(tender.estimatedValue)}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-[#B45309] tabular-nums shrink-0">
-                      {formatCompactZAR(tender.estimatedValue)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] h-4 px-1.5 border-white/[0.08] text-zinc-500"
-                    >
-                      {tender.category}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-[10px] text-zinc-600">
-                      <Clock className="size-2.5" />
-                      <span>Closes {formatSADate(tender.closingDate ?? '')}</span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] h-4 px-1.5 font-semibold"
+                        style={{
+                          borderColor: `${categoryColor}30`,
+                          color: categoryColor,
+                          backgroundColor: `${categoryColor}10`,
+                        }}
+                      >
+                        {tender.category}
+                      </Badge>
+                      <div className="flex items-center gap-1 text-[10px] text-zinc-400">
+                        <Clock className="size-2.5" />
+                        <span>Closes {formatSADate(tender.closingDate ?? '')}</span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </ScrollArea>
-          <Separator className="my-3 bg-white/[0.06]" />
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
           <button
             onClick={() => setActiveModule('tenderlens' as ModuleId)}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors group"
+            className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            <span>View all tenders</span>
+            <span className="relative">
+              View all tenders
+              <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
+            </span>
             <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </CardContent>
@@ -1152,19 +1365,8 @@ function TenderHighlightsPanel() {
 
 // ── Dashboard Header ────────────────────────────────────────────────────────
 
-function DashboardHeader() {
+function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
   const { counter, isRefreshing, refresh } = useLiveCounter();
-
-  const handleExport = (format: string) => {
-    toast.info('Preparing your export...', {
-      description: `Generating ${format} file with dashboard data`,
-    });
-    setTimeout(() => {
-      toast.success('Export complete! File saved to Downloads', {
-        description: `civiclens-dashboard-${Date.now()}.${format.toLowerCase()}`,
-      });
-    }, 2000);
-  };
 
   return (
     <motion.div variants={itemSlideUp} className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1175,26 +1377,26 @@ function DashboardHeader() {
             <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40" />
             <div className="relative size-2 rounded-full bg-emerald-400" />
           </div>
-          <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
             Live Data
           </span>
         </div>
         <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
         <div className="flex items-center gap-1.5">
-          <Shield className="size-3 text-zinc-600" />
-          <span className="text-[11px] text-zinc-500">
+          <Shield className="size-3 text-zinc-400" />
+          <span className="text-[11px] text-zinc-400">
             Data as of 03 Mar 2026 — MFMA 2023/24 cycle
           </span>
         </div>
         <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
         <div className="flex items-center gap-1.5">
-          <Clock className="size-3 text-zinc-600" />
-          <span className="text-[11px] text-zinc-500 font-mono">
+          <Clock className="size-3 text-zinc-400" />
+          <span className="text-[11px] text-zinc-400 font-mono">
             Last updated: {counter}
           </span>
         </div>
         <div className="flex-1" />
-        <span className="text-[10px] text-zinc-600 font-mono hidden sm:inline">
+        <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
           v1.0.0-mvp
         </span>
       </div>
@@ -1214,45 +1416,16 @@ function DashboardHeader() {
           <span className="text-[11px]">Refresh</span>
         </Button>
 
-        {/* Export Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
-            >
-              <Download className="size-3.5" />
-              <span className="text-[11px]">Export</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="bg-[#0d1224] border-white/[0.08]"
-            align="end"
-          >
-            <DropdownMenuItem
-              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
-              onClick={() => handleExport('CSV')}
-            >
-              <FileSpreadsheet className="mr-2 size-4 text-emerald-400" />
-              Export as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
-              onClick={() => handleExport('PDF')}
-            >
-              <FileDown className="mr-2 size-4 text-red-400" />
-              Export as PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
-              onClick={() => handleExport('XLSX')}
-            >
-              <FileSpreadsheet className="mr-2 size-4 text-amber-400" />
-              Export as Excel
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Export Button - Opens DataExport Sheet */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onExportOpen}
+          className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
+        >
+          <Download className="size-3.5" />
+          <span className="text-[11px]">Export</span>
+        </Button>
       </div>
     </motion.div>
   );
@@ -1261,10 +1434,36 @@ function DashboardHeader() {
 // ── Main Dashboard Component ────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const [exportOpen, setExportOpen] = useState(false);
+
+  // ── Export Data Configuration ──────────────────────────────────────────────
+  const exportData = useMemo(() => 
+    PROVINCE_SUMMARY.map((prov) => ({
+      province: prov.province,
+      municipalities: prov.municipalities,
+      avgFHS: prov.avgFHS,
+      avgSDS: prov.avgSDS,
+      section139: prov.section139,
+      cleanAudit: prov.cleanAudit,
+    }))
+  , []);
+
+  const exportColumns: ExportColumn[] = useMemo(() => [
+    { key: 'province', label: 'Province', selected: true },
+    { key: 'municipalities', label: 'Municipalities', selected: true },
+    { key: 'avgFHS', label: 'Avg Financial Health Score', selected: true },
+    { key: 'avgSDS', label: 'Avg Service Delivery Score', selected: true },
+    { key: 'section139', label: 'Section 139 Interventions', selected: true },
+    { key: 'cleanAudit', label: 'Clean Audits', selected: true },
+  ], []);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 relative">
+      {/* Subtle noise texture overlay for depth */}
+      <div className="noise-texture absolute inset-0 pointer-events-none rounded-xl" />
+
       {/* ── Dashboard Header ────────────────────────────────────── */}
-      <DashboardHeader />
+      <DashboardHeader onExportOpen={() => setExportOpen(true)} />
 
       {/* ── Quick Insight Banner ──────────────────────────────── */}
       <motion.div
@@ -1279,79 +1478,131 @@ export default function Dashboard() {
             <AlertTriangle className="size-4 text-amber-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-amber-300">
+            <p className="text-xs font-semibold text-amber-300">
               Financial Distress Alert: 63% of municipalities now classified as distressed
             </p>
-            <p className="text-[10px] text-amber-500/70 mt-0.5">
+            <p className="text-[10px] text-amber-400/70 mt-0.5">
               162 of 257 municipalities below Financial Health Score threshold of 45 — up 8.2% year-on-year
             </p>
           </div>
-          <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px] shrink-0">
+          <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px] shrink-0 font-semibold">
             High Priority
           </Badge>
         </div>
       </motion.div>
 
       {/* ── Hero KPI Strip ──────────────────────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4"
-      >
-        {kpiCards.map((kpi, index) => (
-          <KPICard key={kpi.label} data={kpi} index={index} />
-        ))}
-      </motion.div>
+      <div>
+        <SectionHeader
+          title="National Overview"
+          subtitle="Key performance indicators across South Africa's 257 municipalities"
+          accentColor="#0077B6"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4"
+        >
+          {kpiCards.map((kpi, index) => (
+            <KPICard key={kpi.label} data={kpi} index={index} />
+          ))}
+        </motion.div>
+      </div>
 
       {/* ── National Overview Charts ────────────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-      >
-        <AuditOutcomeChart />
-        <ProvincialFHSChart />
-      </motion.div>
+      <div>
+        <SectionHeader
+          title="Audit & Financial Intelligence"
+          subtitle="Distribution of audit outcomes and provincial financial health scores"
+          accentColor="#2D6A4F"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        >
+          <AuditOutcomeChart />
+          <ProvincialFHSChart />
+        </motion.div>
+      </div>
 
       {/* ── Service Delivery Heatmap ────────────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-      >
-        <ServiceDeliveryChart />
-      </motion.div>
+      <div>
+        <SectionHeader
+          title="Service Delivery Pressure"
+          subtitle="Household access to basic services by province (%)"
+          accentColor="#3B82F6"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+        >
+          <ServiceDeliveryChart />
+        </motion.div>
+      </div>
 
       {/* ── Provincial Intelligence Table ───────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-      >
-        <ProvincialTable />
-      </motion.div>
+      <div>
+        <SectionHeader
+          title="Provincial Intelligence"
+          subtitle="Comprehensive provincial metrics — click any row to explore spatially"
+          accentColor="#B45309"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+        >
+          <ProvincialTable />
+        </motion.div>
+      </div>
 
       {/* ── Municipality Comparison ─────────────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-      >
-        <MunicipalityComparison />
-      </motion.div>
+      <div>
+        <SectionHeader
+          title="Municipality Comparison"
+          subtitle="Side-by-side analysis of selected municipalities"
+          accentColor="#7B2D8E"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+        >
+          <MunicipalityComparison />
+        </motion.div>
+      </div>
 
-      {/* ── Risk Signals & Tender Highlights ────────────────────── */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-      >
-        <RiskSignalsPanel />
-        <TenderHighlightsPanel />
-      </motion.div>
+      {/* ── Watchlist, Risk Signals & Tender Highlights ──────────── */}
+      <div>
+        <SectionHeader
+          title="Intelligence Feed"
+          subtitle="Watchlist, latest risk signals and active procurement opportunities"
+          accentColor="#D97706"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+        >
+          <WatchlistWidget />
+          <RiskSignalsPanel />
+          <TenderHighlightsPanel />
+        </motion.div>
+      </div>
+
+      {/* ── Data Export Sheet ──────────────────────────────────── */}
+      <DataExport
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        data={exportData}
+        columns={exportColumns}
+        filenamePrefix="civiclens-provincial-intelligence"
+      />
     </div>
   );
 }

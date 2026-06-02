@@ -94,31 +94,65 @@ function NavItem({
           : 'text-zinc-400 hover:text-zinc-200',
         collapsed && 'justify-center px-2'
       )}
-      whileHover={{ x: 2 }}
+      whileHover={{ x: 3 }}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Active left border accent */}
+      {/* Active left border accent — 4px with pulse animation */}
       {isActive && (
         <motion.div
           layoutId="sidebar-active-indicator"
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full"
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[4px] rounded-r-full"
           style={{ backgroundColor: module.color }}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+        >
+          {/* Pulse glow behind the active border */}
+          <motion.div
+            className="absolute inset-0 rounded-r-full"
+            style={{ backgroundColor: module.color }}
+            animate={{ opacity: [0.6, 1, 0.6], scaleX: [1, 1.3, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.div>
+      )}
+
+      {/* Hover left border accent (colored, 3px, 50% opacity) */}
+      {!isActive && (
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full opacity-0 group-hover:opacity-50 transition-opacity duration-200"
+          style={{ backgroundColor: module.color }}
         />
       )}
 
-      {/* Icon with color glow on active */}
+      {/* Active background gradient (accent color 5% → transparent) */}
+      {isActive && (
+        <motion.div
+          className="absolute inset-0 rounded-lg pointer-events-none"
+          style={{
+            background: `linear-gradient(90deg, ${module.color}0D 0%, transparent 60%)`,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+      )}
+
+      {/* Hover shimmer effect */}
+      {!isActive && (
+        <div className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-transparent" />
+      )}
+
+      {/* Icon with color glow on active — 19px */}
       <div className="relative flex-shrink-0">
         <ModuleIcon
           icon={module.icon}
           className={cn(
-            'size-[18px] transition-colors duration-200',
+            'size-[19px] transition-colors duration-200',
             isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'
           )}
         />
         {isActive && (
           <div
-            className="absolute inset-0 size-[18px] rounded-full blur-md opacity-50"
+            className="absolute inset-0 size-[19px] rounded-full blur-md opacity-60"
             style={{ backgroundColor: module.color }}
           />
         )}
@@ -131,7 +165,7 @@ function NavItem({
             initial={{ opacity: 0, width: 0 }}
             animate={{ opacity: 1, width: 'auto' }}
             exit={{ opacity: 0, width: 0 }}
-            className="flex flex-1 items-center justify-between overflow-hidden"
+            className="relative z-10 flex flex-1 items-center justify-between overflow-hidden"
           >
             <span className="truncate text-[13px]">{module.name}</span>
             <Badge
@@ -180,20 +214,33 @@ export default function Sidebar() {
       animate={{ width: sidebarCollapsed ? 64 : 256 }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
-        'relative flex h-screen flex-col border-r border-white/[0.06] bg-[#0a0e1a]',
-        'bg-gradient-to-b from-[#0a0e1a] via-[#0d1224] to-[#080b16]'
+        'relative flex h-screen flex-col border-r border-white/[0.06]',
+        'bg-gradient-to-b from-[#0c1020] via-[#0d1224] to-[#070a14]'
       )}
     >
+      {/* ── Subtle gradient overlay (lighter top, darker bottom) ── */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08]" />
+
+      {/* ── Right border gradient (transparent → white/6% → transparent) ── */}
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-px"
+        style={{
+          background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent)',
+        }}
+      />
+
       {/* ── Branding ─────────────────────────────────────────────── */}
       <div
         className={cn(
-          'flex items-center gap-3 border-b border-white/[0.06] px-4 py-4',
+          'relative flex items-center gap-3 border-b border-white/[0.06] px-4 py-4',
           sidebarCollapsed && 'justify-center px-2'
         )}
       >
-        {/* Logo mark */}
+        {/* Logo mark with subtle glow behind shield */}
         <div className="relative flex-shrink-0">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#0077B6] to-[#00a8e8] shadow-lg shadow-[#0077B6]/20">
+          {/* Glow behind shield */}
+          <div className="absolute inset-0 flex size-8 items-center justify-center rounded-lg bg-[#0077B6]/20 blur-md" />
+          <div className="relative flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#0077B6] to-[#00a8e8] shadow-lg shadow-[#0077B6]/20">
             <Shield className="size-4 text-white" />
           </div>
         </div>
@@ -209,20 +256,28 @@ export default function Sidebar() {
               <h1 className="text-[15px] font-bold tracking-tight text-white">
                 CivicLens
               </h1>
-              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#0077B6]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#0091d5]">
                 South Africa
               </p>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Gold accent line below branding */}
+        <div
+          className="absolute bottom-0 left-4 right-4 h-px"
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(180,83,9,0.3) 30%, rgba(180,83,9,0.5) 50%, rgba(180,83,9,0.3) 70%, transparent)',
+          }}
+        />
       </div>
 
       {/* ── Navigation ───────────────────────────────────────────── */}
-      <ScrollArea className="flex-1 py-3">
+      <ScrollArea className="relative z-10 flex-1 py-3">
         <div className="space-y-5 px-2">
           {modulesByPhase.map(({ phase, modules }) => (
             <div key={phase}>
-              {/* Phase label */}
+              {/* Phase label with divider */}
               <AnimatePresence mode="wait">
                 {!sidebarCollapsed && (
                   <motion.div
@@ -231,9 +286,11 @@ export default function Sidebar() {
                     exit={{ opacity: 0 }}
                     className="mb-2 px-3"
                   >
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
                       {phase === 'MVP' ? 'Core Intelligence' : phase}
                     </span>
+                    {/* Subtle divider line after phase header */}
+                    <div className="mt-1.5 h-px bg-gradient-to-r from-white/[0.06] via-white/[0.04] to-transparent" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -256,13 +313,18 @@ export default function Sidebar() {
       </ScrollArea>
 
       {/* ── Bottom Section ───────────────────────────────────────── */}
-      <div className="border-t border-white/[0.06] p-2">
+      <div className="relative z-10 border-t border-white/[0.06] p-2">
         <div className={cn('flex items-center gap-1', sidebarCollapsed && 'flex-col')}>
           {sidebarCollapsed ? (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-9 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]" onClick={() => setActiveModule('settings')}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
+                    onClick={() => setActiveModule('settings')}
+                  >
                     <Settings className="size-4" />
                   </Button>
                 </TooltipTrigger>
@@ -270,24 +332,33 @@ export default function Sidebar() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-9 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]" onClick={() => setActiveModule('help')}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
+                    onClick={() => setActiveModule('help')}
+                  >
                     <HelpCircle className="size-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Help</TooltipContent>
               </Tooltip>
-              <Avatar className="size-8 mt-1">
-                <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold">
-                  SA
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative mt-1">
+                <Avatar className="size-8">
+                  <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold">
+                    SA
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online status dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-2 border-[#0a0e1a]" />
+              </div>
             </>
           ) : (
             <>
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 justify-start gap-2 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+                className="flex-1 justify-start gap-2 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
                 onClick={() => setActiveModule('settings')}
               >
                 <Settings className="size-4" />
@@ -296,7 +367,7 @@ export default function Sidebar() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 justify-start gap-2 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+                className="flex-1 justify-start gap-2 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.04)] transition-all duration-200"
                 onClick={() => setActiveModule('help')}
               >
                 <HelpCircle className="size-4" />
@@ -317,11 +388,15 @@ export default function Sidebar() {
         >
           {!sidebarCollapsed && (
             <div className="flex flex-1 items-center gap-2">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold border border-[#0077B6]/30">
-                  SA
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="size-8">
+                  <AvatarFallback className="bg-[#0077B6]/20 text-[#0077B6] text-xs font-semibold border border-[#0077B6]/30">
+                    SA
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online status dot (green) */}
+                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-2 border-[#0a0e1a]" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-zinc-300 truncate">Analyst</p>
                 <p className="text-[10px] text-zinc-600 truncate">Gov. Level 5</p>
@@ -333,7 +408,8 @@ export default function Sidebar() {
             size="icon"
             onClick={toggleSidebarCollapse}
             className={cn(
-              'size-8 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-all duration-300',
+              'size-8 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] transition-all duration-300',
+              'border border-white/[0.06] hover:border-white/[0.12]',
               sidebarCollapsed && 'mt-1'
             )}
           >
@@ -345,9 +421,6 @@ export default function Sidebar() {
           </Button>
         </div>
       </div>
-
-      {/* ── Subtle gradient overlay on left edge ─────────────── */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#0077B6]/[0.03] to-transparent" />
     </motion.aside>
   );
 }
