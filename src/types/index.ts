@@ -20,7 +20,9 @@ export type ModuleId =
   | 'budgetlens'
   | 'carbonlens'
   | 'datahub'
-  | 'settings';
+  | 'data-explorer'
+  | 'settings'
+  | 'help';
 
 export interface ModuleDef {
   id: ModuleId;

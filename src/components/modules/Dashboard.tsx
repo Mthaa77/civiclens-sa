@@ -32,6 +32,8 @@ import {
   FileDown,
   RefreshCw,
   Loader2,
+  GitCompareArrows,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -41,11 +43,13 @@ import {
   SERVICE_DELIVERY_BY_PROVINCE,
   MOCK_RISK_SIGNALS,
   MOCK_TENDERS,
+  MOCK_MUNICIPALITIES,
 } from '@/lib/mock-data';
 import {
   formatCompactZAR,
   formatNumber,
   formatSADate,
+  formatPopulation,
   getScoreBand,
   getSeverityStyle,
 } from '@/lib/formatters';
@@ -69,6 +73,13 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import type { ModuleId } from '@/types';
 
@@ -136,6 +147,7 @@ interface KPICardData {
   accentColor: string;
   gradientFrom: string;
   gradientTo: string;
+  targetModule: ModuleId;
 }
 
 const kpiCards: KPICardData[] = [
@@ -149,6 +161,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#0077B6',
     gradientFrom: 'from-[#0077B6]/10',
     gradientTo: 'to-[#0077B6]/[0.02]',
+    targetModule: 'munilens' as ModuleId,
   },
   {
     label: 'Municipalities in Distress',
@@ -160,6 +173,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#EF4444',
     gradientFrom: 'from-[#EF4444]/10',
     gradientTo: 'to-[#EF4444]/[0.02]',
+    targetModule: 'munilens' as ModuleId,
   },
   {
     label: 'Active Tenders',
@@ -171,6 +185,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#2D6A4F',
     gradientFrom: 'from-[#2D6A4F]/10',
     gradientTo: 'to-[#2D6A4F]/[0.02]',
+    targetModule: 'tenderlens' as ModuleId,
   },
   {
     label: 'Total Tender Value',
@@ -182,6 +197,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#B45309',
     gradientFrom: 'from-[#B45309]/10',
     gradientTo: 'to-[#B45309]/[0.02]',
+    targetModule: 'tenderlens' as ModuleId,
   },
   {
     label: 'Active Risk Signals',
@@ -193,6 +209,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#F59E0B',
     gradientFrom: 'from-[#F59E0B]/10',
     gradientTo: 'to-[#F59E0B]/[0.02]',
+    targetModule: 'risklens' as ModuleId,
   },
   {
     label: 'Section 139 Interventions',
@@ -204,6 +221,7 @@ const kpiCards: KPICardData[] = [
     accentColor: '#DC2626',
     gradientFrom: 'from-[#DC2626]/10',
     gradientTo: 'to-[#DC2626]/[0.02]',
+    targetModule: 'earlyalert' as ModuleId,
   },
 ];
 
@@ -236,12 +254,19 @@ function getFHSBarColor(score: number): string {
 // ── Sub-Components ──────────────────────────────────────────────────────────
 
 function KPICard({ data, index }: { data: KPICardData; index: number }) {
+  const { setActiveModule } = useNavigationStore();
+
+  const handleClick = () => {
+    setActiveModule(data.targetModule);
+  };
+
   return (
     <motion.div
       variants={itemSlideUp}
       whileHover={{ scale: 1.02, y: -2 }}
       transition={{ duration: 0.2 }}
-      className="relative group"
+      className="relative group cursor-pointer"
+      onClick={handleClick}
     >
       <div
         className={cn(
@@ -249,9 +274,16 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           'bg-gradient-to-br',
           data.gradientFrom,
           data.gradientTo,
-          'backdrop-blur-sm transition-all duration-300',
-          'hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20'
+          'backdrop-blur-sm transition-all duration-300 cursor-pointer',
+          'hover:shadow-lg hover:shadow-black/20'
         )}
+        style={{ cursor: 'pointer', borderColor: undefined }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = `${data.accentColor}30`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '';
+        }}
       >
         {/* Top accent line */}
         <div
@@ -337,6 +369,13 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           >
             <div style={{ color: data.accentColor }}>{data.icon}</div>
           </div>
+        </div>
+
+        {/* Click to explore hover text */}
+        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="text-[9px] font-medium text-zinc-500 group-hover:text-zinc-400 flex items-center gap-0.5">
+            Click to explore <ArrowRight className="size-2.5" />
+          </span>
         </div>
       </div>
     </motion.div>
@@ -705,6 +744,240 @@ function ProvincialTable() {
 
 
 
+// ── Municipality Comparison Widget ──────────────────────────────────────────
+
+function MunicipalityComparison() {
+  const [selected1, setSelected1] = useState('2'); // Johannesburg
+  const [selected2, setSelected2] = useState('1'); // Cape Town
+  const [selected3, setSelected3] = useState('3'); // eThekwini
+
+  const municipalityOptions = MOCK_MUNICIPALITIES.map((m) => ({
+    id: m.id,
+    name: m.name,
+    code: m.code,
+  }));
+
+  const getMunicipality = (id: string) => MOCK_MUNICIPALITIES.find((m) => m.id === id);
+
+  const selectedMunicipalities = [selected1, selected2, selected3]
+    .map((id) => getMunicipality(id))
+    .filter(Boolean);
+
+  const getAuditBadgeStyle = (outcome: string | null) => {
+    switch (outcome) {
+      case 'Clean': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25';
+      case 'Unqualified': return 'bg-blue-500/15 text-blue-400 border-blue-500/25';
+      case 'Qualified': return 'bg-amber-500/15 text-amber-400 border-amber-500/25';
+      case 'Adverse': return 'bg-orange-500/15 text-orange-400 border-orange-500/25';
+      case 'Disclaimer': return 'bg-red-500/15 text-red-400 border-red-500/25';
+      default: return 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25';
+    }
+  };
+
+  const getSection139BadgeStyle = (status: string | null) => {
+    switch (status) {
+      case 'Intervention': return 'bg-red-500/15 text-red-400 border-red-500/25';
+      case 'Warning': return 'bg-amber-500/15 text-amber-400 border-amber-500/25';
+      case 'None': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25';
+      default: return 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25';
+    }
+  };
+
+  const getScoreColor = (score: number | null) => {
+    if (score === null) return 'text-zinc-500';
+    if (score >= 65) return 'text-emerald-400';
+    if (score >= 45) return 'text-amber-400';
+    if (score >= 25) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-md bg-[#7B2D8E]/10 border border-[#7B2D8E]/20">
+              <GitCompareArrows className="size-3.5 text-[#7B2D8E]" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold text-zinc-200">
+                Municipality Comparison
+              </CardTitle>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                Select municipalities to compare key metrics side by side
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {/* Select dropdowns */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {[selected1, selected2, selected3].map((val, idx) => {
+              const setter = [setSelected1, setSelected2, setSelected3][idx];
+              const labels = ['Municipality A', 'Municipality B', 'Municipality C'];
+              const colors = ['#0077B6', '#2D6A4F', '#B45309'];
+              return (
+                <div key={idx} className="space-y-1">
+                  <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <div className="size-2 rounded-full" style={{ backgroundColor: colors[idx] }} />
+                    {labels[idx]}
+                  </label>
+                  <Select value={val} onValueChange={setter}>
+                    <SelectTrigger className="w-full bg-[#0d1224] border-white/[0.08] text-zinc-300 text-xs h-8">
+                      <SelectValue placeholder="Select municipality" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0d1224] border-white/[0.08]">
+                      {municipalityOptions.map((m) => (
+                        <SelectItem key={m.id} value={m.id} className="text-zinc-300 text-xs focus:bg-white/[0.06] focus:text-zinc-100">
+                          {m.name} ({m.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Comparison table */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/[0.06] hover:bg-transparent">
+                  <TableHead className="text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-[160px]">
+                    Metric
+                  </TableHead>
+                  {selectedMunicipalities.map((m, i) => {
+                    const colors = ['#0077B6', '#2D6A4F', '#B45309'];
+                    return (
+                      <TableHead key={m!.id} className="text-right text-[11px] font-semibold uppercase tracking-wider" style={{ color: colors[i] }}>
+                        {m!.name}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Financial Health Score */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium">Financial Health Score</TableCell>
+                  {selectedMunicipalities.map((m) => (
+                    <TableCell key={m!.id} className="text-right">
+                      <motion.span
+                        key={`fhs-${m!.id}-${m!.financialHealthScore}`}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className={cn('text-xs font-semibold tabular-nums', getScoreColor(m!.financialHealthScore))}
+                      >
+                        {m!.financialHealthScore ?? '—'}/100
+                      </motion.span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {/* Service Delivery Score */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium">Service Delivery Score</TableCell>
+                  {selectedMunicipalities.map((m) => {
+                    const sds = m!.serviceDeliveryScore !== null ? 100 - m!.serviceDeliveryScore : null;
+                    return (
+                      <TableCell key={m!.id} className="text-right">
+                        <motion.span
+                          key={`sds-${m!.id}-${m!.serviceDeliveryScore}`}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className={cn('text-xs font-semibold tabular-nums', getScoreColor(sds))}
+                        >
+                          {m!.serviceDeliveryScore !== null ? `${m!.serviceDeliveryScore}/100` : '—'}
+                        </motion.span>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+                {/* Audit Outcome */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium">Audit Outcome</TableCell>
+                  {selectedMunicipalities.map((m) => (
+                    <TableCell key={m!.id} className="text-right">
+                      <motion.div
+                        key={`audit-${m!.id}-${m!.auditOutcome}`}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Badge className={cn('text-[10px] h-5 px-1.5 border', getAuditBadgeStyle(m!.auditOutcome))}>
+                          {m!.auditOutcome ?? '—'}
+                        </Badge>
+                      </motion.div>
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {/* Population */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
+                    <Users className="size-3" /> Population
+                  </TableCell>
+                  {selectedMunicipalities.map((m) => (
+                    <TableCell key={m!.id} className="text-right">
+                      <motion.span
+                        key={`pop-${m!.id}-${m!.population2022}`}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="text-xs font-medium text-zinc-300 tabular-nums"
+                      >
+                        {formatPopulation(m!.population2022)}
+                      </motion.span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {/* Section 139 Status */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium">§139 Status</TableCell>
+                  {selectedMunicipalities.map((m) => (
+                    <TableCell key={m!.id} className="text-right">
+                      <motion.div
+                        key={`s139-${m!.id}-${m!.section139Status}`}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Badge className={cn('text-[10px] h-5 px-1.5 border', getSection139BadgeStyle(m!.section139Status))}>
+                          {m!.section139Status ?? '—'}
+                        </Badge>
+                      </motion.div>
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {/* Province */}
+                <TableRow className="border-white/[0.04]">
+                  <TableCell className="text-xs text-zinc-400 font-medium">Province</TableCell>
+                  {selectedMunicipalities.map((m) => (
+                    <TableCell key={m!.id} className="text-right">
+                      <motion.span
+                        key={`prov-${m!.id}-${m!.province}`}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="text-xs text-zinc-400"
+                      >
+                        {m!.province}
+                      </motion.span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+
+
 // ── Risk Signals Panel ──────────────────────────────────────────────────────
 
 function RiskSignalsPanel() {
@@ -1058,6 +1331,15 @@ export default function Dashboard() {
         animate="show"
       >
         <ProvincialTable />
+      </motion.div>
+
+      {/* ── Municipality Comparison ─────────────────────────────── */}
+      <motion.div
+        variants={containerStagger}
+        initial="hidden"
+        animate="show"
+      >
+        <MunicipalityComparison />
       </motion.div>
 
       {/* ── Risk Signals & Tender Highlights ────────────────────── */}

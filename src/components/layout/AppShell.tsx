@@ -29,7 +29,10 @@ import GrantLens from '@/components/modules/GrantLens';
 import BudgetLens from '@/components/modules/BudgetLens';
 import CarbonLens from '@/components/modules/CarbonLens';
 import DataHub from '@/components/modules/DataHub';
+import DataExplorer from '@/components/modules/DataExplorer';
 import SettingsPage from '@/components/modules/SettingsPage';
+import HelpCentre from '@/components/modules/HelpCentre';
+import OnboardingModal from '@/components/shared/OnboardingModal';
 import {
   Sheet,
   SheetContent,
@@ -154,8 +157,14 @@ function ModuleContent({ moduleId }: { moduleId: string }) {
   if (moduleId === 'datahub') {
     return <DataHub />;
   }
+  if (moduleId === 'data-explorer') {
+    return <DataExplorer />;
+  }
   if (moduleId === 'settings') {
     return <SettingsPage />;
+  }
+  if (moduleId === 'help') {
+    return <HelpCentre />;
   }
 
   // Fallback to placeholder for unimplemented modules
@@ -244,6 +253,9 @@ export default function AppShell() {
 
         <Footer />
       </div>
+
+      {/* Onboarding modal (first-time users only) */}
+      <OnboardingModal />
 
       {/* Keyboard shortcuts overlay */}
       <KeyboardShortcuts />

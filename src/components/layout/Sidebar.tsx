@@ -270,7 +270,7 @@ export default function Sidebar() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-9 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]">
+                  <Button variant="ghost" size="icon" className="size-9 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]" onClick={() => setActiveModule('help')}>
                     <HelpCircle className="size-4" />
                   </Button>
                 </TooltipTrigger>
@@ -297,6 +297,7 @@ export default function Sidebar() {
                 variant="ghost"
                 size="sm"
                 className="flex-1 justify-start gap-2 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+                onClick={() => setActiveModule('help')}
               >
                 <HelpCircle className="size-4" />
                 <span className="text-[13px]">Help</span>
