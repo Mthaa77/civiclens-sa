@@ -1,0 +1,187 @@
+// CivicLens SA — Prisma Schema
+// South African Public-Sector Intelligence Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── MUNICIPALITIES ───────────────────────────────────────────────────────────
+
+model Municipality {
+  id                String   @id @default(cuid())
+  code              String   @unique // MDB code (e.g., BUF, CPT, ETH)
+  name              String
+  category          String   // A (Metro), B (Local), C (District)
+  province          String
+  district          String?
+  population2022    Int?
+  geographicAreaKm2 Float?
+  wardCount         Int?
+  financialHealthScore  Float?   // 0-100
+  serviceDeliveryScore Float?   // 0-100 (higher = more pressure)
+  socioEconomicIndex  Float?   // 0-100
+  procurementScore     Float?   // 0-100
+  auditOutcome       String?   // Clean, Unqualified, Qualified, Adverse, Disclaimer
+  auditYear          String?
+  operatingBudget    Float?
+  capitalBudget      Float?
+  cashCoverageDays   Float?
+  debtorCollectionRate Float?
+  waterAccess        Float?   // percentage
+  sanitationAccess   Float?   // percentage
+  electricityAccess  Float?   // percentage
+  refuseRemoval      Float?   // percentage
+  povertyRate        Float?
+  youthUnemployment  Float?
+  sassaDependency    Float?
+  section139Status   String?  @default("None") // None, Warning, Intervention
+  earlyAlertScore    Float?   // 0-100
+  climateRiskScore   Float?   // 0-100
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenders    Tender[]
+  suppliers  Supplier[]
+  indicators Indicator[]
+  riskSignals RiskSignal[]
+}
+
+// ─── TENDERS / PROCUREMENT ────────────────────────────────────────────────────
+
+model Tender {
+  id              String   @id @default(cuid())
+  ocid            String   @unique // OCDS release OCID
+  title           String
+  description     String
+  status          String   // Active, Awarded, Cancelled, Closed
+  buyerName       String
+  buyerId         String?
+  municipalityCode String?
+  municipality    Municipality? @relation(fields: [municipalityCode], references: [code])
+  category        String   // SCOA category
+  estimatedValue  Float?
+  awardValue      Float?
+  currency        String   @default("ZAR")
+  publishedDate   DateTime?
+  closingDate     DateTime?
+  awardDate       DateTime?
+  province        String?
+  bbbeeRequirement String?
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  contractPeriodDays Int?
+  aiSummary       String?
+  bidRecommendation String?
+  confidenceScore  Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── SUPPLIERS ────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id                String   @id @default(cuid())
+  csdId             String?  @unique
+  name              String
+  registrationNumber String?
+  entityType        String?  // PTY, CC, NPC, Gov, SOE
+  bbbeeLevel        Int?
+  bbbeeExpiryDate   DateTime?
+  csdStatus         String?  // Active, Suspended, Blocked
+  totalAwardValue   Float?   // last 5 years
+  awardCount        Int?     // last 5 years
+  concentrationIndex Float?  // % revenue from single buyer
+  province          String?
+  municipalityCode  String?
+  municipality      Municipality? @relation(fields: [municipalityCode], references: [code])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenders Tender[]
+}
+
+// ─── INDICATORS ───────────────────────────────────────────────────────────────
+
+model Indicator {
+  id              String   @id @default(cuid())
+  code            String
+  name            String
+  category        String   // Finance, Demographics, Services, Safety, Climate
+  value           Float
+  unit            String?
+  period          String   // e.g., "2024/25", "2024-Q1"
+  source          String   // e.g., "Stats SA Census 2022", "Municipal Money"
+  sourceType      String   // Census, Survey, Administrative, Model
+  municipalityCode String?
+  municipality    Municipality? @relation(fields: [municipalityCode], references: [code])
+  province        String?
+  year            Int?
+  createdAt       DateTime @default(now())
+}
+
+// ─── RISK SIGNALS ─────────────────────────────────────────────────────────────
+
+model RiskSignal {
+  id              String   @id @default(cuid())
+  type            String   // Award Concentration, Consecutive Awards, Sub-threshold Splitting, Round Amount
+  severity        String   // Low, Medium, High, Critical
+  description     String   // Uses approved language protocol
+  entityId        String   // buyer or supplier ID
+  entityType      String   // Buyer, Supplier, Municipality
+  municipalityCode String?
+  municipality    Municipality? @relation(fields: [municipalityCode], references: [code])
+  indicator       String
+  indicatorValue  Float?
+  threshold       Float?
+  detectedAt      DateTime @default(now())
+  status          String   @default("Active") // Active, Reviewed, Dismissed
+}
+
+// ─── AI CHAT ──────────────────────────────────────────────────────────────────
+
+model AIChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // user, assistant
+  content   String
+  persona   String?  // Citizen, Analyst, Journalist, Government
+  sources   String?  // JSON array of sources cited
+  createdAt DateTime @default(now())
+}
+
+// ─── SAVED SEARCHES / ALERTS ──────────────────────────────────────────────────
+
+model SavedSearch {
+  id          String   @id @default(cuid())
+  name        String
+  module      String   // TenderLens, MuniLens, etc.
+  filters     String   // JSON stringified filters
+  alertType   String?  // Email, WhatsApp, Both
+  isActive    Boolean  @default(true)
+  lastMatchAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+// ─── DATASET REGISTRY ─────────────────────────────────────────────────────────
+
+model Dataset {
+  id            String   @id @default(cuid())
+  name          String
+  publisher     String
+  description   String
+  updateFrequency String // Daily, Weekly, Monthly, Quarterly, Annual
+  lastUpdated   DateTime?
+  status        String   @default("Identified") // Identified, Ingesting, Dashboard-ready, Monitored
+  recordCount   Int?
+  schemaUrl     String?
+  licenseType   String?
+  checksum      String?
+  category      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
