@@ -498,8 +498,19 @@ function SuggestedPromptCard({
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-200 group"
+      className="relative flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left hover:bg-white/[0.04] transition-all duration-200 group overflow-hidden"
     >
+      {/* Gradient border on hover */}
+      <motion.div
+        className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-400"
+        style={{
+          padding: '1px',
+          background: `linear-gradient(135deg, ${personaColor}40, transparent 40%, transparent 60%, ${personaColor}25)`,
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
       <div
         className="flex size-6 shrink-0 items-center justify-center rounded-md mt-0.5"
         style={{
@@ -826,6 +837,31 @@ export default function AIAnalyst() {
   const charCount = input.length;
   const maxChars = 2000;
 
+  // Typewriter effect for placeholder
+  const [placeholderText, setPlaceholderText] = useState('');
+  const fullPlaceholder = `Ask about municipalities, tenders, risk signals... (${currentPersona.label} mode)`;
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    if (!isTyping || placeholderIndex >= fullPlaceholder.length) {
+      setIsTyping(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setPlaceholderText(fullPlaceholder.slice(0, placeholderIndex + 1));
+      setPlaceholderIndex(placeholderIndex + 1);
+    }, 30);
+    return () => clearTimeout(timer);
+  }, [placeholderIndex, fullPlaceholder, isTyping]);
+
+  // Reset typewriter when persona changes
+  useEffect(() => {
+    setPlaceholderText('');
+    setPlaceholderIndex(0);
+    setIsTyping(true);
+  }, [persona]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-0">
       {/* ── Module Header + Persona Selector ──────────────────────── */}
@@ -901,17 +937,79 @@ export default function AIAnalyst() {
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
             {messages.length === 0 ? (
-              /* Empty state with suggested prompts */
+              /* Empty state with enhanced visual appeal */
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="flex flex-col items-center py-8"
               >
-                <div className="flex size-16 items-center justify-center rounded-2xl bg-[#0F766E]/10 border border-[#0F766E]/20 mb-5">
-                  <Bot className="size-8 text-[#0F766E]/60" />
+                {/* Animated Bot icon with concentric circle pulse */}
+                <div className="relative flex items-center justify-center mb-5">
+                  {/* Concentric pulse rings */}
+                  <motion.div
+                    className="absolute size-24 rounded-full border border-[#0F766E]/20"
+                    animate={{
+                      scale: [0.8, 1.8],
+                      opacity: [0.5, 0],
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                    }}
+                  />
+                  <motion.div
+                    className="absolute size-20 rounded-full border border-[#0F766E]/15"
+                    animate={{
+                      scale: [0.8, 1.6],
+                      opacity: [0.4, 0],
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                      delay: 0.8,
+                    }}
+                  />
+                  <motion.div
+                    className="absolute size-16 rounded-full border border-[#0F766E]/10"
+                    animate={{
+                      scale: [0.8, 1.4],
+                      opacity: [0.3, 0],
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                      delay: 1.6,
+                    }}
+                  />
+                  {/* Bot icon with float animation */}
+                  <motion.div
+                    className="relative flex size-14 items-center justify-center rounded-2xl bg-[#0F766E]/10 border border-[#0F766E]/20"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                  >
+                    <Bot className="size-7 text-[#0F766E]/70" />
+                  </motion.div>
                 </div>
-                <h3 className="text-sm font-semibold text-zinc-300 mb-1">Start a Conversation</h3>
+                {/* Gradient text heading */}
+                <h3
+                  className="text-base font-bold mb-1"
+                  style={{
+                    background: 'linear-gradient(135deg, #0F766E, #10B981)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Start a Conversation
+                </h3>
                 <p className="text-[11px] text-zinc-500 mb-6 text-center max-w-sm">
                   Ask questions about South African municipalities, tenders, risk signals, or financial data. Choose a prompt below or type your own.
                 </p>
@@ -1006,7 +1104,7 @@ export default function AIAnalyst() {
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, maxChars))}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask about municipalities, tenders, risk signals... (${currentPersona.label} mode)`}
+            placeholder={isTyping ? placeholderText : fullPlaceholder}
             rows={1}
             disabled={isListening}
             className="w-full resize-none bg-transparent px-4 pt-3 pb-1 text-[13px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"

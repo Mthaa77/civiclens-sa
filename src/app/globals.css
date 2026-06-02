@@ -350,6 +350,400 @@ button, a, [role="button"], [tabindex] {
    CivicLens SA — Enhanced Premium Styling (Task CR-5-a)
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ─── Premium Badge System ───────────────────────────────────────────────── */
+
+.badge-premium {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.badge-premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.03), rgba(255,255,255,0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.badge-premium::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.badge-premium:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.06), 0 0 24px rgba(255, 255, 255, 0.03);
+}
+
+.badge-mvp {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.25), rgba(20, 184, 166, 0.2));
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+}
+
+.badge-mvp::before {
+  background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(20,184,166,0.15), rgba(16,185,129,0.25));
+}
+
+.badge-mvp::after {
+  background: linear-gradient(180deg, rgba(16,185,129,0.1), transparent);
+}
+
+.badge-mvp:hover {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2), 0 0 24px rgba(16, 185, 129, 0.08);
+}
+
+.badge-phase2 {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(234, 88, 12, 0.2));
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+}
+
+.badge-phase2::before {
+  background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(234,88,12,0.15), rgba(245,158,11,0.25));
+}
+
+.badge-phase2::after {
+  background: linear-gradient(180deg, rgba(245,158,11,0.1), transparent);
+}
+
+.badge-phase2:hover {
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2), 0 0 24px rgba(245, 158, 11, 0.08);
+}
+
+.badge-phase3 {
+  background: linear-gradient(135deg, rgba(225, 29, 72, 0.25), rgba(236, 72, 153, 0.2));
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #fda4af;
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.25);
+}
+
+.badge-phase3::before {
+  background: linear-gradient(135deg, rgba(244,63,94,0.35), rgba(236,72,153,0.15), rgba(244,63,94,0.25));
+}
+
+.badge-phase3::after {
+  background: linear-gradient(180deg, rgba(244,63,94,0.1), transparent);
+}
+
+.badge-phase3:hover {
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.2), 0 0 24px rgba(244, 63, 94, 0.08);
+}
+
+/* ─── Enhanced Glass Morphism V2 ────────────────────────────────────────── */
+
+.glass-ultra {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(40px) saturate(1.3);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 30px rgba(0, 0, 0, 0.1),
+    0 4px 30px rgba(0, 0, 0, 0.15);
+}
+
+.glass-card-v2 {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Top highlight line for premium card feel */
+.glass-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.15) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glass-depth {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 16px 48px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Progress Bar Premium System ───────────────────────────────────────── */
+
+.progress-premium {
+  position: relative;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.progress-premium .progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--progress-from, #0077B6), var(--progress-to, #0F766E));
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.progress-premium .progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 0 8px var(--progress-from, rgba(0, 119, 182, 0.4)),
+    0 0 16px var(--progress-from, rgba(0, 119, 182, 0.15));
+}
+
+.progress-striped {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-striped::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.1) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-stripe 0.75s linear infinite;
+}
+
+@keyframes progress-stripe {
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+}
+
+.progress-glow-v2 {
+  position: relative;
+}
+
+.progress-glow-v2::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: inherit;
+  box-shadow:
+    0 0 12px rgba(0, 119, 182, 0.35),
+    0 0 24px rgba(0, 119, 182, 0.15),
+    0 0 48px rgba(0, 119, 182, 0.06);
+  pointer-events: none;
+}
+
+.progress-glow-v2[data-color="gold"]::after {
+  box-shadow:
+    0 0 12px rgba(180, 83, 9, 0.35),
+    0 0 24px rgba(180, 83, 9, 0.15),
+    0 0 48px rgba(180, 83, 9, 0.06);
+}
+
+.progress-glow-v2[data-color="green"]::after {
+  box-shadow:
+    0 0 12px rgba(45, 106, 79, 0.35),
+    0 0 24px rgba(45, 106, 79, 0.15),
+    0 0 48px rgba(45, 106, 79, 0.06);
+}
+
+.progress-glow-v2[data-color="red"]::after {
+  box-shadow:
+    0 0 12px rgba(220, 38, 38, 0.35),
+    0 0 24px rgba(220, 38, 38, 0.15),
+    0 0 48px rgba(220, 38, 38, 0.06);
+}
+
+.progress-glow-v2[data-color="teal"]::after {
+  box-shadow:
+    0 0 12px rgba(15, 118, 110, 0.35),
+    0 0 24px rgba(15, 118, 110, 0.15),
+    0 0 48px rgba(15, 118, 110, 0.06);
+}
+
+/* ─── Concentric Pulse Ring Animation ───────────────────────────────────── */
+
+@keyframes concentric-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.animate-concentric-pulse {
+  position: relative;
+}
+
+.animate-concentric-pulse::before,
+.animate-concentric-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: concentric-pulse 2.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.animate-concentric-pulse::after {
+  animation-delay: 0.8s;
+}
+
+/* ─── Float Animation for Icons ─────────────────────────────────────────── */
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 3s ease-in-out infinite;
+}
+
+/* ─── Typewriter Animation for Placeholder ──────────────────────────────── */
+
+@keyframes typewriter-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-typewriter-cursor::after {
+  content: '|';
+  animation: typewriter-blink 0.8s step-end infinite;
+  color: rgba(15, 118, 110, 0.6);
+  margin-left: 1px;
+}
+
+/* ─── Gradient Border on Hover for Cards ────────────────────────────────── */
+
+.gradient-border-hover {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.gradient-border-hover::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: transparent;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.gradient-border-hover:hover::before {
+  background: linear-gradient(135deg, var(--border-color-from, rgba(0,119,182,0.4)), var(--border-color-to, rgba(180,83,9,0.4)));
+}
+
+/* ─── Sidebar Animated Gradient Top Line ─────────────────────────────────── */
+
+@keyframes sidebar-gradient-flow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.sidebar-top-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #0077B6,
+    #2D6A4F,
+    #B45309,
+    #7B2D8E,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: sidebar-gradient-flow 4s linear infinite;
+}
+
+/* ─── Star Pattern Overlay ──────────────────────────────────────────────── */
+
+.bg-star-pattern {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px, 12px 12px;
+  background-position: 0 0, 6px 6px;
+}
+
+/* ─── Micro Pulse for Active Icons ──────────────────────────────────────── */
+
+@keyframes icon-micro-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-icon-pulse {
+  animation: icon-micro-pulse 2s ease-in-out infinite;
+}
+
 /* ─── 1. Enhanced Contrast Utilities ─────────────────────────────────────── */
 
 .text-high-contrast {

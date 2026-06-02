@@ -123,12 +123,12 @@ function NavItem({
         />
       )}
 
-      {/* Active background gradient (accent color 5% → transparent) */}
+      {/* Active background gradient (accent color brighter gradient) */}
       {isActive && (
         <motion.div
           className="absolute inset-0 rounded-lg pointer-events-none"
           style={{
-            background: `linear-gradient(90deg, ${module.color}0D 0%, transparent 60%)`,
+            background: `linear-gradient(90deg, ${module.color}14 0%, ${module.color}08 40%, transparent 70%)`,
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -141,13 +141,13 @@ function NavItem({
         <div className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-transparent" />
       )}
 
-      {/* Icon with color glow on active — 19px */}
+      {/* Icon with color glow on active — 19px with micro pulse */}
       <div className="relative flex-shrink-0">
         <ModuleIcon
           icon={module.icon}
           className={cn(
             'size-[19px] transition-colors duration-200',
-            isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'
+            isActive ? 'text-white animate-icon-pulse' : 'text-zinc-500 group-hover:text-zinc-300'
           )}
         />
         {isActive && (
@@ -218,8 +218,14 @@ export default function Sidebar() {
         'bg-gradient-to-b from-[#0c1020] via-[#0d1224] to-[#070a14]'
       )}
     >
+      {/* ── Animated gradient line at very top ── */}
+      <div className="sidebar-top-line" />
+
       {/* ── Subtle gradient overlay (lighter top, darker bottom) ── */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08]" />
+
+      {/* ── Star pattern overlay for branding area ── */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-star-pattern opacity-40" />
 
       {/* ── Right border gradient (transparent → white/6% → transparent) ── */}
       <div

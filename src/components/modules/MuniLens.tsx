@@ -56,6 +56,7 @@ import {
 import { SA_PROVINCES } from '@/types';
 import type { Municipality, RiskSignal } from '@/types';
 import WatchlistStar from '@/components/shared/WatchlistStar';
+import MunicipalityComparisonModal from '@/components/shared/MunicipalityComparisonModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -1933,6 +1934,7 @@ export default function MuniLens() {
   const [compareMode, setCompareMode] = useState(false);
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
 
   // Filter municipalities
   const filteredMunicipalities = useMemo(() => {
@@ -2031,21 +2033,32 @@ export default function MuniLens() {
                     <h1 className="text-xl font-bold text-zinc-100">MuniLens</h1>
                     <p className="text-xs text-zinc-500">Municipality intelligence profiles for South Africa's 257 municipalities</p>
                   </div>
-                  {/* Compare button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleCompareMode}
-                    className={cn(
-                      'ml-auto gap-1.5 text-xs h-8 px-3 rounded-lg transition-all duration-200',
-                      compareMode
-                        ? 'bg-[#7B2D8E]/20 border-[#7B2D8E]/40 text-[#A855F7] hover:bg-[#7B2D8E]/30'
-                        : 'bg-white/[0.04] border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
-                    )}
-                  >
-                    <GitCompareArrows className="size-3.5" />
-                    {compareMode ? 'Cancel Compare' : 'Compare'}
-                  </Button>
+                  {/* Compare buttons */}
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCompareModalOpen(true)}
+                      className="gap-1.5 text-xs h-8 px-3 rounded-lg transition-all duration-200 bg-[#7B2D8E]/10 border-[#7B2D8E]/25 text-[#A855F7] hover:bg-[#7B2D8E]/20 hover:border-[#7B2D8E]/40"
+                    >
+                      <GitCompareArrows className="size-3.5" />
+                      Quick Compare
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleCompareMode}
+                      className={cn(
+                        'gap-1.5 text-xs h-8 px-3 rounded-lg transition-all duration-200',
+                        compareMode
+                          ? 'bg-[#7B2D8E]/20 border-[#7B2D8E]/40 text-[#A855F7] hover:bg-[#7B2D8E]/30'
+                          : 'bg-white/[0.04] border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
+                      )}
+                    >
+                      <GitCompareArrows className="size-3.5" />
+                      {compareMode ? 'Cancel' : 'Select & Compare'}
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -2242,6 +2255,12 @@ export default function MuniLens() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Municipality Comparison Modal */}
+      <MunicipalityComparisonModal
+        open={compareModalOpen}
+        onOpenChange={setCompareModalOpen}
+      />
     </div>
   );
 }

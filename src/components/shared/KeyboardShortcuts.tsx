@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Keyboard, X } from 'lucide-react';
+import { Keyboard, X, Navigation, Database, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigationStore } from '@/store/navigation';
 
@@ -11,9 +11,11 @@ function Kbd({ children, className }: { children: React.ReactNode; className?: s
   return (
     <kbd
       className={cn(
-        'inline-flex items-center justify-center min-w-[22px] h-[22px]',
-        'bg-white/[0.06] border border-white/[0.1] rounded px-1.5 py-0.5',
-        'text-[11px] font-mono text-zinc-300 leading-none',
+        'inline-flex items-center justify-center min-w-[24px] h-[24px]',
+        'bg-gradient-to-b from-white/[0.08] to-white/[0.04]',
+        'border border-white/[0.12] rounded-md px-2 py-0.5',
+        'text-[11px] font-mono text-zinc-200 leading-none',
+        'shadow-[0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]',
         className
       )}
     >
@@ -37,23 +39,26 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'Navigation',
     items: [
-      { keys: ['Ctrl', 'K'], description: 'Search modules' },
-      { keys: ['?'], description: 'Show shortcuts' },
+      { keys: ['Ctrl', 'K'], description: 'Search modules, municipalities & tenders' },
+      { keys: ['?'], description: 'Show / hide shortcuts' },
       { keys: ['1–9'], description: 'Quick switch to module (1=Dashboard, 2=TenderLens, …)' },
       { keys: ['G', 'D'], description: 'Go to Dashboard' },
       { keys: ['G', 'T'], description: 'Go to TenderLens' },
       { keys: ['G', 'M'], description: 'Go to MuniLens' },
       { keys: ['G', 'G'], description: 'Go to GeoLens' },
       { keys: ['G', 'A'], description: 'Go to AI Analyst' },
+      { keys: ['G', 'R'], description: 'Go to ReportLens' },
+      { keys: ['G', 'E'], description: 'Go to ElectionLens' },
     ],
   },
   {
-    title: 'Actions',
+    title: 'Data & Actions',
     items: [
-      { keys: ['Ctrl', 'R'], description: 'Refresh data' },
-      { keys: ['Ctrl', 'E'], description: 'Export data' },
+      { keys: ['E'], description: 'Export current data' },
+      { keys: ['C'], description: 'Compare municipalities' },
+      { keys: ['W'], description: 'Toggle watchlist' },
+      { keys: ['N'], description: 'Open notifications' },
       { keys: ['Ctrl', '/'], description: 'Focus search' },
-      { keys: ['Esc'], description: 'Close dialog/panel' },
     ],
   },
   {
@@ -61,6 +66,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['Ctrl', 'B'], description: 'Toggle sidebar' },
       { keys: ['Ctrl', '⇧', 'D'], description: 'Toggle dark mode' },
+      { keys: ['Esc'], description: 'Close dialog/panel' },
     ],
   },
 ];
@@ -277,11 +283,19 @@ export default function KeyboardShortcuts() {
 
               {/* Shortcut groups */}
               <div className="px-6 py-4 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                {SHORTCUT_GROUPS.map((group) => (
-                  <div key={group.title}>
-                    <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2.5">
-                      {group.title}
-                    </h3>
+                {SHORTCUT_GROUPS.map((group, gi) => {
+                  const groupIcon = gi === 0 ? Navigation : gi === 1 ? Database : Eye;
+                  const groupColor = gi === 0 ? '#0077B6' : gi === 1 ? '#B45309' : '#10B981';
+                  const GroupIcon = groupIcon;
+                  return (
+                    <div key={group.title}>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <GroupIcon className="size-3.5" style={{ color: groupColor }} />
+                        <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: groupColor }}>
+                          {group.title}
+                        </h3>
+                        <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${groupColor}30, transparent)` }} />
+                      </div>
                     <div className="space-y-1.5">
                       {group.items.map((item, idx) => (
                         <div
@@ -308,7 +322,8 @@ export default function KeyboardShortcuts() {
                       ))}
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
 
               {/* Footer hint */}

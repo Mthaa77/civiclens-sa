@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Treemap,
 } from 'recharts';
 import {
   Building2,
@@ -33,6 +34,10 @@ import {
   GitCompareArrows,
   Users,
   ArrowLeftRight,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -76,6 +81,7 @@ import {
 import { toast } from 'sonner';
 import DataExport from '@/components/shared/DataExport';
 import WatchlistWidget from '@/components/shared/WatchlistWidget';
+import MunicipalityComparisonModal from '@/components/shared/MunicipalityComparisonModal';
 import type { ModuleId, ExportColumn } from '@/types';
 
 // ── Live Data Indicator Hook ───────────────────────────────────────────────
@@ -179,6 +185,7 @@ interface KPICardData {
   trend: { direction: 'up' | 'down'; value: string };
   sentiment: 'positive' | 'negative' | 'warning' | 'neutral';
   icon: React.ReactNode;
+  microIcon: React.ReactNode;
   accentColor: string;
   gradientFrom: string;
   gradientTo: string;
@@ -193,6 +200,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+2' },
     sentiment: 'neutral',
     icon: <Building2 className="size-5" />,
+    microIcon: <Building2 className="size-3" />,
     accentColor: '#0077B6',
     gradientFrom: 'from-[#0077B6]/10',
     gradientTo: 'to-[#0077B6]/[0.02]',
@@ -205,6 +213,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+8.2%' },
     sentiment: 'negative',
     icon: <AlertTriangle className="size-5" />,
+    microIcon: <AlertTriangle className="size-3" />,
     accentColor: '#EF4444',
     gradientFrom: 'from-[#EF4444]/10',
     gradientTo: 'to-[#EF4444]/[0.02]',
@@ -217,6 +226,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+12.4%' },
     sentiment: 'neutral',
     icon: <FileSearch className="size-5" />,
+    microIcon: <FileSearch className="size-3" />,
     accentColor: '#2D6A4F',
     gradientFrom: 'from-[#2D6A4F]/10',
     gradientTo: 'to-[#2D6A4F]/[0.02]',
@@ -229,6 +239,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+5.7%' },
     sentiment: 'neutral',
     icon: <DollarSign className="size-5" />,
+    microIcon: <DollarSign className="size-3" />,
     accentColor: '#B45309',
     gradientFrom: 'from-[#B45309]/10',
     gradientTo: 'to-[#B45309]/[0.02]',
@@ -241,6 +252,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+14.3%' },
     sentiment: 'warning',
     icon: <ShieldAlert className="size-5" />,
+    microIcon: <ShieldAlert className="size-3" />,
     accentColor: '#F59E0B',
     gradientFrom: 'from-[#F59E0B]/10',
     gradientTo: 'to-[#F59E0B]/[0.02]',
@@ -253,6 +265,7 @@ const kpiCards: KPICardData[] = [
     trend: { direction: 'up', value: '+3' },
     sentiment: 'negative',
     icon: <AlertOctagon className="size-5" />,
+    microIcon: <AlertOctagon className="size-3" />,
     accentColor: '#DC2626',
     gradientFrom: 'from-[#DC2626]/10',
     gradientTo: 'to-[#DC2626]/[0.02]',
@@ -332,17 +345,29 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
         style={{
           cursor: 'pointer',
           borderColor: undefined,
-          boxShadow: `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04`,
+          boxShadow: `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04, inset 0 0 80px ${data.accentColor}0A`,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = `${data.accentColor}30`;
-          e.currentTarget.style.boxShadow = `inset 0 1px 40px ${data.accentColor}12, inset 0 0 80px ${data.accentColor}06, 0 8px 32px ${data.accentColor}10`;
+          e.currentTarget.style.boxShadow = `inset 0 1px 40px ${data.accentColor}12, inset 0 0 80px ${data.accentColor}06, 0 8px 32px ${data.accentColor}10, inset 0 0 60px ${data.accentColor}10`;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = '';
-          e.currentTarget.style.boxShadow = `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04`;
+          e.currentTarget.style.boxShadow = `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04, inset 0 0 80px ${data.accentColor}0A`;
         }}
       >
+        {/* Animated gradient border on hover */}
+        <motion.div
+          className="absolute inset-0 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            padding: '1px',
+            background: `linear-gradient(135deg, ${data.accentColor}50, transparent 40%, transparent 60%, ${data.accentColor}30)`,
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+        />
+
         {/* Top accent line */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px] opacity-80"
@@ -362,6 +387,14 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               ${data.accentColor}15 8px,
               ${data.accentColor}15 9px
             )`,
+          }}
+        />
+
+        {/* Inner glow effect — accent color at 10% opacity */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            boxShadow: `inset 0 0 40px ${data.accentColor}10`,
           }}
         />
 
@@ -388,13 +421,21 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           style={{ backgroundColor: data.accentColor }}
         />
 
+        {/* Micro-icon in top-right corner */}
+        <div
+          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-md opacity-30 group-hover:opacity-60 transition-opacity duration-300"
+          style={{ color: data.accentColor }}
+        >
+          {data.microIcon}
+        </div>
+
         <div className="relative flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
               {data.label}
             </p>
             <p
-              className="text-2xl lg:text-3xl font-extrabold tabular-nums tracking-tight"
+              className="text-2xl lg:text-[2rem] font-extrabold tabular-nums tracking-tight leading-none"
               style={{ color: data.accentColor }}
             >
               {data.value}
@@ -450,13 +491,472 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           </div>
         </div>
 
-        {/* Click to explore hover text */}
-        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 translate-x-1">
+        {/* Click to explore hover text with animated arrow */}
+        <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
           <span className="text-[10px] font-semibold text-zinc-400 group-hover:text-zinc-300 flex items-center gap-1">
-            Click to explore <ArrowRight className="size-3" />
+            Click to explore
+            <motion.span
+              className="inline-flex"
+              animate={{ x: [0, 3, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <ArrowRight className="size-3" />
+            </motion.span>
           </span>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+// ── AI Insights Data ────────────────────────────────────────────────────────
+
+interface AIInsight {
+  type: 'Trend' | 'Alert' | 'Anomaly' | 'Prediction';
+  severity: 'green' | 'amber' | 'red';
+  title: string;
+  description: string;
+  source: string;
+}
+
+const AI_INSIGHTS: AIInsight[] = [
+  {
+    type: 'Trend',
+    severity: 'amber',
+    title: 'Municipal Financial Health Declining in 3 Provinces',
+    description: 'Eastern Cape, Limpopo, and Free State show consecutive 3-year FHS declines. Combined impact affects 94 municipalities and R42B in operational budgets.',
+    source: 'MFMA 2023/24 Cycle',
+  },
+  {
+    type: 'Alert',
+    severity: 'red',
+    title: 'Section 139 Interventions Up 18% Year-on-Year',
+    description: '43 municipalities now under intervention, up from 36. KwaZulu-Natal accounts for 7 new interventions, the highest provincial increase.',
+    source: 'CoGTA Quarterly Report',
+  },
+  {
+    type: 'Anomaly',
+    severity: 'amber',
+    title: 'Procurement Concentration Risk Detected in Gauteng',
+    description: '72% of Gauteng health procurement awards directed to 3 suppliers in Q3. Pattern suggests potential bid rotation and requires auditor review.',
+    source: 'CivicLens Procurement Analysis',
+  },
+  {
+    type: 'Prediction',
+    severity: 'green',
+    title: 'Western Cape Projected to Achieve 85% Clean Audit by 2027',
+    description: 'Based on current trajectory analysis, Western Cape is on track to improve from 62% to 85% clean audit outcomes within the MTEF period.',
+    source: 'AGSA Trend Analysis',
+  },
+  {
+    type: 'Trend',
+    severity: 'green',
+    title: 'Service Delivery Access Improving in Urban Metro Areas',
+    description: 'Metropolitan municipalities show 4.2% improvement in average service delivery scores, driven by water infrastructure investment in eThekwini and Cape Town.',
+    source: 'Stats SA Community Survey',
+  },
+  {
+    type: 'Alert',
+    severity: 'red',
+    title: 'Cash Coverage Below 30 Days for 67 Municipalities',
+    description: '67 municipalities report cash coverage under 30 days, indicating severe liquidity stress. 23 of these are in the Eastern Cape alone.',
+    source: 'National Treasury MFMA Report',
+  },
+];
+
+const INSIGHT_TYPE_STYLES: Record<string, string> = {
+  Trend: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
+  Alert: 'bg-red-500/15 text-red-400 border-red-500/25',
+  Anomaly: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+  Prediction: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+};
+
+const INSIGHT_SEVERITY_COLORS: Record<string, string> = {
+  green: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
+};
+
+// ── AI Insights Panel Component ──────────────────────────────────────────────
+
+function AIInsightsPanel() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % AI_INSIGHTS.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [isPaused]);
+
+  const goToPrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + AI_INSIGHTS.length) % AI_INSIGHTS.length);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % AI_INSIGHTS.length);
+  };
+
+  const currentInsight = AI_INSIGHTS[currentIndex];
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <Card
+        className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {/* Top accent line — teal/emerald gradient */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #0D9488, #10B981, transparent)' }}
+        />
+
+        {/* Background glow */}
+        <div
+          className="absolute -top-12 -right-12 size-40 rounded-full opacity-[0.06] blur-3xl"
+          style={{ backgroundColor: '#0D9488' }}
+        />
+        <div
+          className="absolute -bottom-8 -left-8 size-28 rounded-full opacity-[0.04] blur-2xl"
+          style={{ backgroundColor: '#10B981' }}
+        />
+
+        <CardContent className="p-5 lg:p-6 relative">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border border-teal-500/25">
+                <Sparkles className="size-4.5 text-teal-400" />
+                {/* Animated glow pulse */}
+                <motion.div
+                  className="absolute inset-0 rounded-xl"
+                  animate={{
+                    boxShadow: [
+                      '0 0 0px rgba(13, 148, 136, 0)',
+                      '0 0 12px rgba(13, 148, 136, 0.3)',
+                      '0 0 0px rgba(13, 148, 136, 0)',
+                    ],
+                  }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </div>
+              <div>
+                <h3
+                  className="text-base font-extrabold tracking-tight"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #0D9488, #10B981)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  AI Insights
+                </h3>
+              </div>
+              <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/20 text-[9px] px-2 py-0.5 font-semibold uppercase tracking-wider">
+                Powered by CivicLens AI
+              </Badge>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={goToPrev}
+                className="flex size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200"
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <button
+                onClick={goToNext}
+                className="flex size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200"
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Insight content with AnimatePresence */}
+          <div className="relative min-h-[80px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                className="space-y-2.5"
+              >
+                {/* Type badge + Severity indicator + Title */}
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                    <Badge className={cn('text-[10px] px-2 py-0.5 font-semibold', INSIGHT_TYPE_STYLES[currentInsight.type])}>
+                      {currentInsight.type}
+                    </Badge>
+                    <div
+                      className="size-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: INSIGHT_SEVERITY_COLORS[currentInsight.severity],
+                        boxShadow: `0 0 6px ${INSIGHT_SEVERITY_COLORS[currentInsight.severity]}60`,
+                      }}
+                    />
+                  </div>
+                  <h4 className="text-sm font-bold text-zinc-100 leading-snug">
+                    {currentInsight.title}
+                  </h4>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-zinc-400 leading-relaxed pl-0">
+                  {currentInsight.description}
+                </p>
+
+                {/* Source attribution */}
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <FileSearch className="size-3 text-teal-500/60" />
+                  <span className="text-[10px] text-zinc-500 font-medium">{currentInsight.source}</span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Navigation dots */}
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {AI_INSIGHTS.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentIndex(idx)}
+                className={cn(
+                  'rounded-full transition-all duration-300',
+                  idx === currentIndex
+                    ? 'w-5 h-1.5 bg-teal-400'
+                    : 'w-1.5 h-1.5 bg-zinc-600 hover:bg-zinc-400'
+                )}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ── Budget Treemap Data ──────────────────────────────────────────────────────
+
+interface TreemapDataItem {
+  name: string;
+  category: string;
+  size: number;
+  color: string;
+}
+
+const BUDGET_TREEMAP_DATA: TreemapDataItem[] = [
+  { name: 'Gauteng', category: 'Education', size: 45.2, color: '#3B82F6' },
+  { name: 'Gauteng', category: 'Health', size: 38.7, color: '#3B82F6' },
+  { name: 'Gauteng', category: 'Infrastructure', size: 28.3, color: '#3B82F6' },
+  { name: 'KwaZulu-Natal', category: 'Education', size: 42.1, color: '#10B981' },
+  { name: 'KwaZulu-Natal', category: 'Health', size: 35.6, color: '#10B981' },
+  { name: 'KwaZulu-Natal', category: 'Infrastructure', size: 22.4, color: '#10B981' },
+  { name: 'Western Cape', category: 'Education', size: 32.8, color: '#8B5CF6' },
+  { name: 'Western Cape', category: 'Health', size: 28.5, color: '#8B5CF6' },
+  { name: 'Western Cape', category: 'Infrastructure', size: 19.2, color: '#8B5CF6' },
+  { name: 'Eastern Cape', category: 'Education', size: 28.4, color: '#F59E0B' },
+  { name: 'Eastern Cape', category: 'Health', size: 24.1, color: '#F59E0B' },
+  { name: 'Eastern Cape', category: 'Infrastructure', size: 15.7, color: '#F59E0B' },
+  { name: 'Limpopo', category: 'Education', size: 22.3, color: '#EF4444' },
+  { name: 'Limpopo', category: 'Health', size: 19.8, color: '#EF4444' },
+  { name: 'Limpopo', category: 'Infrastructure', size: 12.1, color: '#EF4444' },
+  { name: 'Free State', category: 'Education', size: 15.2, color: '#06B6D4' },
+  { name: 'Free State', category: 'Health', size: 12.7, color: '#06B6D4' },
+  { name: 'Free State', category: 'Infrastructure', size: 8.4, color: '#06B6D4' },
+  { name: 'Mpumalanga', category: 'Education', size: 18.6, color: '#84CC16' },
+  { name: 'Mpumalanga', category: 'Health', size: 15.3, color: '#84CC16' },
+  { name: 'Mpumalanga', category: 'Infrastructure', size: 10.8, color: '#84CC16' },
+  { name: 'North West', category: 'Education', size: 14.1, color: '#F97316' },
+  { name: 'North West', category: 'Health', size: 11.6, color: '#F97316' },
+  { name: 'North West', category: 'Infrastructure', size: 7.9, color: '#F97316' },
+  { name: 'Northern Cape', category: 'Education', size: 8.9, color: '#EC4899' },
+  { name: 'Northern Cape', category: 'Health', size: 7.2, color: '#EC4899' },
+  { name: 'Northern Cape', category: 'Infrastructure', size: 4.8, color: '#EC4899' },
+];
+
+const TREEMAP_PROVINCE_LEGEND = [
+  { name: 'Gauteng', color: '#3B82F6' },
+  { name: 'KwaZulu-Natal', color: '#10B981' },
+  { name: 'Western Cape', color: '#8B5CF6' },
+  { name: 'Eastern Cape', color: '#F59E0B' },
+  { name: 'Limpopo', color: '#EF4444' },
+  { name: 'Free State', color: '#06B6D4' },
+  { name: 'Mpumalanga', color: '#84CC16' },
+  { name: 'North West', color: '#F97316' },
+  { name: 'Northern Cape', color: '#EC4899' },
+];
+
+const TOTAL_BUDGET = BUDGET_TREEMAP_DATA.reduce((sum, d) => sum + d.size, 0);
+
+// ── Custom Treemap Content ───────────────────────────────────────────────────
+
+interface CustomTreemapContentProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  category?: string;
+  size?: number;
+  color?: string;
+  depth?: number;
+  index?: number;
+}
+
+function CustomTreemapContent(props: CustomTreemapContentProps) {
+  const { x = 0, y = 0, width = 0, height = 0, name, category, size, color } = props;
+
+  if (width < 2 || height < 2) return null;
+
+  const showLabel = width > 55 && height > 30;
+  const showCategory = width > 75 && height > 48;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        stroke="#0d1224"
+        strokeWidth={2}
+        fill={color ? `${color}B3` : '#71717aB3'}
+        style={{ rx: 3 }}
+      />
+      {showLabel && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2 - (showCategory ? 7 : 0)}
+          textAnchor="middle"
+          fill="#fff"
+          fontSize={width > 100 ? 11 : 9}
+          fontWeight="700"
+          style={{ pointerEvents: 'none' }}
+        >
+          {name}
+        </text>
+      )}
+      {showCategory && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + 8}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize={8}
+          fontWeight="500"
+          style={{ pointerEvents: 'none' }}
+        >
+          {category} · R{size}B
+        </text>
+      )}
+    </g>
+  );
+}
+
+// ── Custom Treemap Tooltip ───────────────────────────────────────────────────
+
+function TreemapTooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload: TreemapDataItem }> }) {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0].payload;
+  const percentage = ((data.size / TOTAL_BUDGET) * 100).toFixed(1);
+  return (
+    <div className="bg-[rgba(13,18,36,0.95)] border border-white/[0.08] rounded-lg px-3 py-2 text-xs shadow-xl">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="size-2.5 rounded-sm" style={{ backgroundColor: data.color, boxShadow: `0 0 6px ${data.color}40` }} />
+        <span className="font-bold text-zinc-100">{data.name}</span>
+      </div>
+      <div className="text-zinc-300 font-medium">{data.category}</div>
+      <div className="flex items-center gap-2 mt-1 pt-1 border-t border-white/[0.06]">
+        <span className="text-zinc-200 font-bold">R{data.size}B</span>
+        <span className="text-zinc-500">·</span>
+        <span className="text-zinc-400">{percentage}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Budget Treemap Chart Component ───────────────────────────────────────────
+
+function BudgetTreemapChart() {
+  const { setActiveModule } = useNavigationStore();
+
+  const handleProvinceClick = () => {
+    setActiveModule('geolens' as ModuleId);
+  };
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+        {/* Top accent line */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #8B5CF6, #F59E0B, transparent)' }}
+        />
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded bg-[#0D9488]/10 border border-[#0D9488]/20">
+                  <Brain className="size-3 text-[#0D9488]" />
+                </span>
+                Budget Allocation by Province
+              </CardTitle>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                Provincial budget allocation (R Billions) — Education, Health, Infrastructure · Click to explore in GeoLens
+              </p>
+            </div>
+            <div className="text-[10px] text-zinc-500 font-semibold tabular-nums">
+              Total: R{TOTAL_BUDGET.toFixed(1)}B
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div
+            className="h-[340px] cursor-pointer"
+            onClick={handleProvinceClick}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <Treemap
+                data={BUDGET_TREEMAP_DATA}
+                dataKey="size"
+                nameKey="name"
+                content={<CustomTreemapContent />}
+                stroke="#0d1224"
+                aspectRatio={4 / 3}
+              >
+                <Tooltip
+                  content={<TreemapTooltipContent />}
+                  allowEscapeViewBox={{ x: false, y: true }}
+                />
+              </Treemap>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Province Legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-white/[0.06]">
+            {TREEMAP_PROVINCE_LEGEND.map((prov) => (
+              <div key={prov.name} className="flex items-center gap-1.5 group/legend">
+                <div
+                  className="size-2.5 rounded-sm group-hover/legend:scale-125 transition-transform duration-200"
+                  style={{
+                    backgroundColor: prov.color,
+                    boxShadow: `0 0 5px ${prov.color}40`,
+                  }}
+                />
+                <span className="text-[10px] text-zinc-400 font-medium">{prov.name}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
@@ -1435,6 +1935,7 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
 
 export default function Dashboard() {
   const [exportOpen, setExportOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // ── Export Data Configuration ──────────────────────────────────────────────
   const exportData = useMemo(() => 
@@ -1510,6 +2011,15 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* ── AI Insights Panel ──────────────────────────────────── */}
+      <motion.div
+        variants={containerStagger}
+        initial="hidden"
+        animate="show"
+      >
+        <AIInsightsPanel />
+      </motion.div>
+
       {/* ── National Overview Charts ────────────────────────────── */}
       <div>
         <SectionHeader
@@ -1541,6 +2051,22 @@ export default function Dashboard() {
           animate="show"
         >
           <ServiceDeliveryChart />
+        </motion.div>
+      </div>
+
+      {/* ── Budget Treemap Chart ─────────────────────────────────── */}
+      <div>
+        <SectionHeader
+          title="Budget Allocation View"
+          subtitle="Provincial budget allocation across Education, Health, and Infrastructure"
+          accentColor="#0D9488"
+        />
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+        >
+          <BudgetTreemapChart />
         </motion.div>
       </div>
 
@@ -1589,7 +2115,35 @@ export default function Dashboard() {
           animate="show"
           className="grid grid-cols-1 lg:grid-cols-3 gap-4"
         >
+          {/* Compare Municipality Button */}
+          <motion.div variants={itemSlideUp}>
+            <button
+              onClick={() => setCompareOpen(true)}
+              className={cn(
+                'w-full flex items-center gap-2.5 rounded-xl border p-4',
+                'border-[#7B2D8E]/20 bg-[#7B2D8E]/05',
+                'hover:border-[#7B2D8E]/40 hover:bg-[#7B2D8E]/10',
+                'transition-all duration-300 cursor-pointer group'
+              )}
+            >
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#7B2D8E]/15 border border-[#7B2D8E]/25">
+                <GitCompareArrows className="size-4 text-[#A855F7]" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">Compare Municipalities</p>
+                <p className="text-[10px] text-zinc-500">Side-by-side comparison of 2–3 municipalities</p>
+              </div>
+              <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-[#A855F7] transition-colors" />
+            </button>
+          </motion.div>
+
           <WatchlistWidget />
+
+          {/* Municipality Comparison Modal */}
+          <MunicipalityComparisonModal
+            open={compareOpen}
+            onOpenChange={setCompareOpen}
+          />
           <RiskSignalsPanel />
           <TenderHighlightsPanel />
         </motion.div>
