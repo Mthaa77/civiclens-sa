@@ -10,15 +10,17 @@ import {
   TrendingDown,
   Minus,
   Building2,
-  Users,
   AlertTriangle,
   ShieldCheck,
   BarChart3,
   Info,
+  CheckCircle,
+  Database,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PROVINCE_SUMMARY, MOCK_MUNICIPALITIES } from '@/lib/mock-data';
-import { formatNumber, formatPercent, getScoreBand } from '@/lib/formatters';
+import { formatNumber, getScoreBand } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,6 +45,7 @@ interface IndicatorOption {
   unit: string;
   invertScale?: boolean; // true = lower is better (like SDS)
   format: (v: number) => string;
+  dotColor: string;
 }
 
 // ── Province SVG Paths (simplified) ──────────────────────────────────────────
@@ -117,35 +120,35 @@ const PROVINCE_GEO: ProvinceGeo[] = [
 // ── Indicator Options ────────────────────────────────────────────────────────
 
 const INDICATORS: IndicatorOption[] = [
-  { key: 'avgFHS', label: 'Financial Health Score', unit: 'score', format: (v) => `${v}/100` },
-  { key: 'avgSDS', label: 'Service Delivery Pressure', unit: 'score', invertScale: true, format: (v) => `${v}/100` },
-  { key: 'municipalities', label: 'Municipality Count', unit: 'count', invertScale: true, format: (v) => formatNumber(v) },
-  { key: 'section139', label: 'Section 139 Interventions', unit: 'count', invertScale: true, format: (v) => formatNumber(v) },
-  { key: 'cleanAudit', label: 'Clean Audit Count', unit: 'count', format: (v) => formatNumber(v) },
+  { key: 'avgFHS', label: 'Financial Health Score', unit: 'score', format: (v) => `${v}/100`, dotColor: '#22C55E' },
+  { key: 'avgSDS', label: 'Service Delivery Pressure', unit: 'score', invertScale: true, format: (v) => `${v}/100`, dotColor: '#F59E0B' },
+  { key: 'municipalities', label: 'Municipality Count', unit: 'count', invertScale: true, format: (v) => formatNumber(v), dotColor: '#6B7280' },
+  { key: 'section139', label: 'Section 139 Interventions', unit: 'count', invertScale: true, format: (v) => formatNumber(v), dotColor: '#EF4444' },
+  { key: 'cleanAudit', label: 'Clean Audit Count', unit: 'count', format: (v) => formatNumber(v), dotColor: '#10B981' },
 ];
 
-// ── Color Scale ──────────────────────────────────────────────────────────────
+// ── Color Scale (nuanced gradients) ──────────────────────────────────────────
 
 function getChoroplethColor(value: number, min: number, max: number, invert?: boolean): string {
   const normalized = max === min ? 0.5 : (value - min) / (max - min);
   const score = invert ? 1 - normalized : normalized;
 
-  if (score >= 0.7) return '#10B981'; // green
-  if (score >= 0.5) return '#22C55E'; // light green
-  if (score >= 0.35) return '#F59E0B'; // amber
-  if (score >= 0.2) return '#F97316'; // orange
-  return '#EF4444'; // red
+  if (score >= 0.75) return '#059669'; // deep emerald
+  if (score >= 0.55) return '#10B981'; // emerald
+  if (score >= 0.4) return '#F59E0B';  // amber
+  if (score >= 0.25) return '#EA580C'; // deep orange
+  return '#DC2626'; // deep red
 }
 
 function getChoroplethGlow(value: number, min: number, max: number, invert?: boolean): string {
   const normalized = max === min ? 0.5 : (value - min) / (max - min);
   const score = invert ? 1 - normalized : normalized;
 
-  if (score >= 0.7) return '#10B981';
-  if (score >= 0.5) return '#22C55E';
-  if (score >= 0.35) return '#F59E0B';
-  if (score >= 0.2) return '#F97316';
-  return '#EF4444';
+  if (score >= 0.75) return '#059669';
+  if (score >= 0.55) return '#10B981';
+  if (score >= 0.4) return '#F59E0B';
+  if (score >= 0.25) return '#EA580C';
+  return '#DC2626';
 }
 
 // ── Sub-Components ───────────────────────────────────────────────────────────
@@ -168,15 +171,15 @@ function ProvinceTooltip({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed z-50 pointer-events-none rounded-lg border border-white/[0.12] bg-[#0d1224]/95 backdrop-blur-xl px-3 py-2 shadow-xl"
+      className="fixed z-50 pointer-events-none rounded-xl border border-white/[0.12] bg-[#0d1224]/95 backdrop-blur-xl px-3.5 py-2.5 shadow-2xl"
       style={{
-        left: x + 12,
-        top: y - 10,
+        left: x + 14,
+        top: y - 12,
       }}
     >
       <p className="text-xs font-semibold text-zinc-100">{name}</p>
       <p className="text-[11px] text-zinc-400 mt-0.5">
-        {indicator.label}: <span className="text-zinc-200 font-medium">{indicator.format(value)}</span>
+        {indicator.label}: <span className="text-zinc-200 font-semibold">{indicator.format(value)}</span>
       </p>
     </motion.div>
   );
@@ -208,6 +211,7 @@ function ProvinceDetailPanel({
       national: Math.round(nationalAvgFHS),
       format: (v: number) => `${v}/100`,
       band: getScoreBand(provinceData.avgFHS),
+      accentColor: '#22C55E',
     },
     {
       label: 'Service Delivery Pressure',
@@ -215,6 +219,7 @@ function ProvinceDetailPanel({
       national: Math.round(nationalAvgSDS),
       format: (v: number) => `${v}/100`,
       band: getScoreBand(100 - provinceData.avgSDS),
+      accentColor: '#F59E0B',
     },
     {
       label: 'Section 139 Interventions',
@@ -222,6 +227,7 @@ function ProvinceDetailPanel({
       national: Math.round(nationalAvg139 * 10) / 10,
       format: (v: number) => formatNumber(v),
       band: null,
+      accentColor: '#EF4444',
     },
     {
       label: 'Clean Audits',
@@ -229,6 +235,7 @@ function ProvinceDetailPanel({
       national: Math.round(nationalAvgClean),
       format: (v: number) => formatNumber(v),
       band: null,
+      accentColor: '#10B981',
     },
   ];
 
@@ -237,34 +244,38 @@ function ProvinceDetailPanel({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm">
-        <CardHeader className="pb-3">
+      <div className="rounded-xl bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] overflow-hidden">
+        {/* Top gradient accent line */}
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#B45309] to-transparent" />
+
+        {/* Header */}
+        <div className="p-4 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#B45309]/15 border border-[#B45309]/25">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-[#B45309]/15 border border-[#B45309]/25">
                 <Map className="size-4 text-[#B45309]" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-100">{provinceName}</CardTitle>
+                <h3 className="text-sm font-bold text-zinc-100">{provinceName}</h3>
                 <p className="text-[10px] text-zinc-500 mt-0.5">
                   {provinceData.municipalities} municipalities
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05]"
+            <button
               onClick={onClose}
+              className="flex size-7 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] hover:shadow-[0_0_12px_rgba(180,83,9,0.2)] transition-all duration-200"
             >
               <X className="size-3.5" />
-            </Button>
+            </button>
           </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-3">
+        </div>
+
+        {/* Stats */}
+        <div className="px-4 pb-3">
+          <div className="space-y-2.5">
             {stats.map((stat) => {
               const diff = stat.value - stat.national;
               const isBetter = stat.label.includes('Pressure')
@@ -276,9 +287,9 @@ function ProvinceDetailPanel({
               return (
                 <div
                   key={stat.label}
-                  className="rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.1] transition-colors"
+                  className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-all duration-200"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
                     {stat.band && (
                       <Badge
@@ -290,20 +301,24 @@ function ProvinceDetailPanel({
                     )}
                   </div>
                   <div className="flex items-end justify-between">
-                    <span className="text-lg font-bold text-zinc-100 tabular-nums">
+                    <span className="text-2xl font-bold text-zinc-100 tabular-nums" style={{ color: stat.accentColor }}>
                       {stat.format(stat.value)}
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {diff === 0 ? (
                         <Minus className="size-3 text-zinc-500" />
                       ) : isBetter ? (
-                        <TrendingUp className="size-3 text-emerald-400" />
+                        <span className="flex items-center text-emerald-400">
+                          <TrendingUp className="size-3 mr-0.5" />▲
+                        </span>
                       ) : (
-                        <TrendingDown className="size-3 text-red-400" />
+                        <span className="flex items-center text-red-400">
+                          <TrendingDown className="size-3 mr-0.5" />▼
+                        </span>
                       )}
                       <span
                         className={cn(
-                          'text-[10px] font-medium tabular-nums',
+                          'text-[10px] font-semibold tabular-nums',
                           diff === 0
                             ? 'text-zinc-500'
                             : isBetter
@@ -312,7 +327,7 @@ function ProvinceDetailPanel({
                         )}
                       >
                         {diff > 0 ? '+' : ''}
-                        {stat.format(diff)} vs national
+                        {stat.format(Math.abs(diff))} vs avg
                       </span>
                     </div>
                   </div>
@@ -320,94 +335,127 @@ function ProvinceDetailPanel({
               );
             })}
           </div>
+        </div>
 
-          <Separator className="my-4 bg-white/[0.06]" />
+        <div className="mx-4">
+          <Separator className="bg-white/[0.06]" />
+        </div>
 
-          <div>
-            <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2.5">
-              Municipalities
-            </h4>
-            <ScrollArea className="max-h-48">
-              <div className="space-y-1.5">
-                {municipalities.length > 0 ? (
-                  municipalities.map((muni) => (
-                    <div
-                      key={muni.id}
-                      className="flex items-center justify-between rounded-md border border-white/[0.04] px-2.5 py-1.5 hover:border-white/[0.08] hover:bg-white/[0.02] transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Building2 className="size-3 text-zinc-600 shrink-0" />
-                        <span className="text-[11px] text-zinc-300 truncate">{muni.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'text-[8px] h-4 px-1',
-                            muni.auditOutcome === 'Clean'
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-                              : muni.auditOutcome === 'Unqualified'
-                                ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
-                                : muni.auditOutcome === 'Qualified'
-                                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
-                                  : muni.auditOutcome === 'Disclaimer'
-                                    ? 'bg-red-500/15 text-red-400 border-red-500/25'
-                                    : 'bg-orange-500/15 text-orange-400 border-orange-500/25'
-                          )}
-                        >
-                          {muni.auditOutcome}
-                        </Badge>
-                        <span className="text-[10px] text-zinc-500 tabular-nums w-10 text-right">
-                          FHS {muni.financialHealthScore}
-                        </span>
-                      </div>
+        {/* Municipalities */}
+        <div className="p-4 pt-3">
+          <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2.5">
+            Municipalities
+          </h4>
+          <ScrollArea className="max-h-48">
+            <div className="space-y-1.5">
+              {municipalities.length > 0 ? (
+                municipalities.map((muni) => (
+                  <div
+                    key={muni.id}
+                    className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.01] px-2.5 py-2 hover:border-white/[0.1] hover:bg-white/[0.03] transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="size-3 text-zinc-600 shrink-0" />
+                      <span className="text-[11px] text-zinc-300 truncate">{muni.name}</span>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-[11px] text-zinc-600 py-2 text-center">
-                    No sample municipalities in database
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </CardContent>
-      </Card>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[8px] h-4 px-1',
+                          muni.auditOutcome === 'Clean'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                            : muni.auditOutcome === 'Unqualified'
+                              ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                              : muni.auditOutcome === 'Qualified'
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                                : muni.auditOutcome === 'Disclaimer'
+                                  ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                                  : 'bg-orange-500/15 text-orange-400 border-orange-500/25'
+                        )}
+                      >
+                        {muni.auditOutcome}
+                      </Badge>
+                      <span className="text-[10px] text-zinc-500 tabular-nums w-10 text-right">
+                        FHS {muni.financialHealthScore}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] text-zinc-600 py-2 text-center">
+                  No sample municipalities in database
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
     </motion.div>
   );
 }
 
 function ColorLegend({ min, max, indicator }: { min: number; max: number; indicator: IndicatorOption }) {
-  const steps = ['#EF4444', '#F97316', '#F59E0B', '#22C55E', '#10B981'];
+  // Smooth gradient stops
+  const gradientColors = '#DC2626, #EA580C, #F59E0B, #10B981, #059669';
+  const tickCount = 5;
+  const tickValues = Array.from({ length: tickCount }, (_, i) => {
+    const t = i / (tickCount - 1);
+    return Math.round(min + t * (max - min));
+  });
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Scale:</span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-zinc-500 tabular-nums">{indicator.format(min)}</span>
-        <div className="flex h-2.5 rounded-sm overflow-hidden">
-          {steps.map((color, i) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Scale</span>
+        <div className="flex items-center gap-2 flex-1">
+          <span className="text-[10px] text-zinc-400 font-medium tabular-nums whitespace-nowrap">
+            {indicator.format(min)}
+          </span>
+          <div className="flex-1 relative">
+            {/* Smooth gradient bar */}
             <div
-              key={i}
-              className="w-8"
-              style={{ backgroundColor: color }}
+              className="h-3 rounded-full w-full"
+              style={{
+                background: `linear-gradient(to right, ${gradientColors})`,
+              }}
             />
-          ))}
+            {/* Tick marks */}
+            <div className="relative h-2 mt-0.5">
+              {tickValues.map((val, i) => {
+                const pos = (i / (tickCount - 1)) * 100;
+                return (
+                  <div
+                    key={i}
+                    className="absolute flex flex-col items-center"
+                    style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+                  >
+                    <div className="w-px h-1.5 bg-zinc-600" />
+                    <span className="text-[8px] text-zinc-500 tabular-nums mt-0.5 whitespace-nowrap">
+                      {indicator.format(val)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <span className="text-[10px] text-zinc-400 font-medium tabular-nums whitespace-nowrap">
+            {indicator.format(max)}
+          </span>
         </div>
-        <span className="text-[10px] text-zinc-500 tabular-nums">{indicator.format(max)}</span>
       </div>
-      <div className="flex items-center gap-2 ml-2">
-        <div className="flex items-center gap-1">
-          <div className="size-2 rounded-full bg-emerald-500" />
-          <span className="text-[9px] text-zinc-500">Good</span>
+      <div className="flex items-center gap-3 ml-8">
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full bg-emerald-500" />
+          <span className="text-[10px] text-zinc-400 font-medium">Good</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="size-2 rounded-full bg-amber-500" />
-          <span className="text-[9px] text-zinc-500">Warning</span>
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full bg-amber-500" />
+          <span className="text-[10px] text-zinc-400 font-medium">Warning</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="size-2 rounded-full bg-red-500" />
-          <span className="text-[9px] text-zinc-500">Bad</span>
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full bg-red-500" />
+          <span className="text-[10px] text-zinc-400 font-medium">Critical</span>
         </div>
       </div>
     </div>
@@ -445,8 +493,16 @@ export default function GeoLens() {
     []
   );
 
+  // National overview stats
+  const nationalStats = useMemo(() => ({
+    avgFHS: Math.round(PROVINCE_SUMMARY.reduce((s, p) => s + p.avgFHS, 0) / 9),
+    total139: PROVINCE_SUMMARY.reduce((s, p) => s + p.section139, 0),
+    cleanAudits: PROVINCE_SUMMARY.reduce((s, p) => s + p.cleanAudit, 0),
+    totalMunis: PROVINCE_SUMMARY.reduce((s, p) => s + p.municipalities, 0),
+  }), []);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* ── Module Header ─────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -459,8 +515,18 @@ export default function GeoLens() {
             <Map className="size-5 text-[#B45309]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-100">GeoLens</h1>
-            <p className="text-[11px] text-zinc-500">Spatial intelligence — interactive choropleth maps</p>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-bold text-zinc-100">GeoLens</h1>
+              {/* Pulsing green LIVE dot */}
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <span className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                </span>
+                <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-wider">Live</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Spatial intelligence — interactive choropleth maps</p>
           </div>
         </div>
 
@@ -469,13 +535,19 @@ export default function GeoLens() {
           <div className="relative">
             <button
               onClick={() => setIndicatorDropdownOpen(!indicatorDropdownOpen)}
-              className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-medium text-zinc-300 hover:border-white/[0.15] hover:bg-white/[0.05] transition-all"
+              className={cn(
+                'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200',
+                indicatorDropdownOpen
+                  ? 'border-[#B45309]/40 bg-[#B45309]/15 text-[#B45309] shadow-[0_0_16px_rgba(180,83,9,0.15)]'
+                  : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:border-[#B45309]/30 hover:bg-[#B45309]/10 hover:text-[#B45309]'
+              )}
             >
-              <BarChart3 className="size-3.5 text-[#B45309]" />
+              <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: selectedIndicator.dotColor }} />
+              <BarChart3 className="size-3.5" />
               <span>{selectedIndicator.label}</span>
               <ChevronDown
                 className={cn(
-                  'size-3.5 text-zinc-500 transition-transform',
+                  'size-3.5 transition-transform duration-200',
                   indicatorDropdownOpen && 'rotate-180'
                 )}
               />
@@ -487,7 +559,7 @@ export default function GeoLens() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full right-0 mt-1 w-56 rounded-lg border border-white/[0.08] bg-[#0d1224]/98 backdrop-blur-xl shadow-xl z-50 py-1"
+                  className="absolute top-full right-0 mt-1 w-60 rounded-xl border border-white/[0.1] bg-[#0d1224]/98 backdrop-blur-xl shadow-2xl z-50 py-1.5 overflow-hidden"
                 >
                   {INDICATORS.map((ind) => (
                     <button
@@ -497,16 +569,20 @@ export default function GeoLens() {
                         setIndicatorDropdownOpen(false);
                       }}
                       className={cn(
-                        'w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors',
+                        'w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-all duration-200',
                         selectedIndicator.key === ind.key
-                          ? 'bg-[#B45309]/10 text-[#B45309]'
-                          : 'text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200'
+                          ? 'bg-[#B45309]/15 text-[#B45309]'
+                          : 'text-zinc-400 hover:bg-[#B45309]/8 hover:text-zinc-100 hover:pl-3.5'
                       )}
                     >
-                      {selectedIndicator.key === ind.key && (
-                        <div className="size-1.5 rounded-full bg-[#B45309]" />
-                      )}
+                      <div
+                        className="size-2 rounded-full shrink-0"
+                        style={{ backgroundColor: ind.dotColor }}
+                      />
                       <span className="font-medium">{ind.label}</span>
+                      {selectedIndicator.key === ind.key && (
+                        <CheckCircle className="size-3.5 ml-auto text-[#B45309]" />
+                      )}
                     </button>
                   ))}
                 </motion.div>
@@ -514,7 +590,7 @@ export default function GeoLens() {
             </AnimatePresence>
           </div>
 
-          {/* Time Period Placeholder */}
+          {/* Time Period */}
           <button className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-medium text-zinc-500 hover:border-white/[0.15] hover:bg-white/[0.05] transition-all">
             <Info className="size-3.5" />
             <span>2023/24</span>
@@ -523,21 +599,26 @@ export default function GeoLens() {
       </motion.div>
 
       {/* ── Map + Detail Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
         {/* ── Map Card ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm overflow-hidden">
+          <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm overflow-hidden drop-shadow-lg">
             <CardContent className="p-4 lg:p-6">
               {/* SVG Map */}
               <div className="relative w-full max-w-2xl mx-auto">
+                {/* Vignette overlay */}
+                <div className="absolute inset-0 pointer-events-none z-10 rounded-xl" style={{
+                  background: 'radial-gradient(ellipse at center, transparent 50%, rgba(8,11,22,0.4) 100%)',
+                }} />
+
                 <svg
                   viewBox="0 0 540 430"
                   className="w-full h-auto"
-                  style={{ filter: 'drop-shadow(0 0 40px rgba(180, 83, 9, 0.05))' }}
+                  style={{ filter: 'drop-shadow(0 4px 30px rgba(180, 83, 9, 0.08))' }}
                 >
                   {/* Background glow effects */}
                   <defs>
@@ -548,14 +629,30 @@ export default function GeoLens() {
                         <feMergeNode in="SourceGraphic" />
                       </feMerge>
                     </filter>
-                    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="#B45309" stopOpacity="0.03" />
+                    <filter id="selectedGlow">
+                      <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    {/* Spotlight radial gradient from center */}
+                    <radialGradient id="bgSpotlight" cx="50%" cy="45%" r="55%">
+                      <stop offset="0%" stopColor="#B45309" stopOpacity="0.06" />
+                      <stop offset="40%" stopColor="#B45309" stopOpacity="0.03" />
                       <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                    </radialGradient>
+                    {/* Vignette gradient */}
+                    <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+                      <stop offset="60%" stopColor="transparent" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#080b16" stopOpacity="0.5" />
                     </radialGradient>
                   </defs>
 
-                  {/* Subtle background glow */}
-                  <rect x="0" y="0" width="540" height="430" fill="url(#bgGlow)" />
+                  {/* Spotlight background */}
+                  <rect x="0" y="0" width="540" height="430" fill="url(#bgSpotlight)" />
+                  {/* Vignette */}
+                  <rect x="0" y="0" width="540" height="430" fill="url(#vignette)" />
 
                   {/* Province Paths */}
                   {PROVINCE_GEO.map((geo) => {
@@ -572,20 +669,35 @@ export default function GeoLens() {
                           <path
                             d={geo.path}
                             fill="none"
-                            stroke={glowColor}
-                            strokeWidth="4"
-                            filter="url(#glow)"
-                            opacity="0.6"
+                            stroke={isSelected ? '#B45309' : glowColor}
+                            strokeWidth="5"
+                            filter={isSelected ? 'url(#selectedGlow)' : 'url(#glow)'}
+                            opacity="0.7"
+                          />
+                        )}
+                        {/* Selected pulsing ring */}
+                        {isSelected && (
+                          <path
+                            d={geo.path}
+                            fill="none"
+                            stroke="#B45309"
+                            strokeWidth="3"
+                            opacity="0.4"
+                            className="animate-pulse"
+                            style={{ animationDuration: '2s' }}
                           />
                         )}
                         {/* Province shape */}
                         <path
                           d={geo.path}
                           fill={fillColor}
-                          fillOpacity={isHovered || isSelected ? 0.85 : 0.55}
-                          stroke={isSelected ? '#B45309' : isHovered ? glowColor : 'rgba(255,255,255,0.12)'}
-                          strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 1}
-                          className="cursor-pointer transition-all duration-200"
+                          fillOpacity={isHovered ? 0.95 : isSelected ? 0.9 : 0.7}
+                          stroke={isSelected ? '#B45309' : isHovered ? '#ffffff' : 'rgba(255,255,255,0.1)'}
+                          strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 0.8}
+                          className="cursor-pointer transition-all duration-300 ease-out"
+                          style={{
+                            filter: isHovered ? 'brightness(1.15)' : undefined,
+                          }}
                           onMouseEnter={() => setHoveredProvince(geo.name)}
                           onMouseMove={(e) => handleProvinceMouseMove(e, geo.name)}
                           onMouseLeave={() => setHoveredProvince(null)}
@@ -599,10 +711,15 @@ export default function GeoLens() {
                           y={geo.labelY}
                           textAnchor="middle"
                           className="pointer-events-none select-none"
-                          fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.5)'}
-                          fontSize={geo.name === 'Gauteng' ? '9' : '10'}
-                          fontWeight={isHovered || isSelected ? '600' : '400'}
-                          style={{ transition: 'fill 0.2s, font-weight 0.2s' }}
+                          fill={isHovered || isSelected ? '#ffffff' : 'rgba(255,255,255,0.65)'}
+                          fontSize={geo.name === 'Gauteng' ? '9' : '10.5'}
+                          fontWeight={isHovered || isSelected ? '700' : '600'}
+                          style={{
+                            transition: 'fill 0.3s, font-weight 0.3s',
+                            textShadow: isHovered || isSelected
+                              ? '0 0 8px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8)'
+                              : '0 0 6px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6)',
+                          }}
                         >
                           {geo.name === 'KwaZulu-Natal'
                             ? 'KZN'
@@ -636,7 +753,7 @@ export default function GeoLens() {
               </div>
 
               {/* Legend */}
-              <div className="mt-4 pt-3 border-t border-white/[0.06]">
+              <div className="mt-5 pt-4 border-t border-white/[0.06]">
                 <ColorLegend min={min} max={max} indicator={selectedIndicator} />
               </div>
             </CardContent>
@@ -660,59 +777,109 @@ export default function GeoLens() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center py-8">
+                <div className="rounded-xl bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] overflow-hidden">
+                  {/* Top gradient accent */}
+                  <div className="h-[2px] bg-gradient-to-r from-transparent via-[#B45309] to-transparent" />
+
+                  <div className="p-6">
+                    <div className="flex flex-col items-center text-center py-6">
                       <div className="flex size-14 items-center justify-center rounded-xl bg-[#B45309]/10 border border-[#B45309]/20 mb-4">
                         <Map className="size-6 text-[#B45309]/60" />
                       </div>
                       <h3 className="text-sm font-semibold text-zinc-300 mb-1.5">Select a Province</h3>
-                      <p className="text-[11px] text-zinc-500 leading-relaxed max-w-[200px]">
+                      <p className="text-[11px] text-zinc-500 leading-relaxed max-w-[220px]">
                         Click on any province in the map to view detailed statistics, indicators, and municipality
                         listings.
                       </p>
 
                       <Separator className="my-5 bg-white/[0.06] w-full" />
 
-                      {/* Quick Stats */}
-                      <div className="w-full space-y-2.5">
-                        <h4 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                      {/* National Overview with enhanced stat cards */}
+                      <div className="w-full space-y-3">
+                        <h4 className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Radio className="size-3 text-[#B45309]" />
                           National Overview
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-md border border-white/[0.06] p-2.5">
-                            <p className="text-[10px] text-zinc-500">Avg Financial Health</p>
-                            <p className="text-lg font-bold text-amber-400 tabular-nums">
-                              {Math.round(PROVINCE_SUMMARY.reduce((s, p) => s + p.avgFHS, 0) / 9)}
+                          {/* Avg Financial Health */}
+                          <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
+                            background: 'linear-gradient(135deg, rgba(34,197,94,0.05) 0%, rgba(13,18,36,0.4) 100%)',
+                          }}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <TrendingUp className="size-3 text-emerald-400" />
+                              <p className="text-[9px] text-zinc-500 font-medium">Avg Financial Health</p>
+                            </div>
+                            <p className="text-2xl font-bold text-amber-400 tabular-nums">
+                              {nationalStats.avgFHS}
                             </p>
                           </div>
-                          <div className="rounded-md border border-white/[0.06] p-2.5">
-                            <p className="text-[10px] text-zinc-500">Total §139</p>
-                            <p className="text-lg font-bold text-red-400 tabular-nums">
-                              {PROVINCE_SUMMARY.reduce((s, p) => s + p.section139, 0)}
+                          {/* Total §139 */}
+                          <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
+                            background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(13,18,36,0.4) 100%)',
+                          }}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <AlertTriangle className="size-3 text-red-400" />
+                              <p className="text-[9px] text-zinc-500 font-medium">Total §139</p>
+                            </div>
+                            <p className="text-2xl font-bold text-red-400 tabular-nums">
+                              {nationalStats.total139}
                             </p>
                           </div>
-                          <div className="rounded-md border border-white/[0.06] p-2.5">
-                            <p className="text-[10px] text-zinc-500">Clean Audits</p>
-                            <p className="text-lg font-bold text-emerald-400 tabular-nums">
-                              {PROVINCE_SUMMARY.reduce((s, p) => s + p.cleanAudit, 0)}
+                          {/* Clean Audits */}
+                          <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
+                            background: 'linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(13,18,36,0.4) 100%)',
+                          }}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <CheckCircle className="size-3 text-emerald-400" />
+                              <p className="text-[9px] text-zinc-500 font-medium">Clean Audits</p>
+                            </div>
+                            <p className="text-2xl font-bold text-emerald-400 tabular-nums">
+                              {nationalStats.cleanAudits}
                             </p>
                           </div>
-                          <div className="rounded-md border border-white/[0.06] p-2.5">
-                            <p className="text-[10px] text-zinc-500">Total Munis</p>
-                            <p className="text-lg font-bold text-zinc-300 tabular-nums">
-                              {PROVINCE_SUMMARY.reduce((s, p) => s + p.municipalities, 0)}
+                          {/* Total Munis */}
+                          <div className="rounded-lg border border-white/[0.06] p-3 text-left" style={{
+                            background: 'linear-gradient(135deg, rgba(107,114,128,0.05) 0%, rgba(13,18,36,0.4) 100%)',
+                          }}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Building2 className="size-3 text-zinc-400" />
+                              <p className="text-[9px] text-zinc-500 font-medium">Total Munis</p>
+                            </div>
+                            <p className="text-2xl font-bold text-zinc-200 tabular-nums">
+                              {nationalStats.totalMunis}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Subtle grid pattern */}
+                        <div className="mt-3 rounded-lg border border-white/[0.04] p-3 relative overflow-hidden">
+                          <div className="absolute inset-0 opacity-[0.03]" style={{
+                            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                            backgroundSize: '16px 16px',
+                          }} />
+                          <div className="relative z-10">
+                            <p className="text-[10px] text-zinc-500 leading-relaxed">
+                              <span className="text-[#B45309] font-semibold">9 provinces</span> across
+                              South Africa are monitored for financial health, service delivery,
+                              and governance indicators.
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+      </div>
+
+      {/* ── Section Separator ──────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        <div className="size-1.5 rounded-full bg-[#B45309]/40" />
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
       </div>
 
       {/* ── Province Summary Cards ─────────────────────────────── */}
@@ -723,10 +890,15 @@ export default function GeoLens() {
       >
         <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-zinc-200">Province Rankings</CardTitle>
-            <p className="text-[11px] text-zinc-500">
-              Sorted by {selectedIndicator.label} — click to select
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 rounded-full bg-gradient-to-b from-[#B45309] to-[#B45309]/40" />
+              <div>
+                <CardTitle className="text-sm font-semibold text-zinc-200">Province Rankings</CardTitle>
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  Sorted by {selectedIndicator.label} — click to select
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
@@ -747,21 +919,30 @@ export default function GeoLens() {
                       onClick={() =>
                         setSelectedProvince(selectedProvince === prov.province ? null : prov.province)
                       }
-                      whileHover={{ scale: 1.03 }}
+                      whileHover={{ scale: 1.03, x: 2 }}
                       whileTap={{ scale: 0.98 }}
                       className={cn(
-                        'rounded-lg border p-2.5 text-left transition-all duration-200',
+                        'rounded-lg border p-2.5 text-left transition-all duration-200 relative overflow-hidden',
                         isSelected
-                          ? 'border-[#B45309]/50 bg-[#B45309]/10'
+                          ? 'border-[#B45309]/50 bg-[#B45309]/10 shadow-[0_0_16px_rgba(180,83,9,0.1)]'
                           : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
                       )}
+                      style={{
+                        borderLeftWidth: isSelected ? '3px' : undefined,
+                        borderLeftColor: isSelected ? '#B45309' : undefined,
+                      }}
                     >
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <div
                           className="size-2 rounded-full shrink-0"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="text-[9px] text-zinc-400 font-medium truncate">
+                        <span
+                          className={cn(
+                            'text-[9px] font-semibold tabular-nums',
+                            i < 3 ? 'text-[#B45309]' : 'text-zinc-400'
+                          )}
+                        >
                           #{i + 1}
                         </span>
                       </div>
@@ -788,6 +969,23 @@ export default function GeoLens() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* ── Footer Attribution ──────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="flex items-center justify-between pt-1 pb-2"
+      >
+        <div className="flex items-center gap-2 text-[10px] text-zinc-600">
+          <Database className="size-3" />
+          <span>Data source: Stats SA, National Treasury MFMA, Auditor-General SA</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+          <ShieldCheck className="size-3 text-[#B45309]/40" />
+          <span>GeoLens v2.0 — Spatial Intelligence Module</span>
+        </div>
       </motion.div>
     </div>
   );

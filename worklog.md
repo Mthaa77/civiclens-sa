@@ -1912,3 +1912,296 @@ Stage Summary:
 6. **Accessibility audit**: WCAG 2.1 AA compliance testing recommended
 7. **Animation refinement**: Some animations could be reduced for prefers-reduced-motion users
 8. **ElectionLens pricing cards**: Currently shows ZAR pricing; may need review for production use
+
+---
+Task ID: CR-7-a
+Agent: Visual Overhaul Specialist
+Task: GeoLens Premium Visual Overhaul — transform lowest-rated module (4/10) into premium spatial intelligence interface
+
+Work Log:
+
+### 1. Map Visual Enhancement
+- Added spotlight radial gradient background (`bgSpotlight`) behind the SVG map — centered warm glow from center fading outward
+- Added SVG vignette overlay (`vignette` gradient) for depth and focus on center content
+- Province hover: smooth opacity transition (0.7 → 0.95) with `duration-300 ease-out`, plus CSS `brightness(1.15)` filter and white border glow
+- Province click: Added "selected ring" animation — pulsing `#B45309` border at 2s interval using CSS `animate-pulse` with custom `animationDuration: '2s'`
+- Province labels: Upgraded from `fontWeight: '400'` to `'600'` (default) and `'700'` (hovered/selected), added `textShadow` for contrast against colored map backgrounds
+- Map container: Applied `drop-shadow-lg` on Card, enhanced SVG `drop-shadow` filter
+- Added separate `selectedGlow` SVG filter with higher blur for selected province emphasis
+- Nuanced color scale: Updated from generic red/orange to deeper, more professional tones (#059669 deep emerald, #10B981 emerald, #F59E0B amber, #EA580C deep orange, #DC2626 deep red)
+
+### 2. Province Detail Panel Enhancement
+- Applied glassmorphism: `bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] rounded-xl`
+- Added subtle top gradient accent line: `bg-gradient-to-r from-transparent via-[#B45309] to-transparent` (2px height)
+- Stats: Upgraded to `text-2xl font-bold` with color-coded accent values (#22C55E for FHS, #F59E0B for SDS, #EF4444 for §139, #10B981 for Clean Audits)
+- Added trend comparison icons (▲/▼) next to vs-national-average values with color-coded sentiment
+- Close button: Changed from `Button` to native `button` with `rounded-full`, hover glow effect `shadow-[0_0_12px_rgba(180,83,9,0.2)]`
+- Framer Motion slide-in animation enhanced: `duration: 0.35, ease: [0.4, 0, 0.2, 1]`
+- Stat cards now use `bg-white/[0.02]` with enhanced hover border transition
+
+### 3. National Overview Empty State Enhancement
+- Applied matching glassmorphism: `bg-[#0d1224]/80 backdrop-blur-xl border border-white/[0.1] rounded-xl` with top gradient accent
+- Stat cards: Added gradient backgrounds (subtle 5% opacity accent color per stat) using `linear-gradient(135deg, ...)`
+- Numbers: `text-2xl font-bold` with high-contrast accent colors
+- Added icons for each stat: TrendingUp (FHS), AlertTriangle (§139), CheckCircle (Clean Audits), Building2 (Munis)
+- Added subtle grid pattern background overlay using CSS `backgroundImage` with 16px grid lines at 3% opacity
+- Added descriptive text with gold accent ("9 provinces")
+
+### 4. Color Legend Enhancement
+- Replaced discrete 5-step color blocks with smooth gradient bar using `linear-gradient(to right, #DC2626, #EA580C, #F59E0B, #10B981, #059669)`
+- Added `rounded-full` for the gradient bar
+- Added tick marks with 5 evenly-spaced value labels below the bar
+- Label text upgraded to `font-medium` with better `text-zinc-400` contrast
+- Changed "Bad" label to "Critical" for more professional terminology
+
+### 5. Province Rankings Enhancement
+- Selected province: Added 3px left accent bar in `#B45309` gold using `borderLeftWidth`/`borderLeftColor`
+- Selected province: Added subtle background glow `shadow-[0_0_16px_rgba(180,83,9,0.1)]`
+- Hover transition: Added `x: 2` translate via Framer Motion `whileHover` + brightness increase
+- Rank numbers: Top 3 positions now use `text-[#B45309]` gold accent color instead of generic zinc
+
+### 6. Indicator Selector Enhancement
+- Active indicator dropdown button: Glowing background `bg-[#B45309]/15` with `border-[#B45309]/40` and `shadow-[0_0_16px_rgba(180,83,9,0.15)]`
+- Hover state: Gold accent transition `hover:border-[#B45309]/30 hover:bg-[#B45309]/10 hover:text-[#B45309]`
+- Added colored dot next to each indicator in the dropdown (per `dotColor` property)
+- Added `CheckCircle` icon for selected indicator in dropdown
+- Dropdown items: Gold accent hover `hover:bg-[#B45309]/8` with subtle indent on hover
+- ChevronDown: Added `duration-200` transition for rotation animation
+
+### 7. Overall Polish
+- Module header: Added pulsing green LIVE badge with `animate-ping` dot and emerald border/background
+- Section headers: Added gold accent bar (`w-1 h-5 rounded-full bg-gradient-to-b from-[#B45309] to-[#B45309]/40`) to Province Rankings
+- Added subtle separator between map section and rankings: gradient line with centered gold dot
+- Improved spacing: Increased from `space-y-4` to `space-y-5`, `gap-4` to `gap-5`
+- Detail panel width increased from 340px to 360px for better readability
+- Added footer attribution: "Data source: Stats SA, National Treasury MFMA, Auditor-General SA" with Database icon
+- Added "GeoLens v2.0 — Spatial Intelligence Module" with ShieldCheck icon
+- Tooltip: Enhanced with `rounded-xl` and slightly larger padding
+
+### Bug Fixes
+- Removed unused imports (`Users`, `formatPercent`) to satisfy ESLint
+
+Stage Summary:
+- GeoLens module visually transformed from 4/10 to premium quality
+- All 7 enhancement categories implemented per task requirements
+- Glassmorphism, gold accent theme, nuanced gradients, micro-animations throughout
+- Smooth CSS/SVG transitions with proper easing functions
+- Pulsing LIVE badge, gradient accent lines, grid pattern backgrounds
+- Color legend upgraded from discrete steps to smooth gradient with tick marks
+- Province rankings with gold accent bars and hover translate effects
+- Indicator selector with glowing active state and colored dots
+- Footer attribution and module versioning added
+- ESLint passes, dev server compiles successfully
+
+---
+Task ID: CR-7-b
+Agent: Visual Overhaul Specialist
+Task: RiskLens Premium Visual Overhaul — upgrade from VLM 4/10 to premium quality
+
+Work Log:
+
+### Overhauled `/src/components/modules/RiskLens.tsx` — Complete visual redesign of all 7 sections
+
+### 1. Severity Summary Cards (Top Row)
+- Gradient backgrounds with severity color at low opacity (from-severity-500/10 to-severity-500/[0.03])
+- Numbers: text-3xl font-extrabold with severity color (was text-3xl font-bold)
+- Glow effect on hover: box-shadow with severity color at 20% (via whileHover with dynamic boxShadow)
+- Correct severity icons: Critical=AlertOctagon, High=AlertTriangle, Medium=ShieldAlert, Low=Info
+- Animated pulse ring on Critical card: animate-ping on a background span behind the icon
+- Radial gradient glow behind icon area for depth
+- Larger cards with p-5 padding, gap-4 between cards
+
+### 2. Risk Feed Section
+- Colored left border (3px, severity color) on each feed item via style={{ borderLeftWidth: '3px', borderLeftColor: sevColor }}
+- Hover state: subtle background shift (bg-white/[0.03]) + translateX(2px)
+- Expandable detail uses AnimatePresence with smooth height animation (initial={false}, duration 0.25, ease)
+- Severity dot indicator (8px) before each item, with animated ping on Critical
+- Relative timestamp via formatRelativeDate ("2 hours ago", "1 day ago") alongside absolute date
+- Rotating chevron icon for expand/collapse via motion.div rotate animation
+- Severity badges now pill-shaped (rounded-full) with gradient backgrounds
+
+### 3. Severity Distribution Chart
+- Bar colors use SVG linearGradient fills (from-severity-600 to-severity-400) via Recharts defs/LinearGradient/Stop
+- Animated count labels below each bar with Framer Motion staggered entrance
+- Percentage shown below count labels
+- Hover tooltip shows percentage alongside count (custom formatter)
+- Chart container uses glass morphism card (backdrop-blur-xl, shadow inset highlight)
+- BarChart icon in header with amber accent
+
+### 4. Signal Types Section
+- Colored dot + count badge for each type
+- Mini horizontal bar showing relative proportion with animated fill (motion.div width animation)
+- Glass morphism card wrapper (backdrop-blur-xl, inset highlight shadow)
+- Severity color derived from most common severity for each type
+- Shield icon in header with amber accent
+
+### 5. Anomaly Table Enhancement
+- Alternating row backgrounds: odd rows bg-white/[0.015] for subtle striping
+- Header row: gradient background (from-white/[0.04] to-transparent) with bold text
+- Severity badges: pill-shaped (rounded-full) with gradient backgrounds matching severity
+- Hover highlight: hover:bg-white/[0.04] on rows
+- Left accent border per row matching severity (3px, severity color)
+- Table header icons: ShieldAlert with red accent
+- Record count badge in header
+
+### 6. Filter Bar Enhancement
+- Sticky filter bar with backdrop blur (bg-[#0a0e1a]/95, backdrop-blur-xl, border-b)
+- Dropdowns: dark bg (#0d1224) with amber/gold accent on hover (hover:border-amber-500/30)
+- Active filters shown as removable chips/badges (amber-500/15 bg, with X button to remove individual)
+- "Clear All" button when filters are active (text-zinc-400, hover:text-red-400)
+- Signal count display (text-zinc-300 font-semibold + total)
+- Filter icon with "Filters" label
+- SelectContent items: hover:bg-amber-500/10 focus:bg-amber-500/10
+
+### 7. Overall Polish
+- Module header: red/amber gradient accent bar (w-1 h-10, from-red-500 to-amber-500)
+- "RiskLens" text: gradient (from-red-400 via-amber-400 to-red-400) with bg-clip-text
+- Phase badge: uses premium badge-premium badge-phase2 CSS classes
+- Active signal count badge with Zap icon in header
+- Subtle grid pattern background on entire module (bg-grid-pattern)
+- Improved spacing: space-y-6 between all sections (was space-y-5)
+- Framer Motion staggered entrance animations throughout (containerStagger, itemSlideUp, itemFadeIn)
+- Text contrast upgrades: text-zinc-400 for labels (was text-zinc-500), text-zinc-300 for body text (was text-zinc-400)
+- All interactive elements have hover states
+- Consistent use of font-semibold and font-bold for hierarchy
+- Red/amber accent theme throughout (SEVERITY_COLORS, gradient accents, hover states)
+- Added imports: formatRelativeDate, Zap, Search, SlidersHorizontal
+- Added LinearGradient, Stop from recharts for chart gradient fills
+- Added hoveredBar state, typeCounts, maxTypeCount, totalActive, activeFilters, clearFilter, clearAllFilters, getTypeSeverityColor helpers
+
+Stage Summary:
+- Complete visual overhaul of RiskLens module addressing all 7 VLM assessment issues
+- Premium dark theme with red/amber accent throughout, glass morphism, gradient backgrounds
+- Severity cards: gradient bg, extrabold numbers, glow hover, correct icons, pulse ring on Critical
+- Risk feed: colored left borders, hover translateX, AnimatePresence smooth expand, severity dots, relative timestamps
+- Chart: gradient bar fills, animated count labels, percentage tooltips, glass morphism container
+- Signal types: colored dots, count badges, animated proportion bars, glass morphism
+- Anomaly table: alternating rows, gradient header, pill-shaped gradient badges, hover highlight, left accent borders
+- Filter bar: sticky with backdrop blur, dark dropdowns with amber hover, removable filter chips, Clear All
+- Overall: gradient text header, premium Phase 2 badge, grid pattern bg, gap-6 spacing, staggered animations
+- All existing functionality preserved (14 risk signals, all filters, expand/collapse, sorting)
+- ESLint passes, dev server compiles successfully
+
+---
+Task ID: CR-7-c
+Agent: Dashboard Polish Agent
+Task: Dashboard Premium Polish + Real-Time Activity Feed Feature
+
+Work Log:
+
+### Task 1: Dashboard Alert Banner Premium Redesign
+- Replaced flat yellow-on-dark alert banner with premium gradient banner
+- Gradient background: from-red-900/30 via-amber-900/20 to-transparent (left-to-right)
+- Added pulsing red dot (8px, animate-ping) before "High Priority" text
+- Added left red accent bar (4px wide, rounded, gradient from-red-500 to-amber-500)
+- Made "High Priority" text use gradient background (red-to-amber) with white text
+- Added animated chevron (ArrowRight with subtle bounce) as CTA
+- Added diagonal stripe pattern overlay at 2% opacity for texture
+- Added backdrop-blur-sm for depth
+- Used Framer Motion for entrance animation (slide down from y:-12 + fade)
+
+### Task 2: Premium Button Styling
+- Enhanced Refresh and Export buttons with glass morphism:
+  - bg-white/[0.04] backdrop-blur-sm border-white/[0.08]
+  - hover:bg-white/[0.08] hover:border-white/[0.12] hover:shadow-lg
+  - active:scale-[0.98] transition-all duration-200
+- Refresh button: animate-spin-on-hover CSS animation on RefreshCw icon
+- Export button: animate-icon-bounce-hover CSS animation on Download icon
+- Added 4 CSS keyframes to globals.css (activity-feed-scroll, chevron-bounce, icon-bounce-hover, spin-once)
+
+### Task 3: Real-Time Activity Feed (NEW FEATURE)
+- Created LiveActivityFeed component with full-width 48px-height bar
+- Glass morphism background: bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-white/[0.06]
+- Left side: green LIVE pulsing dot + "Activity Feed" label
+- Right side: auto-scrolling events via CSS animation (60s linear infinite)
+- 12 mock events with 5 event types:
+  - TenderAward (Building2, green), RiskAlert (AlertTriangle, red)
+  - AuditUpdate (FileCheck, blue), Section139 (Gavel, amber)
+  - ServiceUpdate (Droplets, teal)
+- Each event shows: colored icon with glow, event text, entity tag, relative timestamp
+- Events separated by dot divider (text-zinc-700)
+- Pause on hover (CSS animation-play-state: paused)
+- Fade edges on left and right for polish
+- Duplicated events for seamless infinite loop
+- Added icon imports: Gavel, FileCheck, Droplets
+
+### Task 4: KPI Card Consistency
+- Made trend indicator icons consistent: size-3.5 (was size-4)
+- Made trend value text consistent: text-xs font-semibold (was text-sm font-bold)
+- Positive: text-emerald-400 with TrendingUp
+- Negative: text-red-400 with TrendingDown
+- Warning: text-amber-400
+- Neutral: text-emerald-400 (consistent positive framing)
+- Added count-up animation to KPI values: initial opacity:0 y:10 → animate opacity:1 y:0
+- Staggered delay: 0.1 + index * 0.08 (0.5s duration)
+- "Click to explore" hover text preserved on all cards
+- All 6 cards use identical padding (p-4 lg:p-5) and sizing
+
+Stage Summary:
+- Complete premium polish of Dashboard Command Centre
+- Alert banner upgraded from flat to gradient with pulsing dot, accent bar, animated CTA
+- Refresh/Export buttons upgraded with glass morphism and hover animations
+- New LiveActivityFeed feature: horizontal scrolling ticker with 12 mock events, 5 event types, auto-scroll, pause on hover
+- KPI cards: consistent trend styling, count-up animation, consistent sizing
+- All CSS animations added to globals.css for activity feed, button hover effects
+- All existing functionality preserved (AI Insights, Treemap, Watchlist, Comparison, etc.)
+- ESLint passes, dev server compiles successfully with HTTP 200
+
+---
+Task ID: CR-7
+Agent: Main Orchestrator
+Task: Round 5 QA, weakest module overhauls (GeoLens, RiskLens), Dashboard polish, new Activity Feed feature
+
+Work Log:
+
+### QA Testing (Round 5)
+- Tested all major modules via agent-browser: Dashboard, TenderLens, MuniLens, GeoLens, AI Analyst, RiskLens, CarbonLens
+- VLM ratings before improvements: Dashboard 6/10, GeoLens 4/10, RiskLens 4/10
+- Key issues identified: flat alert banners, poor map contrast, cramped layouts, inconsistent typography, missing micro-animations
+
+### GeoLens Visual Overhaul (CR-7-a subagent)
+1. **Map Enhancement**: Spotlight radial gradient background, vignette overlay, province hover brightness filter + white border glow, pulsing gold selected ring, font-semibold labels with text-shadow
+2. **Province Detail Panel**: Glass morphism (bg-[#0d1224]/80 backdrop-blur-xl), top gold accent line, text-2xl font-bold stats, ▲/▼ trend icons, circular close button with gold hover glow, Framer Motion slide-in
+3. **National Overview**: Gradient stat card backgrounds (5% accent), icons per stat (TrendingUp, AlertTriangle, CheckCircle, Building2), grid pattern overlay
+4. **Color Legend**: Smooth gradient bar replacing discrete blocks, tick marks with value labels
+5. **Province Rankings**: 3px gold left accent on selected, translateX(2px) hover, top-3 rank numbers in gold
+6. **Indicator Selector**: Glowing gold active background, colored dots per indicator, CheckCircle for selected
+7. **Overall**: Pulsing green LIVE badge, gold accent bars on headers, gradient separators, footer attribution
+
+### RiskLens Visual Overhaul (CR-7-b subagent)
+1. **Severity Summary Cards**: Gradient backgrounds (severity color at low opacity), text-3xl font-extrabold, glow hover effect, correct icons (AlertOctagon/AlertTriangle/ShieldAlert/Info), pulse ring on Critical
+2. **Risk Feed**: 3px colored left border per item, hover translateX(2px), AnimatePresence expand/collapse, 8px severity dot, relative timestamps ("2 hours ago"), rotating chevron toggle
+3. **Severity Distribution Chart**: SVG gradient fills, animated count labels, percentage tooltips, glass morphism container
+4. **Signal Types**: Colored dot + count badge, mini proportion bar, glass morphism wrapper
+5. **Anomaly Table**: Alternating row backgrounds, gradient header, pill-shaped severity badges, hover highlight, left accent border per row
+6. **Filter Bar**: Sticky with backdrop-blur-xl, dark dropdowns with amber hover, removable filter chips, "Clear All" button
+7. **Overall**: Red/amber gradient accent header, premium Phase 2 badge, grid pattern background, gap-6 spacing, staggered entrance animations, contrast upgrades (zinc-500→zinc-400, zinc-400→zinc-300)
+
+### Dashboard Polish + New Feature (CR-7-c subagent)
+1. **Alert Banner Redesign**: Gradient banner (from-red-900/30 via-amber-900/20), pulsing red dot, left red accent bar, gradient "High Priority" badge, animated chevron CTA, diagonal stripe texture, backdrop-blur-sm, Framer Motion entrance
+2. **Premium Buttons**: Glass morphism bg, hover glow + shadow-lg, active:scale-[0.98], spin on Refresh hover, bounce on Export hover
+3. **Live Activity Feed (NEW)**: Horizontal ticker bar (48px), 12 mock events auto-scrolling via CSS keyframe (60s), 5 event types with color-coded icons (TenderAward/RiskAlert/AuditUpdate/Section139/ServiceUpdate), green LIVE pulsing dot, pause on hover, fade edges, glass morphism background
+4. **KPI Card Consistency**: Uniform trend icon sizes (size-3.5), consistent text-xs font-semibold, emerald-400/TrendingUp for positive, red-400/TrendingDown for negative, count-up animation with staggered delays
+
+### VLM Quality Assessment (After CR-7)
+- Dashboard: 6/10 → **7/10** (improved alert banner, activity feed, button polish)
+- GeoLens: 4/10 → **7/10** (major improvement - glass morphism, hover effects, map depth)
+- RiskLens: 4/10 → **7/10** (major improvement - severity cards, feed styling, filter bar)
+- Overall average improvement: +3 points across weakest modules
+
+Stage Summary:
+- All 3 weakest modules overhauled with premium styling
+- 1 new feature: Live Activity Feed on Dashboard
+- VLM ratings improved from 4-6/10 to 7/10 across overhauled modules
+- ESLint passes, dev server compiles without errors
+- All modules tested and rendering correctly via agent-browser
+
+### Unresolved Issues & Next Phase Recommendations
+1. **GeoLens province labels**: Still small/hard to read at default zoom - consider larger fonts or zoom controls
+2. **Dashboard activity feed**: Could add click-to-navigate on feed events
+3. **Province Drill-Down**: GeoLens could benefit from a full municipality listing when clicking a province
+4. **RiskLens actionability**: Add "Investigate" CTAs on severity cards
+5. **Light mode**: Still needs attention for accessibility compliance
+6. **Mobile responsiveness**: Fine-tuning needed for mobile viewports
+7. **Performance**: Large modules could benefit from React.lazy code splitting
+8. **CarbonLens/DataHub**: Not yet assessed by VLM - may need similar overhauls

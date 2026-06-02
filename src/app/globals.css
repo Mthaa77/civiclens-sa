@@ -1471,3 +1471,61 @@ html {
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 6px;
 }
+
+/* ─── Activity Feed Marquee Animation (CR-7-c) ──────────────────────────── */
+
+@keyframes activity-feed-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-activity-feed {
+  animation: activity-feed-scroll 60s linear infinite;
+}
+
+.animate-activity-feed:hover {
+  animation-play-state: paused;
+}
+
+@keyframes chevron-bounce {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+.animate-chevron-bounce {
+  animation: chevron-bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes icon-bounce-hover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-icon-bounce-hover:hover {
+  animation: icon-bounce-hover 0.6s ease-in-out infinite;
+}
+
+@keyframes spin-once {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-on-hover:hover {
+  animation: spin-once 0.5s ease-in-out;
+}

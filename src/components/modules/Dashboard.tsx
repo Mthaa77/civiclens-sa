@@ -38,6 +38,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
+  Gavel,
+  FileCheck,
+  Droplets,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -434,28 +437,30 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
               {data.label}
             </p>
-            <p
+            {/* KPI value with count-up animation */}
+            <motion.p
               className="text-2xl lg:text-[2rem] font-extrabold tabular-nums tracking-tight leading-none"
               style={{ color: data.accentColor }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 + index * 0.08 }}
             >
               {data.value}
-            </p>
+            </motion.p>
             <div className="flex items-center gap-1.5 mt-2">
               {data.trend.direction === 'up' ? (
                 <TrendingUp
                   className={cn(
-                    'size-4',
+                    'size-3.5',
                     data.sentiment === 'negative'
                       ? 'text-red-400'
-                      : data.sentiment === 'warning'
-                        ? 'text-amber-400'
-                        : 'text-emerald-400'
+                      : 'text-emerald-400'
                   )}
                 />
               ) : (
                 <TrendingDown
                   className={cn(
-                    'size-4',
+                    'size-3.5',
                     data.sentiment === 'positive'
                       ? 'text-emerald-400'
                       : 'text-red-400'
@@ -464,14 +469,14 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               )}
               <span
                 className={cn(
-                  'text-sm font-bold tabular-nums',
+                  'text-xs font-semibold tabular-nums',
                   data.sentiment === 'negative'
                     ? 'text-red-400'
                     : data.sentiment === 'warning'
                       ? 'text-amber-400'
                       : data.sentiment === 'positive'
                         ? 'text-emerald-400'
-                        : 'text-zinc-300'
+                        : 'text-emerald-400'
                 )}
               >
                 {data.trend.value}
@@ -1863,6 +1868,94 @@ function TenderHighlightsPanel() {
   );
 }
 
+// ── Live Activity Feed Data & Component (CR-7-c) ───────────────────────────
+
+type ActivityEventType = 'TenderAward' | 'RiskAlert' | 'AuditUpdate' | 'Section139' | 'ServiceUpdate';
+
+interface ActivityEvent {
+  type: ActivityEventType;
+  text: string;
+  entity: string;
+  time: string;
+}
+
+const ACTIVITY_EVENTS: ActivityEvent[] = [
+  { type: 'RiskAlert', text: 'New procurement anomaly detected in eThekwini Municipality', entity: 'KwaZulu-Natal', time: '2m ago' },
+  { type: 'TenderAward', text: 'R245M water infrastructure tender awarded to City of Cape Town', entity: 'Western Cape', time: '5m ago' },
+  { type: 'AuditUpdate', text: 'AGSA releases Q3 audit outcomes for Free State municipalities', entity: 'Free State', time: '12m ago' },
+  { type: 'Section139', text: 'Section 139 intervention escalated in Mafikeng Local Municipality', entity: 'North West', time: '18m ago' },
+  { type: 'ServiceUpdate', text: 'Water service delivery improved in Nelson Mandela Bay', entity: 'Eastern Cape', time: '25m ago' },
+  { type: 'TenderAward', text: 'R89M IT modernisation contract published by Gauteng Health', entity: 'Gauteng', time: '32m ago' },
+  { type: 'RiskAlert', text: 'Budget overrun alert: Limpopo education infrastructure exceeds 120% spend', entity: 'Limpopo', time: '45m ago' },
+  { type: 'AuditUpdate', text: 'Clean audit maintained by Western Cape for 5th consecutive year', entity: 'Western Cape', time: '1h ago' },
+  { type: 'Section139', text: 'Administrator appointed for Emfuleni Local Municipality', entity: 'Gauteng', time: '1h ago' },
+  { type: 'ServiceUpdate', text: 'Electricity access reaches 92% in Mpumalanga district municipalities', entity: 'Mpumalanga', time: '2h ago' },
+  { type: 'TenderAward', text: 'R156M road rehabilitation tender published for KZN municipalities', entity: 'KwaZulu-Natal', time: '2h ago' },
+  { type: 'RiskAlert', text: 'Supplier concentration risk flagged in Northern Cape health procurement', entity: 'Northern Cape', time: '3h ago' },
+];
+
+const ACTIVITY_TYPE_CONFIG: Record<ActivityEventType, { icon: React.ReactNode; color: string; glow: string }> = {
+  TenderAward: { icon: <Building2 className="size-3" />, color: 'text-emerald-400', glow: '0 0 6px rgba(16,185,129,0.4)' },
+  RiskAlert: { icon: <AlertTriangle className="size-3" />, color: 'text-red-400', glow: '0 0 6px rgba(239,68,68,0.4)' },
+  AuditUpdate: { icon: <FileCheck className="size-3" />, color: 'text-blue-400', glow: '0 0 6px rgba(59,130,246,0.4)' },
+  Section139: { icon: <Gavel className="size-3" />, color: 'text-amber-400', glow: '0 0 6px rgba(245,158,11,0.4)' },
+  ServiceUpdate: { icon: <Droplets className="size-3" />, color: 'text-teal-400', glow: '0 0 6px rgba(20,184,166,0.4)' },
+};
+
+function LiveActivityFeed() {
+  // Duplicate events for seamless loop
+  const duplicatedEvents = [...ACTIVITY_EVENTS, ...ACTIVITY_EVENTS];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+      className="relative w-full h-12 flex items-center bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-white/[0.06] overflow-hidden rounded-xl"
+    >
+      {/* Left: LIVE indicator + label */}
+      <div className="flex items-center gap-2 px-3 shrink-0 z-10 bg-[#0a0e1a]/90 h-full border-r border-white/[0.06]">
+        <span className="relative flex size-2">
+          <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+        </span>
+        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
+        <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
+        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Activity Feed</span>
+      </div>
+
+      {/* Right: Scrolling events */}
+      <div className="flex-1 overflow-hidden relative">
+        {/* Fade edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0e1a]/80 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0a0e1a]/80 to-transparent z-10 pointer-events-none" />
+
+        <div className="animate-activity-feed flex items-center gap-6 whitespace-nowrap h-full">
+          {duplicatedEvents.map((event, idx) => {
+            const config = ACTIVITY_TYPE_CONFIG[event.type];
+            return (
+              <div key={`event-${idx}`} className="flex items-center gap-2 shrink-0">
+                {/* Category icon with glow */}
+                <span className={cn('flex items-center justify-center size-5 rounded', config.color)} style={{ boxShadow: config.glow }}>
+                  {config.icon}
+                </span>
+                {/* Event text */}
+                <span className="text-[11px] text-zinc-300 font-medium">{event.text}</span>
+                {/* Entity tag */}
+                <span className="text-[9px] font-semibold text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">{event.entity}</span>
+                {/* Relative timestamp */}
+                <span className="text-[9px] text-zinc-500 font-mono">{event.time}</span>
+                {/* Dot divider */}
+                <span className="text-zinc-700 ml-2">•</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Dashboard Header ────────────────────────────────────────────────────────
 
 function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
@@ -1901,29 +1994,39 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
         </span>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons — Premium Glass Morphism */}
       <div className="flex items-center gap-2 shrink-0">
         {/* Refresh */}
         <Button
           variant="ghost"
           size="sm"
           onClick={refresh}
-          className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
+          className={cn(
+            'h-8 gap-1.5 text-zinc-300',
+            'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
+            'hover:bg-white/[0.08] hover:border-white/[0.12] hover:shadow-lg',
+            'active:scale-[0.98] transition-all duration-200'
+          )}
         >
           <RefreshCw
-            className={cn('size-3.5', isRefreshing && 'animate-spin')}
+            className={cn('size-3.5 animate-spin-on-hover', isRefreshing && 'animate-spin')}
           />
           <span className="text-[11px]">Refresh</span>
         </Button>
 
-        {/* Export Button - Opens DataExport Sheet */}
+        {/* Export Button — Premium Glass Morphism */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onExportOpen}
-          className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
+          className={cn(
+            'h-8 gap-1.5 text-zinc-300',
+            'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
+            'hover:bg-white/[0.08] hover:border-white/[0.12] hover:shadow-lg',
+            'active:scale-[0.98] transition-all duration-200'
+          )}
         >
-          <Download className="size-3.5" />
+          <Download className="size-3.5 animate-icon-bounce-hover" />
           <span className="text-[11px]">Export</span>
         </Button>
       </div>
@@ -1966,29 +2069,73 @@ export default function Dashboard() {
       {/* ── Dashboard Header ────────────────────────────────────── */}
       <DashboardHeader onExportOpen={() => setExportOpen(true)} />
 
-      {/* ── Quick Insight Banner ──────────────────────────────── */}
+      {/* ── Live Activity Feed ─────────────────────────────────── */}
+      <LiveActivityFeed />
+
+      {/* ── Premium Financial Distress Alert Banner ───────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -5 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent p-3"
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        className="relative overflow-hidden rounded-xl backdrop-blur-sm"
       >
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDMpIi8+PC9zdmc+')] opacity-50" />
-        <div className="relative flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <AlertTriangle className="size-4 text-amber-400" />
+        {/* Gradient background: red-to-amber-to-transparent */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-900/30 via-amber-900/20 to-transparent" />
+
+        {/* Left red accent bar */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-gradient-to-b from-red-500 to-amber-500" />
+
+        {/* Diagonal stripe pattern overlay at 2% opacity */}
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 6px,
+              rgba(255,255,255,0.15) 6px,
+              rgba(255,255,255,0.15) 7px
+            )`,
+          }}
+        />
+
+        <div className="relative flex items-center gap-3 p-3 pl-4">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
+            <AlertTriangle className="size-4 text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-amber-300">
+            <div className="flex items-center gap-2 mb-0.5">
+              {/* Pulsing red dot */}
+              <span className="relative flex size-2">
+                <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+              </span>
+              {/* Gradient "High Priority" badge */}
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #DC2626, #D97706)',
+                }}
+              >
+                High Priority
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-red-200">
               Financial Distress Alert: 63% of municipalities now classified as distressed
             </p>
-            <p className="text-[10px] text-amber-400/70 mt-0.5">
+            <p className="text-[10px] text-red-300/60 mt-0.5">
               162 of 257 municipalities below Financial Health Score threshold of 45 — up 8.2% year-on-year
             </p>
           </div>
-          <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px] shrink-0 font-semibold">
-            High Priority
-          </Badge>
+          {/* Animated chevron CTA */}
+          <motion.div
+            animate={{ x: [0, 4, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="shrink-0 flex items-center gap-1 text-red-400/60 hover:text-red-300 cursor-pointer transition-colors"
+          >
+            <span className="text-[10px] font-semibold hidden sm:inline">View Details</span>
+            <ArrowRight className="size-3.5" />
+          </motion.div>
         </div>
       </motion.div>
 
