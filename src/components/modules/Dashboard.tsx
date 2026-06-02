@@ -194,6 +194,8 @@ interface KPICardData {
   gradientFrom: string;
   gradientTo: string;
   targetModule: ModuleId;
+  targetPct: number;
+  sparkline: number[];
 }
 
 const kpiCards: KPICardData[] = [
@@ -209,6 +211,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#0077B6]/10',
     gradientTo: 'to-[#0077B6]/[0.02]',
     targetModule: 'munilens' as ModuleId,
+    targetPct: 88,
+    sparkline: [240, 243, 248, 250, 253, 255, 257],
   },
   {
     label: 'Municipalities in Distress',
@@ -222,6 +226,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#EF4444]/10',
     gradientTo: 'to-[#EF4444]/[0.02]',
     targetModule: 'munilens' as ModuleId,
+    targetPct: 63,
+    sparkline: [140, 145, 150, 158, 162, 160, 162],
   },
   {
     label: 'Active Tenders',
@@ -235,6 +241,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#2D6A4F]/10',
     gradientTo: 'to-[#2D6A4F]/[0.02]',
     targetModule: 'tenderlens' as ModuleId,
+    targetPct: 72,
+    sparkline: [1600, 1680, 1720, 1780, 1810, 1830, 1847],
   },
   {
     label: 'Total Tender Value',
@@ -248,6 +256,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#B45309]/10',
     gradientTo: 'to-[#B45309]/[0.02]',
     targetModule: 'tenderlens' as ModuleId,
+    targetPct: 56,
+    sparkline: [420, 440, 460, 480, 490, 500, 478],
   },
   {
     label: 'Active Risk Signals',
@@ -261,6 +271,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#F59E0B]/10',
     gradientTo: 'to-[#F59E0B]/[0.02]',
     targetModule: 'risklens' as ModuleId,
+    targetPct: 78,
+    sparkline: [180, 195, 210, 220, 228, 230, 234],
   },
   {
     label: 'Section 139 Interventions',
@@ -274,6 +286,8 @@ const kpiCards: KPICardData[] = [
     gradientFrom: 'from-[#DC2626]/10',
     gradientTo: 'to-[#DC2626]/[0.02]',
     targetModule: 'earlyalert' as ModuleId,
+    targetPct: 41,
+    sparkline: [30, 32, 35, 37, 40, 41, 43],
   },
 ];
 
@@ -307,14 +321,17 @@ function getFHSBarColor(score: number): string {
 
 function SectionHeader({ title, subtitle, accentColor = '#0077B6', action }: { title: string; subtitle?: string; accentColor?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-3">
         <div
-          className="w-[2px] h-6 rounded-full shrink-0"
-          style={{ background: `linear-gradient(180deg, ${accentColor}, ${accentColor}40)` }}
+          className="w-[3px] h-7 rounded-full shrink-0"
+          style={{
+            background: `linear-gradient(180deg, ${accentColor}, ${accentColor}60)`,
+            boxShadow: `0 0 12px ${accentColor}30`,
+          }}
         />
         <div>
-          <h2 className="text-sm font-semibold text-zinc-200 tracking-tight">{title}</h2>
+          <h2 className="text-sm font-bold text-zinc-100 tracking-tight">{title}</h2>
           {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
@@ -332,35 +349,54 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
     setActiveModule(data.targetModule);
   };
 
+  // SVG progress ring config
+  const ringRadius = 18;
+  const ringStroke = 3;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringOffset = ringCircumference - (data.targetPct / 100) * ringCircumference;
+
+  // Sparkline config
+  const sparkW = 60;
+  const sparkH = 18;
+  const sparkData = data.sparkline;
+  const sparkMin = Math.min(...sparkData);
+  const sparkMax = Math.max(...sparkData);
+  const sparkRange = sparkMax - sparkMin || 1;
+  const sparkPoints = sparkData.map((v, i) => {
+    const x = (i / (sparkData.length - 1)) * sparkW;
+    const y = sparkH - ((v - sparkMin) / sparkRange) * (sparkH - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+
   return (
     <motion.div
       variants={itemSlideUp}
-      whileHover={{ scale: 1.03, y: -3 }}
+      whileHover={{ scale: 1.03, y: -4 }}
       transition={{ duration: 0.2 }}
       className="relative group cursor-pointer"
       onClick={handleClick}
     >
       <div
         className={cn(
-          'relative overflow-hidden rounded-xl border border-white/[0.08] p-4 lg:p-5',
+          'relative overflow-hidden rounded-xl border border-white/[0.10] p-5 lg:p-6',
           'bg-gradient-to-br',
           data.gradientFrom,
           data.gradientTo,
-          'backdrop-blur-sm transition-all duration-300 cursor-pointer',
-          'hover:shadow-lg hover:shadow-black/20'
+          'backdrop-blur-xl transition-all duration-300 cursor-pointer',
+          'hover:shadow-xl hover:shadow-black/30'
         )}
         style={{
           cursor: 'pointer',
           borderColor: undefined,
-          boxShadow: `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04, inset 0 0 80px ${data.accentColor}0A`,
+          boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 40px ${data.accentColor}0C, inset 0 0 80px ${data.accentColor}06, inset 0 1px 0 rgba(255,255,255,0.04)`,
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = `${data.accentColor}30`;
-          e.currentTarget.style.boxShadow = `inset 0 1px 40px ${data.accentColor}12, inset 0 0 80px ${data.accentColor}06, 0 8px 32px ${data.accentColor}10, inset 0 0 60px ${data.accentColor}10`;
+          e.currentTarget.style.borderColor = `${data.accentColor}35`;
+          e.currentTarget.style.boxShadow = `0 8px 40px rgba(0,0,0,0.35), inset 0 1px 50px ${data.accentColor}15, inset 0 0 100px ${data.accentColor}08, 0 0 30px ${data.accentColor}12, inset 0 1px 0 rgba(255,255,255,0.06)`;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = '';
-          e.currentTarget.style.boxShadow = `inset 0 1px 30px ${data.accentColor}08, inset 0 0 60px ${data.accentColor}04, inset 0 0 80px ${data.accentColor}0A`;
+          e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 40px ${data.accentColor}0C, inset 0 0 80px ${data.accentColor}06, inset 0 1px 0 rgba(255,255,255,0.04)`;
         }}
       >
         {/* Animated gradient border on hover */}
@@ -375,11 +411,12 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           }}
         />
 
-        {/* Top accent line */}
+        {/* Top accent line — enhanced with glow */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-80"
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-90"
           style={{
-            background: `linear-gradient(90deg, ${data.accentColor}, transparent)`,
+            background: `linear-gradient(90deg, ${data.accentColor}, ${data.accentColor}60, transparent)`,
+            boxShadow: `0 0 8px ${data.accentColor}40`,
           }}
         />
 
@@ -397,11 +434,11 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           }}
         />
 
-        {/* Inner glow effect — accent color at 10% opacity */}
+        {/* Inner glow effect — deeper on hover */}
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            boxShadow: `inset 0 0 40px ${data.accentColor}10`,
+            boxShadow: `inset 0 0 60px ${data.accentColor}14`,
           }}
         />
 
@@ -418,23 +455,19 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           />
         </div>
 
-        {/* Background glow — two layers for depth */}
+        {/* Background glow — three layers for depth */}
         <div
-          className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.07] blur-2xl group-hover:opacity-[0.16] transition-opacity duration-500"
+          className="absolute -top-10 -right-10 size-32 rounded-full opacity-[0.06] blur-3xl group-hover:opacity-[0.18] transition-opacity duration-500"
           style={{ backgroundColor: data.accentColor }}
         />
         <div
-          className="absolute -bottom-4 -left-4 size-16 rounded-full opacity-[0.04] blur-xl group-hover:opacity-[0.10] transition-opacity duration-500"
+          className="absolute -bottom-6 -left-6 size-24 rounded-full opacity-[0.04] blur-2xl group-hover:opacity-[0.12] transition-opacity duration-500"
           style={{ backgroundColor: data.accentColor }}
         />
-
-        {/* Micro-icon in top-right corner */}
         <div
-          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-md opacity-30 group-hover:opacity-60 transition-opacity duration-300"
-          style={{ color: data.accentColor }}
-        >
-          {data.microIcon}
-        </div>
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-40 rounded-full opacity-[0.02] blur-3xl group-hover:opacity-[0.06] transition-opacity duration-500"
+          style={{ backgroundColor: data.accentColor }}
+        />
 
         <div className="relative flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -489,15 +522,69 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
             </div>
           </div>
 
-          <div
-            className="flex size-10 items-center justify-center rounded-lg shrink-0 group-hover:scale-110 transition-transform duration-300"
-            style={{
-              background: `${data.accentColor}18`,
-              border: `1px solid ${data.accentColor}30`,
-            }}
-          >
-            <div style={{ color: data.accentColor }}>{data.icon}</div>
+          {/* Icon with SVG progress ring */}
+          <div className="relative shrink-0 group-hover:scale-110 transition-transform duration-300">
+            <svg width="44" height="44" className="absolute -top-1 -left-1">
+              <circle
+                cx="22" cy="22" r={ringRadius}
+                fill="none"
+                stroke={`${data.accentColor}15`}
+                strokeWidth={ringStroke}
+              />
+              <motion.circle
+                cx="22" cy="22" r={ringRadius}
+                fill="none"
+                stroke={data.accentColor}
+                strokeWidth={ringStroke}
+                strokeLinecap="round"
+                strokeDasharray={ringCircumference}
+                initial={{ strokeDashoffset: ringCircumference }}
+                animate={{ strokeDashoffset: ringOffset }}
+                transition={{ duration: 1.2, delay: 0.3 + index * 0.08, ease: [0.4, 0, 0.2, 1] }}
+                transform="rotate(-90 22 22)"
+                style={{ opacity: 0.7 }}
+              />
+            </svg>
+            <div
+              className="relative flex size-10 items-center justify-center rounded-lg"
+              style={{
+                background: `${data.accentColor}18`,
+                border: `1px solid ${data.accentColor}30`,
+              }}
+            >
+              <div style={{ color: data.accentColor }}>{data.icon}</div>
+            </div>
           </div>
+        </div>
+
+        {/* Micro sparkline chart at bottom */}
+        <div className="relative mt-3 pt-2.5 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-zinc-500 font-medium">7-day trend</span>
+            <span className="text-[9px] font-bold tabular-nums" style={{ color: data.accentColor }}>{data.targetPct}% of target</span>
+          </div>
+          <svg width={sparkW} height={sparkH} className="mt-1 overflow-visible">
+            <motion.polyline
+              points={sparkPoints}
+              fill="none"
+              stroke={data.accentColor}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ opacity: 0, pathLength: 0 }}
+              animate={{ opacity: 0.6, pathLength: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 + index * 0.08 }}
+            />
+            {/* Gradient fill under the line */}
+            <motion.polyline
+              points={`0,${sparkH} ${sparkPoints} ${sparkW},${sparkH}`}
+              fill={`${data.accentColor}08`}
+              stroke="none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 + index * 0.08 }}
+            />
+          </svg>
         </div>
 
         {/* Quick Action dropdown (appears on hover) */}
@@ -626,24 +713,29 @@ function AIInsightsPanel() {
   return (
     <motion.div variants={itemSlideUp}>
       <Card
-        className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative"
+        className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative"
+        style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* Top accent line — teal/emerald gradient */}
+        {/* Top accent line — teal/emerald gradient with glow */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
-          style={{ background: 'linear-gradient(90deg, #0D9488, #10B981, transparent)' }}
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-80"
+          style={{ background: 'linear-gradient(90deg, #0D9488, #10B981, transparent)', boxShadow: '0 0 10px rgba(13,148,136,0.3)' }}
         />
 
-        {/* Background glow */}
+        {/* Background glow — three layers for depth */}
         <div
-          className="absolute -top-12 -right-12 size-40 rounded-full opacity-[0.06] blur-3xl"
+          className="absolute -top-16 -right-16 size-52 rounded-full opacity-[0.05] blur-3xl"
           style={{ backgroundColor: '#0D9488' }}
         />
         <div
-          className="absolute -bottom-8 -left-8 size-28 rounded-full opacity-[0.04] blur-2xl"
+          className="absolute -bottom-12 -left-12 size-36 rounded-full opacity-[0.04] blur-2xl"
           style={{ backgroundColor: '#10B981' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 size-40 rounded-full opacity-[0.02] blur-3xl"
+          style={{ backgroundColor: '#0D9488' }}
         />
 
         <CardContent className="p-5 lg:p-6 relative">
@@ -916,11 +1008,11 @@ function BudgetTreemapChart() {
 
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
-        {/* Top accent line */}
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative" style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
+        {/* Top accent line with glow */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
-          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #8B5CF6, #F59E0B, transparent)' }}
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #8B5CF6, #F59E0B, transparent)', boxShadow: '0 0 10px rgba(59,130,246,0.2)' }}
         />
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -990,11 +1082,11 @@ function AuditOutcomeChart() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative" style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
         {/* Module-themed accent frame */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
-          style={{ background: 'linear-gradient(90deg, #0077B6, #2D6A4F, transparent)' }}
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #0077B6, #2D6A4F, transparent)', boxShadow: '0 0 10px rgba(0,119,182,0.2)' }}
         />
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
@@ -1087,11 +1179,11 @@ function ProvincialFHSChart() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative" style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
         {/* Module-themed accent frame */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
-          style={{ background: 'linear-gradient(90deg, #2D6A4F, #F59E0B, transparent)' }}
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #2D6A4F, #F59E0B, transparent)', boxShadow: '0 0 10px rgba(45,106,79,0.2)' }}
         />
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
@@ -1161,11 +1253,11 @@ function ProvincialFHSChart() {
 function ServiceDeliveryChart() {
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden relative">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative" style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
         {/* Module-themed accent frame */}
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
-          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #F59E0B, transparent)' }}
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #3B82F6, #10B981, #F59E0B, transparent)', boxShadow: '0 0 10px rgba(59,130,246,0.2)' }}
         />
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1269,7 +1361,7 @@ function ProvincialTable() {
 
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -1459,7 +1551,7 @@ function MunicipalityComparison() {
 
   return (
     <motion.div variants={itemSlideUp}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 overflow-hidden">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-md bg-[#7B2D8E]/10 border border-[#7B2D8E]/20">
@@ -1694,7 +1786,7 @@ function RiskSignalsPanel() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full overflow-hidden">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 h-full overflow-hidden">
         {/* Accent frame */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
@@ -1730,7 +1822,7 @@ function RiskSignalsPanel() {
                     variants={listItemStagger}
                     initial="hidden"
                     animate="show"
-                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.16] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
                     style={{ borderLeft: `4px solid ${severityColor}` }}
                   >
                     <div className="flex items-start gap-2.5">
@@ -1815,7 +1907,7 @@ function TenderHighlightsPanel() {
 
   return (
     <motion.div variants={itemFadeIn}>
-      <Card className="border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 h-full overflow-hidden">
+      <Card className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 h-full overflow-hidden">
         {/* Accent frame */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
@@ -1850,7 +1942,7 @@ function TenderHighlightsPanel() {
                     variants={listItemStagger}
                     initial="hidden"
                     animate="show"
-                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    className="group relative rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.16] hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
                     style={{ borderLeft: `4px solid ${categoryColor}` }}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -2036,6 +2128,146 @@ function LiveActivityFeed() {
   );
 }
 
+// ── Live Activity Feed Panel (R9-2a) ────────────────────────────────────────
+
+const FEED_PANEL_EVENTS = [
+  { type: 'RiskAlert' as ActivityEventType, text: 'Procurement anomaly flagged in eThekwini — 3 suppliers awarded 78% of health contracts', entity: 'eThekwini Metro', time: '2m ago' },
+  { type: 'TenderAward' as ActivityEventType, text: 'R245M water infrastructure tender awarded — City of Cape Town Wastewater Treatment Plant', entity: 'City of Cape Town', time: '5m ago' },
+  { type: 'AuditUpdate' as ActivityEventType, text: 'AGSA Q3 audit outcomes released for 23 Free State municipalities — 4 new disclaimers', entity: 'Free State Province', time: '12m ago' },
+  { type: 'Section139' as ActivityEventType, text: 'Section 139(1)(b) intervention escalated to 139(7) — Mafikeng Local Municipality', entity: 'Mafikeng LM', time: '18m ago' },
+  { type: 'ServiceUpdate' as ActivityEventType, text: 'Water service delivery access improved by 3.2% in Nelson Mandela Bay — now 79.4%', entity: 'Nelson Mandela Bay', time: '25m ago' },
+  { type: 'TenderAward' as ActivityEventType, text: 'R89M IT modernisation contract published — Gauteng Department of Health', entity: 'Gauteng Health', time: '32m ago' },
+  { type: 'RiskAlert' as ActivityEventType, text: 'Budget overrun detected — Limpopo education infrastructure at 120% of allocation', entity: 'Limpopo Education', time: '45m ago' },
+  { type: 'AuditUpdate' as ActivityEventType, text: 'Clean audit maintained for 5th consecutive year — Western Cape Provincial Treasury', entity: 'WC Treasury', time: '1h ago' },
+  { type: 'Section139' as ActivityEventType, text: 'Administrator appointed for Emfuleni Local Municipality — 12-month recovery plan', entity: 'Emfuleni LM', time: '1h ago' },
+  { type: 'ServiceUpdate' as ActivityEventType, text: 'Electricity access reaches 92% in Mpumalanga district municipalities — up from 88%', entity: 'Mpumalanga DMs', time: '2h ago' },
+];
+
+function LiveActivityFeedPanel() {
+  const { setActiveModule } = useNavigationStore();
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <Card
+        className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative"
+        style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+      >
+        {/* Top accent line with glow */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-80"
+          style={{ background: 'linear-gradient(90deg, #10B981, #0D9488, #3B82F6, transparent)', boxShadow: '0 0 10px rgba(16,185,129,0.25)' }}
+        />
+
+        {/* Background glow orbs */}
+        <div
+          className="absolute -top-16 -left-16 size-48 rounded-full opacity-[0.04] blur-3xl"
+          style={{ backgroundColor: '#10B981' }}
+        />
+        <div
+          className="absolute -bottom-12 -right-12 size-40 rounded-full opacity-[0.03] blur-2xl"
+          style={{ backgroundColor: '#0D9488' }}
+        />
+
+        <CardContent className="p-5 lg:p-6 relative">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              {/* Live badge with pulsing dot */}
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <span className="relative flex size-2">
+                  <motion.span
+                    className="absolute inset-0 rounded-full bg-emerald-400"
+                    animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+                </span>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-100 tracking-tight">Real-Time Activity Feed</h3>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Latest system events across all monitoring modules</p>
+              </div>
+            </div>
+            <Badge className="bg-white/[0.04] text-zinc-400 border-white/[0.08] text-[9px] px-2 py-0.5 font-semibold">
+              {FEED_PANEL_EVENTS.length} events
+            </Badge>
+          </div>
+
+          {/* Feed items */}
+          <ScrollArea className="max-h-[360px]">
+            <div className="space-y-1">
+              {FEED_PANEL_EVENTS.map((event, i) => {
+                const config = ACTIVITY_TYPE_CONFIG[event.type];
+                return (
+                  <motion.div
+                    key={`feed-${i}`}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    className="group/feed-item flex items-start gap-3 rounded-lg p-2.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer border border-transparent hover:border-white/[0.06]"
+                    onClick={() => {
+                      if (config?.targetModule) setActiveModule(config.targetModule);
+                    }}
+                  >
+                    {/* Event type icon with glow */}
+                    <div
+                      className={cn('flex size-7 items-center justify-center rounded-lg shrink-0 mt-0.5', config.color)}
+                      style={{
+                        background: `${config.color === 'text-red-400' ? '#EF4444' : config.color === 'text-emerald-400' ? '#10B981' : config.color === 'text-blue-400' ? '#3B82F6' : config.color === 'text-amber-400' ? '#F59E0B' : '#14B8A6'}12`,
+                        border: `1px solid ${config.color === 'text-red-400' ? '#EF4444' : config.color === 'text-emerald-400' ? '#10B981' : config.color === 'text-blue-400' ? '#3B82F6' : config.color === 'text-amber-400' ? '#F59E0B' : '#14B8A6'}25`,
+                        boxShadow: config.glow,
+                      }}
+                    >
+                      {config.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-zinc-200 leading-relaxed group-hover/feed-item:text-zinc-50 transition-colors">
+                        {event.text}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-semibold text-zinc-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                          {event.entity}
+                        </span>
+                        <span className="text-[9px] text-zinc-500">·</span>
+                        <span className="text-[9px] text-zinc-500 font-mono">{event.time}</span>
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <ArrowRight className="size-3.5 text-zinc-600 group-hover/feed-item:text-zinc-400 shrink-0 mt-1 transition-colors" />
+                  </motion.div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          {/* Footer */}
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="size-3 text-zinc-500" />
+              <span className="text-[10px] text-zinc-500">Auto-updating every 30s</span>
+            </div>
+            <button
+              onClick={() => setActiveModule('risklens' as ModuleId)}
+              className="group flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              <span className="relative">
+                View all events
+                <span className="absolute bottom-0 left-0 w-0 group-hover:w-full h-[1px] bg-zinc-300 transition-all duration-300" />
+              </span>
+              <ArrowRight className="size-2.5 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 // ── Dashboard Header ────────────────────────────────────────────────────────
 
 function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
@@ -2084,7 +2316,7 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
           className={cn(
             'h-8 gap-1.5 text-zinc-300',
             'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
-            'hover:bg-white/[0.08] hover:border-white/[0.12] hover:shadow-lg',
+            'hover:bg-white/[0.08] hover:border-white/[0.16] hover:shadow-lg',
             'active:scale-[0.98] transition-all duration-200'
           )}
         >
@@ -2102,7 +2334,7 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
           className={cn(
             'h-8 gap-1.5 text-zinc-300',
             'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
-            'hover:bg-white/[0.08] hover:border-white/[0.12] hover:shadow-lg',
+            'hover:bg-white/[0.08] hover:border-white/[0.16] hover:shadow-lg',
             'active:scale-[0.98] transition-all duration-200'
           )}
         >
@@ -2142,7 +2374,7 @@ export default function Dashboard() {
   ], []);
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-8 relative">
       {/* Subtle noise texture overlay for depth */}
       <div className="noise-texture absolute inset-0 pointer-events-none rounded-xl" />
 
@@ -2157,13 +2389,38 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="relative overflow-hidden rounded-xl backdrop-blur-sm"
+        className="relative overflow-hidden rounded-xl backdrop-blur-xl"
+        style={{
+          boxShadow: '0 0 20px rgba(127,29,29,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
+        }}
       >
-        {/* Gradient background: red-to-amber-to-transparent */}
-        <div className="absolute inset-0 bg-gradient-to-r from-red-900/30 via-amber-900/20 to-transparent" />
+        {/* Gradient background: deeper, richer red gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-950/50 via-red-900/30 to-amber-950/20" />
 
-        {/* Left red accent bar */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-gradient-to-b from-red-500 to-amber-500" />
+        {/* Pulsing border animation */}
+        <motion.div
+          className="absolute inset-0 rounded-xl pointer-events-none"
+          style={{
+            padding: '1px',
+            background: 'linear-gradient(135deg, rgba(220,38,38,0.5), rgba(217,119,6,0.3), rgba(220,38,38,0.2))',
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+          animate={{
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Left red accent bar with glow */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
+          style={{
+            background: 'linear-gradient(180deg, #EF4444, #DC2626, #D97706)',
+            boxShadow: '0 0 12px rgba(239,68,68,0.4)',
+          }}
+        />
 
         {/* Diagonal stripe pattern overlay at 2% opacity */}
         <div
@@ -2239,8 +2496,15 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        <motion.div
+          className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#0077B6]/30 to-transparent"
+          animate={{ x: ['-100%', '300%'] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
 
       {/* ── AI Insights Panel ──────────────────────────────────── */}
       <motion.div
@@ -2251,8 +2515,34 @@ export default function Dashboard() {
         <AIInsightsPanel />
       </motion.div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        <motion.div
+          className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-teal-500/25 to-transparent"
+          animate={{ x: ['-100%', '300%'] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+
+      {/* ── Live Activity Feed Panel ───────────────────────────── */}
+      <motion.div
+        variants={containerStagger}
+        initial="hidden"
+        animate="show"
+      >
+        <LiveActivityFeedPanel />
+      </motion.div>
+
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        <motion.div
+          className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent"
+          animate={{ x: ['-100%', '300%'] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
 
       {/* ── National Overview Charts ────────────────────────────── */}
       <div>
@@ -2272,8 +2562,8 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#2D6A4F]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
       {/* ── Service Delivery Heatmap ────────────────────────────── */}
       <div>
@@ -2291,8 +2581,8 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#3B82F6]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
       {/* ── Budget Treemap Chart ─────────────────────────────────── */}
       <div>
@@ -2310,8 +2600,8 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#0D9488]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
       {/* ── Provincial Intelligence Table ───────────────────────── */}
       <div>
@@ -2329,8 +2619,8 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#B45309]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
       {/* ── Municipality Comparison ─────────────────────────────── */}
       <div>
@@ -2348,8 +2638,8 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#7B2D8E]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
       {/* ── Watchlist, Risk Signals & Tender Highlights ──────────── */}
       <div>

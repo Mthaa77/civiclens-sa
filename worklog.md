@@ -3310,3 +3310,379 @@ Stage Summary:
 - All existing functionality preserved
 - ESLint passes cleanly
 
+
+---
+Task ID: R9-2d
+Agent: RiskLens Enhancer
+Task: Enhance RiskLens module from 7.8/10 to 8.5+/10
+
+Work Log:
+- Read existing RiskLens.tsx (759 lines) and understood full component structure
+- Read project worklog to understand context (CivicLens SA platform, dark theme, glass morphism style)
+- Identified all 6 VLM assessment issues and 5 mandatory styling improvement areas + new feature requirement
+- Rewrote entire RiskLens.tsx with comprehensive enhancements while preserving all existing functionality:
+
+1. **Enhanced Severity Cards**:
+   - Added circular SVG ProgressRing component around each card icon showing percentage of total active signals
+   - Added severity gradient bar at bottom of each card showing proportion (with animated fill)
+   - Added animated pulsing red border glow on Critical card (using Framer Motion keyframe animation)
+   - Added CountUp animation on numbers using custom useCountUp hook with easeOutCubic
+   - Varied blur intensity based on card importance (Critical=blur-xl, High=blur-lg, Medium=blur-md, Low=blur-sm)
+   - Added percentage label below gradient bar
+
+2. **Premium Filter Bar Enhancement**:
+   - Added search input at beginning of filter bar with Search icon, clear button, and focus styling
+   - Text search filters across type, description, entity, indicator, and severity fields
+   - Made active filter chips use AnimatePresence with spring physics (stiffness: 500, damping: 30)
+   - Added "Sort By" dropdown with 3 options: Severity, Date, Type (with ArrowUpDown icon)
+   - Added search filter as clearable chip in active filters
+   - Search query participates in clearAllFilters
+
+3. **Enhanced Risk Feed**:
+   - Added severity gradient left borders that fade from strong color at top to transparent at bottom
+   - Added hover glow effect on each feed item matching severity color (inset box-shadow)
+   - Added animated "NEW" badge with Sparkles icon for signals detected within 24 hours
+   - Changed expand animation to spring physics (stiffness: 300, damping: 28, mass: 0.8)
+   - Changed chevron rotation to spring physics (stiffness: 300, damping: 25)
+   - Enhanced severity badges with subtle shadow glow
+
+4. **Premium Severity Distribution Chart**:
+   - Enhanced gradient fills with 3-stop gradient (from, base, to) for richer color
+   - Added SVG glow filters for each bar using feGaussianBlur + feFlood + feComposite
+   - Bars glow on hover using the custom filter + brightness boost
+   - Enhanced animated count labels with spring pop-in effect (scale + y animation)
+   - Added staggered opacity animation for percentage labels
+
+5. **Enhanced Anomaly Table**:
+   - Added row hover glow matching severity color using inline style event handlers
+   - Enhanced gradient header row with red-to-amber gradient (from-red-500/[0.06] via-amber-500/[0.04])
+   - Made severity badges more premium with gradient backgrounds and subtle shadow glow
+   - Header text changed from zinc-400 to zinc-300 for better visibility
+
+6. **Risk Correlation Matrix (NEW)**:
+   - Added complete 8×8 heatmap grid showing correlation between 8 signal types
+   - Signal types: Bid Rigging Indicator, Cash Flow Crisis, Service Delivery Gap, Irregular Expenditure, Budget Overrun, Supplier Rotation, Grant Underspend, Capacity Deficit
+   - Each cell shows correlation score (0 to 1) with color coding:
+     - 0-0.3: cool blue (low correlation) with dynamic opacity
+     - 0.3-0.6: amber (moderate correlation)
+     - 0.6-1.0: red (high correlation)
+   - Diagonal cells always 1.0 with ring indicator
+   - Hover over cell shows Radix Tooltip with exact correlation score and explanation
+   - Cells scale up on hover with matching severity glow shadow
+   - Color scale legend at bottom (Low/Moderate/High + Diagonal indicator)
+   - Framer Motion stagger entrance animations (cells fade in with spring physics)
+   - Row and column labels with staggered entrance
+   - Brain icon with amber accent in section header
+   - Full mock correlation data with realistic explanations for each pair
+
+7. **Code Quality**:
+   - Removed unused imports (LinearGradient, Stop, Filter, ChevronUp)
+   - Added new imports: Brain, ArrowUpDown, Sparkles, Input, RadixTooltip/TooltipContent/TooltipTrigger
+   - Added useCallback for stable function references
+   - Added useEffect to imports for CountUp hook
+   - ESLint passes cleanly for RiskLens.tsx
+
+Stage Summary:
+- RiskLens enhanced from ~759 lines to ~740 lines (more features, cleaner code)
+- All 5 mandatory styling improvements implemented
+- All 6 VLM assessment issues addressed
+- New Risk Correlation Matrix feature fully implemented
+- All existing functionality preserved (severity cards, filter bar, risk feed, severity chart, signal types, anomaly table)
+- ESLint passes, TypeScript compiles, dev server renders without errors
+
+---
+Task ID: R9-2b
+Agent: AGASAlert Enhancer
+Task: Enhance AGASAlert module from 7.8/10 to 8.5+/10
+
+Work Log:
+- Read existing AGASAlert.tsx (788 lines) and worklog.md to understand full project context
+- Analyzed existing component structure: Header, Quick Actions, Summary Stats, Donut Chart, Audit Trajectory, 5-Year Stacked Bar, Municipality Audit Outcomes, Material Irregularity Tracker, Audit Grades Table, Clean Audit Probability
+- Implemented all 5 mandatory styling improvements plus the new Audit Outcome Timeline feature
+- Rewrote entire AGASAlert.tsx with comprehensive enhancements
+
+### 1. Enhanced Summary Stats (4 cards):
+- Added circular SVG GaugeRing component around each icon showing percentage fill (e.g., 257/300 = 85% ring for Total Audits)
+- Added subtle animated pulse on the "Improving" card icon with expanding border animation
+- Added micro sparkline trend at the bottom of each card using MiniSparkline component (5-quarter mini trend data)
+- Added trend delta indicator (green/red) next to sparkline showing 5-quarter change
+
+### 2. Premium Donut Chart Enhancement:
+- Added CleanAuditOuterRing SVG component - animated ring progress around the donut chart
+- Outer ring shows clean audit rate percentage with gradient stroke and drop-shadow glow
+- Added "X.X% Clean" label below the total in the donut center
+- Legend items now have hover micro-interaction (shift right on hover)
+
+### 3. Enhanced Audit Trajectory Cards:
+- Added hover scale + glow effects: whileHover scale 1.02 with dynamic boxShadow using card color
+- Implemented useCountUp hook for animated count-up numbers on trajectory counts (easeOutCubic, staggered delays)
+- More pronounced gradient backgrounds: opacity increased from 0.03 to 0.06
+- Added radial gradient glow overlay on hover for premium 3D depth effect
+
+### 4. Material Irregularity Tracker Premium Polish:
+- Added Total Irregular Expenditure Banner at top of section with:
+  - Animated pulsing Zap icon with boxShadow glow
+  - Total amount (R1.482B) in large red text
+  - Flagged count badge and Critical count badge
+  - Red-orange gradient background
+- Enhanced severity pulse animation for critical items:
+  - Larger pulse dot (2.5px instead of 2px)
+  - Added expanding ring animation (scale 1→2 with opacity fade)
+  - Added top border pulse line (gradient line animating opacity)
+- Investigate button now glows on hover with accent color:
+  - hover:border-amber-500/40, hover:bg-amber-500/10
+  - hover:shadow-[0_0_8px_rgba(245,158,11,0.2)] glow effect
+
+### 5. Enhanced Table Styling:
+- Alternating row gradient highlights using audit outcome color (e.g., Clean rows have green gradient, Disclaimer rows have red gradient)
+- Hover row glow effects: onMouseEnter/onMouseLeave handlers set dynamic background and boxShadow
+- Left border color indicators matching audit outcome (3px solid color)
+- Hover background uses stronger gradient with wider spread
+
+### 6. NEW: Audit Outcome Timeline Visualization:
+- Interactive horizontal timeline showing audit outcomes over 5 years (2019/20 to 2023/24)
+- Each year is a node connected by gradient lines (ACCENT_FROM → ACCENT_TO)
+- Mini stacked bars inside each node showing audit outcome distribution
+- Click on a year node to see detail popover with full breakdown (5 categories with values and percentages)
+- Clean audit trend line overlay (dashed green line with dots)
+- SVG + Framer Motion for animated drawing of timeline path, node entrances, and bar fills
+- Placed between the 5-Year Stacked Bar Chart and Municipality Audit Outcomes section
+- Legend for the trend line in top-left corner
+
+### Technical Additions:
+- New useCountUp hook: Custom React hook for animated number counting with easeOutCubic
+- New GaugeRing component: SVG circular progress indicator with animated stroke
+- New MiniSparkline component: SVG polyline sparkline with gradient fill
+- New CleanAuditOuterRing component: SVG animated ring for donut chart
+- New AuditOutcomeTimeline component: Full interactive SVG timeline with Framer Motion
+- Added Lucide icons: Clock, ChevronDown, ChevronUp, Zap
+- Added useEffect, useCallback imports for new hooks
+- SPARKLINE_DATA constant for 5-quarter mini trends
+
+Stage Summary:
+- All 5 mandatory styling improvements implemented
+- All 4 VLM assessment issues addressed (limited interactivity, data visualization gap, glass morphism refinement, missing micro-interactions)
+- New Audit Outcome Timeline feature fully implemented with SVG + Framer Motion
+- All existing functionality preserved (header, quick actions, donut chart, trajectory, 5-year chart, municipality outcomes, MI tracker, grades table, clean audit probability)
+- AGASAlert.tsx lint passes (0 errors, 0 warnings)
+- Dev server compiles successfully
+
+---
+Task ID: R9-2c
+Agent: EarlyAlert Enhancer
+Task: Enhance EarlyAlert module from 8.2/10 to 9/10
+
+Work Log:
+- Read existing EarlyAlert.tsx (866 lines) and worklog for context
+- Analyzed VLM assessment issues: glass morphism refinement, high-priority alerts visual dominance, flat elements, micro-interactions
+- Enhanced Traffic Light Grid:
+  - Upgraded blocks from size-14 rounded-lg to size-16 rounded-xl
+  - Added colored glow/shadow effects (boxShadow with riskCol) around each block
+  - Added animated "radar sweep" effect (RadarSweep component with conic-gradient rotation) on Critical blocks (score >= 70)
+  - Replaced simple tooltip with magnified hover card below blocks showing full municipality details (ECRS, Risk, §139, FHS, Cash, Audit, Province)
+  - Enhanced legend blocks with subtle glow shadows
+- Premium Risk Feed:
+  - Added severity-colored left borders with gradient fade (borderImage: linear-gradient(180deg, sevColor, transparent))
+  - Added subtle gradient overlay per row (opacity-[0.03])
+  - Added pulsing glow effect on Critical severity dots (Framer Motion animate with boxShadow keyframes)
+  - Enhanced Investigate buttons with gradient hover effects (hover:bg-gradient-to-r from-[#F43F5E]/20 to-[#DC2626]/20)
+- Enhanced ECRS Chart:
+  - Converted from LineChart to AreaChart with area fill gradient (4-stop linearGradient: 0%→30%→70%→100%)
+  - Added line gradient stroke (ecrsLineGradient from ACCENT_FROM to ACCENT_TO)
+  - Added reference zone bands using Recharts ReferenceArea (green 0-30, yellow 30-50, orange 50-70, red 70-100)
+  - Added PulsingDot custom component (outer circle r=7 fillOpacity=0.25, inner circle r=5 with dark stroke)
+  - Color-coded risk labels at bottom (emerald/amber/yellow/orange/red)
+- Briefing Generator Enhancement:
+  - Replaced simple "Briefing Generated" message with rich preview card
+  - Added formatted header bar with CheckCircle2 icon
+  - Added Key Risk Metrics section (4 mini cards: ECRS Score, Cash Coverage, Audit Outcome, §139 Status)
+  - Added Top Risk Signals section (up to 3 signals with severity dots)
+  - Added Recommended Actions section (context-aware based on ECRS score: Critical/High/Moderate)
+  - Added download button and page format indicator
+- Risk Distribution Pie Enhancement:
+  - Added outer ring glow effect (conic-gradient div with blur filter positioned behind the chart)
+  - Added hover scale on individual legend items (Framer Motion onHoverStart/onHoverEnd with animate scale: 1.05)
+  - Enhanced legend color dots with subtle glow shadows
+- New Feature: Municipal Risk Comparison Radar Chart:
+  - RadarChart comparing up to 3 municipalities across 6 dimensions
+  - 6 dimensions derived from MOCK_MUNICIPALITIES: Financial Health (inverted), Service Delivery Pressure, Cash Coverage Risk, Debt Risk, Audit Risk, Governance Risk
+  - Municipality selector buttons at top (toggle selection, max 3, auto-replaces oldest)
+  - Each municipality shown as different colored polygon (RADAR_COLORS: #F43F5E, #3B82F6, #10B981)
+  - Selected buttons show gradient background with color-coded glow
+  - Legend below with municipality names and colors
+  - Full tooltip support with dark theme styling
+- New Feature: Intervention Cost Estimator:
+  - Select component for municipality selection
+  - Cost breakdown with 3 line items: Administrator Salary, Support Team, Technical Advisors
+  - Each line item has color-coded left border, icon, and ZAR range display
+  - Total Estimated Annual Cost shown in gradient card with accent color
+  - ROI Indicator section with Positive/Negative badge
+  - Projected Annual Savings and ROI vs Max Cost metrics
+  - Animated ROI progress bar (green for positive, red for negative)
+  - Municipality context line showing operating budget and FHS
+  - Cost calculation scales based on municipality operating budget
+- Cleaned up unused imports (LineChart, Line, Search, formatNumber, formatPercent, idx variable)
+- Removed custom ReferenceZone component in favor of Recharts ReferenceArea
+
+Stage Summary:
+- All 5 VLM assessment issues addressed with concrete enhancements
+- Traffic Light Grid: larger blocks (size-16), rounded-xl, glow shadows, radar sweep on critical, magnified hover cards
+- Risk Feed: gradient left borders, pulsing Critical dots, gradient Investigate buttons
+- ECRS Chart: AreaChart with fill gradient, reference zone bands, pulsing dot markers
+- Briefing Generator: rich preview card with metrics, signals, recommended actions
+- Risk Distribution: outer ring glow, hover scale on legend items
+- New Municipal Risk Comparison Radar chart with 3-municipality selector
+- New Intervention Cost Estimator with ROI calculation
+- All existing functionality preserved (header, quick actions, forecasts, intervention history, key risk indicators)
+- ESLint passes with 0 errors, 0 warnings on EarlyAlert.tsx
+- Dev server compiles successfully (HTTP 200)
+
+---
+Task ID: R9-2a
+Agent: Dashboard Enhancer
+Task: Enhance Dashboard module from 7.5/10 to 8.5+/10
+
+Work Log:
+- Enhanced glass morphism across ALL card components: upgraded bg-white/[0.02] → bg-white/[0.04], backdrop-blur-sm → backdrop-blur-xl, border-white/[0.08] → border-white/[0.10], hover border-white/[0.12] → hover border-white/[0.16]
+- Added deep card shadows with inset highlight: boxShadow "0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)" on all Card components
+- Enhanced KPI cards with SVG circular progress rings around icon area showing targetPct of KPI target, with animated strokeDashoffset using Framer Motion
+- Added micro sparkline charts at bottom of each KPI card showing 7-day trend data with gradient fill under line
+- Added targetPct and sparkline data fields to KPICardData interface and kpiCards array
+- Increased KPI card padding from p-4/p-5 to p-5/p-6, added three-layer background glow orbs for depth
+- Enhanced accent lines with glow effects using boxShadow on top accent lines across all cards
+- Upgraded SectionHeader with wider accent bar (w-[3px]), glow boxShadow, bolder title (font-bold)
+- Added animated gradient section dividers between all major sections: Framer Motion animated gradient sweep effect with unique colors per section
+- Improved Financial Distress Alert banner with pulsing border animation (motion.div with opacity animation), deeper red-950/50 gradient instead of red-900/30, left accent bar with glow, outer box-shadow for depth
+- Added new LiveActivityFeedPanel component below AI Insights panel with: Live badge with pulsing dot, 10 varied feed events, staggered fade-in animation, ScrollArea with max-h-360px, entity tags and relative timestamps, footer with auto-update indicator and view all link
+- Added floating background orbs to AI Insights panel (three layers) for visual depth
+- Increased main dashboard spacing from space-y-6 to space-y-8
+- All existing functionality preserved - purely additive/enhancement changes
+
+Stage Summary:
+- Dashboard glass morphism significantly enhanced with deeper backgrounds, stronger blur, and richer shadows
+- KPI cards now feature circular SVG progress rings and micro sparkline charts for richer data density
+- Animated gradient section dividers add visual rhythm and flow between sections
+- Financial Distress Alert upgraded with pulsing border animation and darker, richer red gradient
+- New Live Activity Feed Panel provides real-time event monitoring with staggered animations
+- Spacing improved throughout for better breathing room
+- ESLint passes, dev server compiles and renders successfully on port 3000
+
+
+---
+Task ID: R9
+Agent: Main Orchestrator
+Task: Round 9 QA, VLM assessment, styling improvements, new features, and handover
+
+## Current Project Status: STABLE — VLM Quality Rating 8.5/10 (improved from 8.0/10)
+
+### QA Testing (Round 9)
+- Used agent-browser to navigate all 4 target modules (Dashboard, AGASAlert, RiskLens, EarlyAlert)
+- Logged in successfully via login page
+- No console errors detected
+- All routes return HTTP 200
+- ESLint passes cleanly (0 errors, 0 warnings)
+
+### Initial VLM Ratings (Before This Round)
+| Module | Rating | Key Issues |
+|--------|--------|-----------|
+| Dashboard | 7.5/10 | Subtle glass morphism, spacing cramped, flat cards |
+| AGASAlert | 7.8/10 | Limited interactivity, text-heavy, flat elements |
+| RiskLens | 7.8/10 | Inconsistent glass effects, missing hover states |
+| EarlyAlert | 8.2/10 | Could refine glass morphism, flat elements |
+
+### Final VLM Ratings (After This Round)
+| Module | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Dashboard | 7.5/10 | 8/10 | +0.5 |
+| AGASAlert | 7.8/10 | 8.5/10 | +0.7 |
+| RiskLens | 7.8/10 | 8.5/10 | +0.7 |
+| EarlyAlert | 8.2/10 | 8.5/10 | +0.3 |
+
+### Styling Improvements Completed
+
+**Dashboard (7.5 → 8/10):**
+1. Enhanced glass morphism: bg-white/[0.02]→[0.04], backdrop-blur-sm→blur-xl, deeper card shadows
+2. Premium gradient section dividers with animated gradient sweep (7 dividers replaced)
+3. Circular SVG progress rings on KPI card icons showing target percentage
+4. Micro sparkline charts at bottom of each KPI card showing 7-day trend
+5. Better alert section: pulsing border animation, darker richer gradient
+6. Improved spacing: space-y-6→space-y-8, mb-4→mb-5, p-4→p-5/p-6
+
+**AGASAlert (7.8 → 8.5/10):**
+1. Circular SVG gauge rings on summary stat icons showing percentage fill
+2. Micro sparkline trends at bottom of each summary card with 5-quarter data
+3. Animated count-up numbers on audit trajectory cards via useCountUp hook
+4. Premium donut chart with animated SVG outer ring showing clean audit rate
+5. Total irregular expenditure banner (R1.482B) with pulsing Zap icon
+6. Enhanced table styling: alternating row gradient highlights, hover glow, left border indicators
+
+**RiskLens (7.8 → 8.5/10):**
+1. SVG progress rings on severity cards with animated stroke fill
+2. Severity gradient bars at bottom of each card
+3. Critical card animated border glow (pulsing red)
+4. Count-up animation on severity numbers via useCountUp hook
+5. Varied blur intensity: Critical=blur-xl, High=blur-lg, Medium=blur-md, Low=blur-sm
+6. Search input in filter bar, animated filter chips with spring physics, sort-by dropdown
+7. Animated "NEW" badge on signals within 24 hours
+8. Gradient left borders on risk feed items (fading top-to-bottom)
+9. Premium severity badges with gradient backgrounds and shadow glow
+
+**EarlyAlert (8.2 → 8.5/10):**
+1. Larger traffic light blocks (size-16 rounded-xl) with colored glow shadows
+2. Radar sweep animation on Critical blocks (animated conic-gradient)
+3. Magnified hover cards showing full municipality details
+4. Gradient left borders on risk feed (severity color → transparent)
+5. Pulsing Critical dots with boxShadow keyframe animation
+6. ECRS chart: area fill gradient, reference zone bands, pulsing dot markers
+7. Rich briefing preview card with key risk metrics, top signals, recommended actions
+8. Outer ring glow effect on risk distribution donut chart
+
+### New Features Added
+
+**Dashboard — Live Activity Feed Panel:**
+- Auto-scrolling feed of 10 recent system events
+- Color-coded event type icons (RiskAlert, TenderAward, AuditUpdate, Section139, ServiceUpdate)
+- Live badge with pulsing dot indicator
+- Staggered fade-in animation for each feed item
+- Entity tags, relative timestamps, navigation arrows
+
+**AGASAlert — Audit Outcome Timeline Visualization:**
+- Interactive horizontal SVG timeline with 5 year nodes (2019/20 → 2023/24)
+- Gradient connecting lines between nodes
+- Mini stacked bars inside each node showing audit outcome distribution
+- Click a year to see detail popover with full breakdown
+- Clean audit trend line overlay (dashed green with dots)
+- Framer Motion animated path drawing and node entrance
+
+**EarlyAlert — Municipal Risk Comparison Radar:**
+- Recharts RadarChart comparing 3 selected municipalities across 6 dimensions
+- Interactive selector buttons (toggle up to 3 municipalities)
+- 6 risk dimensions: Financial Health (inverted), Service Delivery, Cash Coverage, Debt Risk, Audit Risk, Governance Risk
+- Color-coded polygons with legend
+
+**EarlyAlert — Intervention Cost Estimator:**
+- Municipality dropdown selector
+- Cost breakdown: Administrator Salary, Support Team, Technical Advisors with ZAR ranges
+- Total annual cost display in gradient-accented card
+- ROI Indicator with animated progress bar and Positive/Negative badge
+
+**RiskLens — Risk Correlation Matrix:**
+- 8×8 heatmap showing correlation between signal types
+- Color coding: blue (0-0.3 low), amber (0.3-0.6 moderate), red (0.6-1.0 high)
+- Hover tooltip with exact score and explanation
+- Cell hover scale with matching severity glow
+- Color scale legend at bottom
+- Framer Motion stagger entrance animation
+
+### Unresolved Issues / Risks
+1. **Dashboard still at 8/10** — could benefit from additional interactive elements or a mini map widget to reach 8.5+
+2. **Accessibility**: Dark theme may reduce readability for some users — consider adding high-contrast mode
+3. **Mobile responsiveness**: Some new features (correlation matrix, radar chart) may need optimization for small screens
+4. **Performance**: Multiple Framer Motion animations on the Dashboard could be optimized with lazy mounting
+
+### Priority Recommendations for Next Phase
+1. **HIGH**: Dashboard additional enhancements to reach 8.5/10+ — add interactive mini map widget, animated provincial comparison cards
+2. **MEDIUM**: Add high-contrast/light mode accessibility toggle
+3. **MEDIUM**: Optimize mobile responsiveness for new features (radar chart, correlation matrix, timeline)
+4. **LOW**: Performance optimization — use `lazy` variants for off-screen animations
+5. **LOW**: Add export functionality to new features (timeline data export, correlation matrix download)
