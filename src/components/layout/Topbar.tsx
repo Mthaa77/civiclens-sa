@@ -40,6 +40,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
+import NotificationsPanel from '@/components/layout/NotificationsPanel';
 import {
   CommandDialog,
   CommandInput,
@@ -83,6 +84,7 @@ export default function Topbar() {
     useNavigationStore();
   const { theme, setTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -209,6 +211,7 @@ export default function Topbar() {
               variant="ghost"
               size="icon"
               className="relative size-8 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all duration-200"
+              onClick={() => setNotificationsOpen(true)}
             >
               <Bell className="size-4" />
               <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-[#0a0e1a]">
@@ -284,6 +287,9 @@ export default function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      {/* ── Notifications Panel ──────────────────────────────── */}
+      <NotificationsPanel open={notificationsOpen} onOpenChange={setNotificationsOpen} />
 
       {/* ── Command Palette Dialog ──────────────────────────────── */}
       <CommandDialog

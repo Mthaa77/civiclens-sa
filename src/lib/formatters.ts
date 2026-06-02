@@ -18,9 +18,18 @@ export function formatZAR(value: number | null | undefined): string {
  */
 export function formatCompactZAR(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  if (value >= 1_000_000_000) return `R${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `R${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `R${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_000_000_000) {
+    const b = value / 1_000_000_000;
+    return `R${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`;
+  }
+  if (value >= 1_000_000) {
+    const m = value / 1_000_000;
+    return `R${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    const k = value / 1_000;
+    return `R${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}K`;
+  }
   return `R${value.toFixed(0)}`;
 }
 

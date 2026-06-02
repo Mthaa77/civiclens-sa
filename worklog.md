@@ -727,3 +727,149 @@ Stage Summary:
 - AI Analyst backend integrated with z-ai-web-dev-sdk
 - POPIA language protocol enforced in AI system prompt
 - Lint passes, dev server compiles successfully
+
+---
+Task ID: CR-1
+Agent: Feature Enhancer
+Task: Add Login/Welcome Page, Sticky Footer, and Auth Flow to CivicLens SA
+
+Work Log:
+
+### 1. LoginPage Component (`/src/components/modules/LoginPage.tsx`)
+- Full-screen login page with SA flag gradient background (navy → green → gold)
+- Animated background effects: gradient orbs (green, gold, navy), grid pattern, scan line
+- CivicLens SA branding with Fingerprint icon logo and gradient text ("SA" in green→gold)
+- Tagline: "The Intelligence Layer for South Africa's Public Sector"
+- Sign In card with glass morphism styling:
+  - Lock icon header with "Welcome back" title
+  - Email input with placeholder "analyst@civiclens.co.za"
+  - Password input with show/hide toggle (Eye/EyeOff icons)
+  - "Forgot Password?" link with gold hover
+  - Sign In button with gradient (green) + Shield icon + loading state (1.5s simulated auth)
+  - "or continue with" divider
+  - Google and Microsoft social login buttons (visual only, with brand SVG icons)
+  - "Don't have an account? Request Access" link
+- Key stats on left side (animated stat pills):
+  - 257 Municipalities Monitored (Building2 icon, gold accent)
+  - R478B+ Active Tenders Tracked (Shield icon, gold accent)
+  - 234 Risk Signals Active (AlertTriangle icon, gold accent)
+- POPIA compliance notice at bottom with Shield icon
+- Staggered Framer Motion entrance animations throughout (delay: 0.2 → 1.2)
+- onLogin callback prop for auth flow integration
+
+### 2. Footer Component (`/src/components/layout/Footer.tsx`)
+- Sticky footer with `mt-auto` for proper bottom positioning
+- Gradient top border: SA colors (navy → green → gold → green → navy)
+- Glass morphism background: bg-[#0a0e1a]/80 + backdrop-blur-md
+- Compact height (py-2)
+- Left: "© 2026 Carter Digitals (Pty) Ltd · B-BBEE Level 1 EME"
+- Center: "Data Residency: GCP africa-south1 · POPIA Compliant" (with Server + Shield icons)
+- Right: "v2.4.0 · Powered by CivicLens SA" (gradient text brand name)
+- Responsive: stacks on mobile, row on desktop
+
+### 3. Updated Navigation Store (`/src/store/navigation.ts`)
+- Added `isAuthenticated: boolean` (default: false)
+- Added `setAuthenticated: (auth: boolean) => void` action
+
+### 4. Updated AppShell (`/src/components/layout/AppShell.tsx`)
+- Imported Footer and LoginPage components
+- Added isAuthenticated + setAuthenticated from navigation store
+- Auth gate: if not authenticated, shows LoginPage with AnimatePresence
+- LoginPage's onLogin callback calls setAuthenticated(true)
+- When authenticated, shows normal layout: Sidebar + Topbar + Content + Footer
+- Footer added below main content area in the flex column layout
+- Smooth Framer Motion transition between login and dashboard views
+
+Stage Summary:
+- Premium login page with SA flag colors, animated background, and intelligence system aesthetic
+- Glass morphism sticky footer with gradient SA color border
+- Full authentication flow: login → dashboard transition
+- All lint checks pass, dev server renders correctly (200 status)
+
+---
+Task ID: CR-2
+Agent: Feature Enhancer
+Task: Add Notifications Panel, Data Export, Live Dashboard, and Shared Components
+
+Work Log:
+
+### 1. NotificationsPanel (`/src/components/layout/NotificationsPanel.tsx`)
+- Slide-out Sheet component (from right, 420px max width) triggered from Topbar bell icon
+- Header with "Notifications" title, unread count badge (red), "Mark all read" button
+- 10 realistic South African government notification items:
+  - n1: Critical Risk Signal — Emfuleni cash flow crisis (5 min ago, unread, critical/red border)
+  - n2: New Tender Published — City of Cape Town R2.4B infrastructure (32 min ago, unread, info/green border)
+  - n3: Section 139 Status Changed — Mangaung mandatory administration (1 hour ago, unread, critical/red border)
+  - n4: Council Dissolution Imminent — Ethekwini vote of no confidence (2 hours ago, read, warning/amber border)
+  - n5: Irregular Expenditure Spike — Limpopo R3.2B Q3 (3 hours ago, read, warning/amber border)
+  - n6: Tender Deadline Approaching — Eskom Medupi R8.7B (5 hours ago, read, warning/amber border)
+  - n7: Clean Audit Achievement — Winelands 5th consecutive (Yesterday, read, info/green border)
+  - n8: Service Delivery Crisis — Nxuba water at 12% (Yesterday, read, critical/red border)
+  - n9: By-Election Results Certified — 23 wards, 48.2% turnout (2 days ago, read, info/green border)
+  - n10: Tender Award Dispute Filed — eThekwini R1.1B (3 days ago, read, info/green border)
+- Each notification: type icon (AlertTriangle/FileText/Building2/Vote), title, description, timestamp, read/unread blue dot, severity color left border
+- Framer Motion staggered animation (0.05s stagger) for list items
+- "View All Notifications" footer link
+- Empty state with CheckCheck icon when all read
+- Click notification to mark as read
+- "Mark all read" button to clear all unread indicators
+
+### 2. Topbar.tsx Update (`/src/components/layout/Topbar.tsx`)
+- Added `notificationsOpen` state variable
+- Imported and rendered `NotificationsPanel` component
+- Wired bell icon `onClick` to `setNotificationsOpen(true)`
+- Panel renders below header in component tree
+
+### 3. Dashboard Enhancement (`/src/components/modules/Dashboard.tsx`)
+
+**Live Data Indicator:**
+- Pulsing green dot with `animate-ping` ring effect + solid emerald dot
+- "Live Data" text in emerald with uppercase tracking
+- Auto-incrementing "Last updated: Xs ago" counter (updates every second)
+- Counter formats: seconds (<60s), minutes+seconds (<60m), hours+minutes
+
+**Refresh Button:**
+- RefreshCw icon with spin animation during refresh (800ms)
+- Resets counter to "0s ago"
+- Ghost button with border styling matching dashboard theme
+
+**Data Export Dropdown:**
+- Download icon button with "Export" label
+- Three options: Export as CSV (emerald icon), Export as PDF (red icon), Export as Excel (amber icon)
+- Click triggers toast via sonner: "Preparing your export..." (info toast with description)
+- 2-second delay then: "Export complete! File saved to Downloads" (success toast with filename)
+- Dark-themed dropdown menu matching platform aesthetic
+
+**KPI Format Fix:**
+- Total Tender Value hardcoded to "R478.0B" to prevent scientific notation display (was using formatCompactZAR which could produce "R478.0E" in some locales)
+
+**StatusBar → DashboardHeader Replacement:**
+- Replaced simple StatusBar with full DashboardHeader component
+- Responsive flex layout: info bar + action buttons side by side on desktop, stacked on mobile
+- Retained all original StatusBar info (data cycle, version, Shield icon)
+
+### 4. DataCaveat Component (`/src/components/shared/DataCaveat.tsx`)
+- Reusable POPIA/data source caveat banner
+- Props: source (string), period (string), type ('Census'|'Survey'|'Administrative'|'Model')
+- Displays: "Source: [name] | Period: [period] | Type: [type]"
+- POPIA compliance notice: "Subject to POPIA compliance. Data sourced from official SA government repositories."
+- Glass morphism style with subtle amber/teal gradient background
+- Color-coded type labels: Census=blue, Survey=amber, Administrative=emerald, Model=purple
+- ShieldCheck icon with teal accent
+- Info icon with POPIA notice
+
+### 5. SourceCitation Component (`/src/components/shared/SourceCitation.tsx`)
+- Small chip component for data source attribution
+- Props: source (string), period (string), type ('Census'|'Survey'|'Administrative'|'Model')
+- Type-specific icons: Census=Database, Survey=BarChart3, Administrative=FileText, Model=Brain
+- Color-coded: Census=blue, Survey=amber, Administrative=emerald, Model=purple
+- Inline-flex layout: icon + type label + source + period
+- Compact design with colored background, border, and backdrop blur
+
+Stage Summary:
+- Notifications panel with 10 realistic SA government alerts and full interactivity
+- Dashboard enhanced with live data indicator, auto-counter, refresh, and data export
+- KPI format fixed to display "R478.0B" correctly
+- Two reusable shared components (DataCaveat, SourceCitation) for data provenance
+- All components use 'use client', shadcn/ui, Framer Motion, premium dark theme
+- ESLint passes, dev server compiles successfully

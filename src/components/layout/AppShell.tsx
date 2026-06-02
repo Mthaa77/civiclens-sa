@@ -8,6 +8,8 @@ import { MODULES } from '@/lib/mock-data';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import Footer from './Footer';
+import LoginPage from '@/components/modules/LoginPage';
 import Dashboard from '@/components/modules/Dashboard';
 import TenderLens from '@/components/modules/TenderLens';
 import MuniLens from '@/components/modules/MuniLens';
@@ -172,7 +174,7 @@ function MobileSidebar() {
 
 // ── Main App Shell ─────────────────────────────────────────────────────────
 export default function AppShell() {
-  const { activeModule, sidebarCollapsed, sidebarOpen, setSidebarOpen } =
+  const { activeModule, sidebarCollapsed, sidebarOpen, setSidebarOpen, isAuthenticated, setAuthenticated } =
     useNavigationStore();
   const isMobile = useIsMobile();
 
@@ -183,6 +185,24 @@ export default function AppShell() {
     }
   }, [activeModule, isMobile, setSidebarOpen]);
 
+  // ── Not authenticated → show LoginPage ──────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="login"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <LoginPage onLogin={() => setAuthenticated(true)} />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // ── Authenticated → show Dashboard ──────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden bg-[#060911]">
       {/* Desktop sidebar */}
@@ -212,6 +232,8 @@ export default function AppShell() {
             </div>
           </ScrollArea>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

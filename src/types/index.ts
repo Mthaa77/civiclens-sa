@@ -184,6 +184,7 @@ export interface ChatMessage {
   sources: string[] | null;
   timestamp: string;
   isLoading?: boolean;
+  isSimulated?: boolean;
 }
 
 export interface ChatSession {

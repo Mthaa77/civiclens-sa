@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   PieChart,
@@ -27,6 +27,11 @@ import {
   Clock,
   Shield,
   Map,
+  Download,
+  FileSpreadsheet,
+  FileDown,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -47,6 +52,13 @@ import {
 import { useNavigationStore } from '@/store/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -57,7 +69,40 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import type { ModuleId } from '@/types';
+
+// ── Live Data Indicator Hook ───────────────────────────────────────────────
+
+function useLiveCounter(refreshInterval: number = 1) {
+  const [seconds, setSeconds] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const refresh = useCallback(() => {
+    setIsRefreshing(true);
+    setSeconds(0);
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 800);
+  }, []);
+
+  const formatCounter = () => {
+    if (seconds < 60) return `${seconds}s ago`;
+    const mins = Math.floor(seconds / 60);
+    if (mins < 60) return `${mins}m ${seconds % 60}s ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ${mins % 60}m ago`;
+  };
+
+  return { counter: formatCounter(), isRefreshing, refresh, seconds };
+}
 
 // ── Animation Variants ──────────────────────────────────────────────────────
 
@@ -129,7 +174,7 @@ const kpiCards: KPICardData[] = [
   },
   {
     label: 'Total Tender Value',
-    value: formatCompactZAR(DASHBOARD_KPIS.totalTenderValue),
+    value: 'R478.0B',
     rawValue: DASHBOARD_KPIS.totalTenderValue,
     trend: { direction: 'up', value: '+5.7%' },
     sentiment: 'neutral',
@@ -822,29 +867,110 @@ function TenderHighlightsPanel() {
   );
 }
 
-// ── Status Bar ──────────────────────────────────────────────────────────────
+// ── Dashboard Header ────────────────────────────────────────────────────────
 
-function StatusBar() {
+function DashboardHeader() {
+  const { counter, isRefreshing, refresh } = useLiveCounter();
+
+  const handleExport = (format: string) => {
+    toast.info('Preparing your export...', {
+      description: `Generating ${format} file with dashboard data`,
+    });
+    setTimeout(() => {
+      toast.success('Export complete! File saved to Downloads', {
+        description: `civiclens-dashboard-${Date.now()}.${format.toLowerCase()}`,
+      });
+    }, 2000);
+  };
+
   return (
-    <motion.div
-      variants={itemSlideUp}
-      className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5"
-    >
-      <div className="flex items-center gap-2">
-        <div className="flex size-2 rounded-full bg-emerald-400 animate-pulse-glow" />
-        <span className="text-[11px] font-medium text-zinc-400">System Operational</span>
-      </div>
-      <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
-      <div className="flex items-center gap-1.5">
-        <Shield className="size-3 text-zinc-600" />
-        <span className="text-[11px] text-zinc-500">
-          Data as of 03 Mar 2026 — MFMA 2023/24 cycle
+    <motion.div variants={itemSlideUp} className="flex flex-col sm:flex-row sm:items-center gap-3">
+      {/* Live Indicator + Counter */}
+      <div className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 flex-1">
+        <div className="flex items-center gap-2">
+          <div className="relative flex size-2.5 items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40" />
+            <div className="relative size-2 rounded-full bg-emerald-400" />
+          </div>
+          <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+            Live Data
+          </span>
+        </div>
+        <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
+        <div className="flex items-center gap-1.5">
+          <Shield className="size-3 text-zinc-600" />
+          <span className="text-[11px] text-zinc-500">
+            Data as of 03 Mar 2026 — MFMA 2023/24 cycle
+          </span>
+        </div>
+        <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
+        <div className="flex items-center gap-1.5">
+          <Clock className="size-3 text-zinc-600" />
+          <span className="text-[11px] text-zinc-500 font-mono">
+            Last updated: {counter}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <span className="text-[10px] text-zinc-600 font-mono hidden sm:inline">
+          v1.0.0-mvp
         </span>
       </div>
-      <div className="flex-1" />
-      <span className="text-[10px] text-zinc-600 font-mono">
-        v1.0.0-mvp
-      </span>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Refresh */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refresh}
+          className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
+        >
+          <RefreshCw
+            className={cn('size-3.5', isRefreshing && 'animate-spin')}
+          />
+          <span className="text-[11px]">Refresh</span>
+        </Button>
+
+        {/* Export Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] border border-white/[0.06]"
+            >
+              <Download className="size-3.5" />
+              <span className="text-[11px]">Export</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="bg-[#0d1224] border-white/[0.08]"
+            align="end"
+          >
+            <DropdownMenuItem
+              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
+              onClick={() => handleExport('CSV')}
+            >
+              <FileSpreadsheet className="mr-2 size-4 text-emerald-400" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
+              onClick={() => handleExport('PDF')}
+            >
+              <FileDown className="mr-2 size-4 text-red-400" />
+              Export as PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer"
+              onClick={() => handleExport('XLSX')}
+            >
+              <FileSpreadsheet className="mr-2 size-4 text-amber-400" />
+              Export as Excel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </motion.div>
   );
 }
@@ -854,8 +980,8 @@ function StatusBar() {
 export default function Dashboard() {
   return (
     <div className="space-y-5">
-      {/* ── Status Bar ──────────────────────────────────────────── */}
-      <StatusBar />
+      {/* ── Dashboard Header ────────────────────────────────────── */}
+      <DashboardHeader />
 
       {/* ── Hero KPI Strip ──────────────────────────────────────── */}
       <motion.div

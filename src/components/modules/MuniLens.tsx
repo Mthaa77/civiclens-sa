@@ -30,6 +30,11 @@ import {
   Activity,
   ChevronRight,
   AlertOctagon,
+  GitCompareArrows,
+  X,
+  CheckSquare,
+  Square,
+  ArrowUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -365,9 +370,17 @@ function MiniScoreBar({ score, label }: { score: number | null; label: string })
 function MunicipalityCard({
   muni,
   onClick,
+  compareMode,
+  isSelected,
+  onToggleSelect,
+  disabled,
 }: {
   muni: Municipality;
   onClick: () => void;
+  compareMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
+  disabled?: boolean;
 }) {
   const auditStyle = getAuditOutcomeStyle(muni.auditOutcome);
   const s139Style = getSection139Style(muni.section139Status);
@@ -380,11 +393,15 @@ function MunicipalityCard({
       className="group"
     >
       <div
-        onClick={onClick}
+        onClick={compareMode ? onToggleSelect : onClick}
         className={cn(
-          'relative overflow-hidden rounded-xl border border-white/[0.06] cursor-pointer',
-          'bg-white/[0.02] backdrop-blur-sm',
-          'hover:border-white/[0.15] hover:bg-white/[0.04]',
+          'relative overflow-hidden rounded-xl border cursor-pointer',
+          isSelected
+            ? 'border-[#7B2D8E]/50 bg-[#7B2D8E]/08'
+            : 'border-white/[0.06] bg-white/[0.02]',
+          'backdrop-blur-sm',
+          !isSelected && 'hover:border-white/[0.15] hover:bg-white/[0.04]',
+          disabled && 'opacity-50 cursor-not-allowed',
           'transition-all duration-300 p-4',
         )}
       >
@@ -400,6 +417,22 @@ function MunicipalityCard({
         <div className="absolute -top-12 -right-12 size-32 rounded-full opacity-0 group-hover:opacity-[0.05] blur-2xl transition-opacity duration-500" style={{ backgroundColor: MODULE_COLOR }} />
 
         <div className="relative space-y-3">
+          {/* Compare mode checkbox */}
+          {compareMode && (
+            <div className="absolute top-0 right-0 z-10">
+              <div className={cn(
+                'flex items-center justify-center size-6 rounded-md border transition-all',
+                isSelected
+                  ? 'bg-[#7B2D8E]/30 border-[#7B2D8E]/60 text-[#A855F7]'
+                  : disabled
+                  ? 'bg-white/[0.02] border-white/[0.06] text-zinc-700'
+                  : 'bg-white/[0.04] border-white/[0.10] text-zinc-500 hover:border-[#7B2D8E]/30'
+              )}>
+                {isSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -412,12 +445,14 @@ function MunicipalityCard({
                 <span className="text-[10px] text-zinc-500 truncate">{muni.province}</span>
               </div>
             </div>
-            <Badge
-              variant="outline"
-              className="text-[9px] h-5 px-1.5 shrink-0 border-white/[0.08] text-zinc-400"
-            >
-              {catLabel}
-            </Badge>
+            {!compareMode && (
+              <Badge
+                variant="outline"
+                className="text-[9px] h-5 px-1.5 shrink-0 border-white/[0.08] text-zinc-400"
+              >
+                {catLabel}
+              </Badge>
+            )}
           </div>
 
           {/* Score indicators */}
@@ -456,8 +491,10 @@ function MunicipalityCard({
               </span>
             </div>
 
-            {/* Chevron */}
-            <ChevronRight className="size-3.5 text-zinc-700 group-hover:text-zinc-500 transition-colors ml-1" />
+            {/* Chevron (only in non-compare mode) */}
+            {!compareMode && (
+              <ChevronRight className="size-3.5 text-zinc-700 group-hover:text-zinc-500 transition-colors ml-1" />
+            )}
           </div>
         </div>
       </div>
@@ -1467,6 +1504,218 @@ function ClimateTab({ muni }: { muni: Municipality }) {
   );
 }
 
+// ── Municipality Comparison View ─────────────────────────────────────────────
+
+const COMPARE_COLORS = ['#7B2D8E', '#10B981', '#F59E0B'];
+
+function MunicipalityComparisonView({
+  municipalities,
+  onBack,
+}: {
+  municipalities: Municipality[];
+  onBack: () => void;
+}) {
+  const munis = municipalities;
+
+  // Radar chart data: 4 dimensions for each municipality overlaid
+  const radarData = [
+    { dimension: 'Financial Health', ...Object.fromEntries(munis.map((m, i) => [`muni${i}`, m.financialHealthScore ?? 0])) },
+    { dimension: 'Service Delivery', ...Object.fromEntries(munis.map((m, i) => [`muni${i}`, m.serviceDeliveryScore ?? 0])) },
+    { dimension: 'Socio-Economic', ...Object.fromEntries(munis.map((m, i) => [`muni${i}`, m.socioEconomicIndex ?? 0])) },
+    { dimension: 'Procurement', ...Object.fromEntries(munis.map((m, i) => [`muni${i}`, m.procurementScore ?? 0])) },
+  ];
+
+  const radarConfig = Object.fromEntries(
+    munis.map((m, i) => [`muni${i}`, { label: m.name, color: COMPARE_COLORS[i] }])
+  );
+
+  // Comparison table rows
+  const comparisonRows = [
+    { label: 'Province', get: (m: Municipality) => m.province },
+    { label: 'Category', get: (m: Municipality) => getMuniCategoryLabel(m.category) },
+    { label: 'Population', get: (m: Municipality) => formatPopulation(m.population2022) },
+    { label: 'Financial Health Score', get: (m: Municipality) => m.financialHealthScore !== null ? `${m.financialHealthScore}/100` : '—', numeric: true as const, score: (m: Municipality) => m.financialHealthScore },
+    { label: 'Service Delivery Score', get: (m: Municipality) => m.serviceDeliveryScore !== null ? `${m.serviceDeliveryScore}/100` : '—', numeric: true as const, score: (m: Municipality) => m.serviceDeliveryScore },
+    { label: 'Socio-Economic Index', get: (m: Municipality) => m.socioEconomicIndex !== null ? `${m.socioEconomicIndex}/100` : '—', numeric: true as const, score: (m: Municipality) => m.socioEconomicIndex },
+    { label: 'Procurement Score', get: (m: Municipality) => m.procurementScore !== null ? `${m.procurementScore}/100` : '—', numeric: true as const, score: (m: Municipality) => m.procurementScore },
+    { label: 'Audit Outcome', get: (m: Municipality) => m.auditOutcome ?? 'N/A' },
+    { label: 'Cash Coverage (days)', get: (m: Municipality) => m.cashCoverageDays !== null ? `${m.cashCoverageDays}` : '—', numeric: true as const, score: (m: Municipality) => m.cashCoverageDays },
+    { label: 'Debtor Collection Rate', get: (m: Municipality) => m.debtorCollectionRate !== null ? `${m.debtorCollectionRate}%` : '—' },
+    { label: 'Operating Budget', get: (m: Municipality) => formatCompactZAR(m.operatingBudget) },
+    { label: 'Capital Budget', get: (m: Municipality) => formatCompactZAR(m.capitalBudget) },
+    { label: '§139 Status', get: (m: Municipality) => m.section139Status ?? 'None' },
+    { label: 'Poverty Rate', get: (m: Municipality) => formatPercent(m.povertyRate) },
+    { label: 'Youth Unemployment', get: (m: Municipality) => formatPercent(m.youthUnemployment) },
+    { label: 'Water Access', get: (m: Municipality) => formatPercent(m.waterAccess) },
+    { label: 'Sanitation Access', get: (m: Municipality) => formatPercent(m.sanitationAccess) },
+    { label: 'Early Alert Score', get: (m: Municipality) => m.earlyAlertScore !== null ? `${m.earlyAlertScore}/100` : '—', numeric: true as const, score: (m: Municipality) => m.earlyAlertScore },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      className="space-y-5"
+    >
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onBack}
+        className="mb-3 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] -ml-2"
+      >
+        <ArrowLeft className="size-4 mr-1.5" />
+        Back to Municipalities
+      </Button>
+
+      {/* Header */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl" style={{ background: `linear-gradient(135deg, ${MODULE_COLOR}25, ${MODULE_COLOR}08)`, border: `1px solid ${MODULE_COLOR}30` }}>
+            <GitCompareArrows className="size-5" style={{ color: MODULE_COLOR }} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-zinc-100">Municipality Comparison</h2>
+            <p className="text-xs text-zinc-500">Side-by-side analysis of {munis.length} municipalities</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Side-by-side score cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {munis.map((m, i) => {
+          const overallScore = [
+            m.financialHealthScore,
+            m.serviceDeliveryScore,
+            m.socioEconomicIndex,
+            m.procurementScore,
+          ].filter((s) => s !== null) as number[];
+          const avgScore = overallScore.length > 0 ? Math.round(overallScore.reduce((a, b) => a + b, 0) / overallScore.length) : null;
+          const band = getScoreBand(avgScore);
+
+          return (
+            <motion.div
+              key={m.code}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              className="glass-card p-4"
+            >
+              {/* Top accent with compare color */}
+              <div
+                className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl"
+                style={{ backgroundColor: COMPARE_COLORS[i] }}
+              />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: COMPARE_COLORS[i] }} />
+                <h3 className="text-sm font-semibold text-zinc-200 truncate">{m.name}</h3>
+              </div>
+              <p className="text-[10px] text-zinc-600 font-mono">{m.code} · {m.province}</p>
+
+              <div className="flex items-center justify-center my-3">
+                <ScoreGauge score={avgScore} label="Overall" size={80} strokeWidth={6} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Financial', score: m.financialHealthScore },
+                  { label: 'Services', score: m.serviceDeliveryScore },
+                  { label: 'Socio-Econ', score: m.socioEconomicIndex },
+                  { label: 'Procurement', score: m.procurementScore },
+                ].map((dim) => (
+                  <MiniScoreBar key={dim.label} score={dim.score} label={dim.label} />
+                ))}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Radar Chart */}
+      <div className="glass-card p-5">
+        <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
+          Score Dimension Comparison
+        </h3>
+        <ChartContainer config={radarConfig} className="h-[320px] w-full">
+          <RadarChart data={radarData}>
+            <PolarGrid stroke="rgba(255,255,255,0.08)" />
+            <PolarAngleAxis dataKey="dimension" stroke="#71717a" fontSize={10} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#52525b" fontSize={8} />
+            {munis.map((m, i) => (
+              <Radar
+                key={m.code}
+                name={`muni${i}`}
+                dataKey={`muni${i}`}
+                stroke={COMPARE_COLORS[i]}
+                fill={COMPARE_COLORS[i]}
+                fillOpacity={0.1}
+                strokeWidth={2}
+              />
+            ))}
+            <ChartTooltip content={<ChartTooltipContent />} />
+          </RadarChart>
+        </ChartContainer>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-4 mt-3">
+          {munis.map((m, i) => (
+            <div key={m.code} className="flex items-center gap-1.5">
+              <div className="size-2.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i] }} />
+              <span className="text-[10px] text-zinc-400">{m.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Comparison Table */}
+      <div className="glass-card p-4 overflow-x-auto">
+        <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
+          Detailed Metric Comparison
+        </h3>
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium py-2 pr-4 whitespace-nowrap">Metric</th>
+              {munis.map((m, i) => (
+                <th key={m.code} className="text-[10px] uppercase tracking-wider font-medium py-2 px-3 whitespace-nowrap" style={{ color: COMPARE_COLORS[i] }}>
+                  {m.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comparisonRows.map((row, idx) => (
+              <tr key={row.label} className={cn(idx % 2 === 0 ? 'bg-white/[0.01]' : '')}>
+                <td className="text-[11px] text-zinc-400 py-2 pr-4 whitespace-nowrap border-t border-white/[0.03]">
+                  <div className="flex items-center gap-1.5">
+                    {row.numeric && <ArrowUpDown className="size-2.5 text-zinc-700" />}
+                    {row.label}
+                  </div>
+                </td>
+                {munis.map((m, mIdx) => {
+                  const value = row.get(m);
+                  // For numeric rows, find best value
+                  const isBest = row.score && row.score(m) !== null &&
+                    row.score(m) === Math.max(...munis.map(mm => row.score!(mm) ?? -Infinity));
+                  return (
+                    <td key={m.code} className={cn(
+                      'text-[11px] py-2 px-3 whitespace-nowrap border-t border-white/[0.03]',
+                      isBest && mIdx > 0 ? 'text-emerald-400 font-semibold' : 'text-zinc-300'
+                    )}>
+                      {value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Municipality Detail View ────────────────────────────────────────────────
 
 function MunicipalityDetail({
@@ -1654,6 +1903,9 @@ export default function MuniLens() {
   const [provinceFilter, setProvinceFilter] = useState<string>('__all__');
   const [categoryFilter, setCategoryFilter] = useState<string>('__all__');
   const [selectedMuni, setSelectedMuni] = useState<Municipality | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Filter municipalities
   const filteredMunicipalities = useMemo(() => {
@@ -1678,8 +1930,30 @@ export default function MuniLens() {
     setSelectedMuni(null);
   }, []);
 
+  const toggleCompareMode = useCallback(() => {
+    setCompareMode((prev) => !prev);
+    setSelectedMunicipalities([]);
+    setShowComparison(false);
+  }, []);
+
+  const toggleMunicipalitySelection = useCallback((code: string) => {
+    setSelectedMunicipalities((prev) => {
+      if (prev.includes(code)) {
+        return prev.filter((c) => c !== code);
+      }
+      if (prev.length >= 3) return prev; // max 3
+      return [...prev, code];
+    });
+  }, []);
+
+  const selectedMuniObjects = useMemo(() => {
+    return selectedMunicipalities
+      .map((code) => MOCK_MUNICIPALITIES.find((m) => m.code === code))
+      .filter((m): m is Municipality => m !== undefined);
+  }, [selectedMunicipalities]);
+
   return (
-    <div className="min-h-[80vh]">
+    <div className="min-h-[80vh] pb-20">
       <AnimatePresence mode="wait">
         {selectedMuni ? (
           <motion.div
@@ -1690,6 +1964,22 @@ export default function MuniLens() {
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
             <MunicipalityDetail muni={selectedMuni} onBack={handleBack} />
+          </motion.div>
+        ) : showComparison && selectedMuniObjects.length >= 2 ? (
+          <motion.div
+            key="comparison"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <MunicipalityComparisonView
+              municipalities={selectedMuniObjects}
+              onBack={() => {
+                setShowComparison(false);
+                setSelectedMunicipalities([]);
+              }}
+            />
           </motion.div>
         ) : (
           <motion.div
@@ -1714,6 +2004,21 @@ export default function MuniLens() {
                     <h1 className="text-xl font-bold text-zinc-100">MuniLens</h1>
                     <p className="text-xs text-zinc-500">Municipality intelligence profiles for South Africa's 257 municipalities</p>
                   </div>
+                  {/* Compare button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleCompareMode}
+                    className={cn(
+                      'ml-auto gap-1.5 text-xs h-8 px-3 rounded-lg transition-all duration-200',
+                      compareMode
+                        ? 'bg-[#7B2D8E]/20 border-[#7B2D8E]/40 text-[#A855F7] hover:bg-[#7B2D8E]/30'
+                        : 'bg-white/[0.04] border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
+                    )}
+                  >
+                    <GitCompareArrows className="size-3.5" />
+                    {compareMode ? 'Cancel Compare' : 'Compare'}
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -1820,6 +2125,10 @@ export default function MuniLens() {
                     key={muni.id}
                     muni={muni}
                     onClick={() => handleSelectMuni(muni)}
+                    compareMode={compareMode}
+                    isSelected={selectedMunicipalities.includes(muni.code)}
+                    onToggleSelect={() => toggleMunicipalitySelection(muni.code)}
+                    disabled={compareMode && selectedMunicipalities.length >= 3 && !selectedMunicipalities.includes(muni.code)}
                   />
                 ))}
               </motion.div>
@@ -1845,6 +2154,64 @@ export default function MuniLens() {
                 </Button>
               </motion.div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating comparison bar */}
+      <AnimatePresence>
+        {compareMode && !showComparison && selectedMunicipalities.length > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
+          >
+            <div className="flex items-center gap-3 rounded-2xl border border-[#7B2D8E]/30 bg-[#0d1224]/95 backdrop-blur-xl px-5 py-3 shadow-2xl shadow-[#7B2D8E]/10">
+              <GitCompareArrows className="size-4 text-[#A855F7]" />
+              <span className="text-sm text-zinc-300">
+                <span className="font-bold text-[#A855F7]">{selectedMunicipalities.length}</span>/3 municipalities selected
+              </span>
+              <div className="flex items-center gap-1.5 ml-2">
+                {selectedMunicipalities.map((code, i) => {
+                  const muni = MOCK_MUNICIPALITIES.find((m) => m.code === code);
+                  return (
+                    <Badge
+                      key={code}
+                      className="text-[9px] h-5 px-1.5 gap-1 border-white/[0.08] text-zinc-300 bg-white/[0.05]"
+                      variant="outline"
+                    >
+                      <div className="size-2 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i] }} />
+                      {muni?.name ?? code}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMunicipalitySelection(code);
+                        }}
+                        className="ml-0.5 hover:text-red-400 transition-colors"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+              <Button
+                size="sm"
+                disabled={selectedMunicipalities.length < 2}
+                onClick={() => setShowComparison(true)}
+                className={cn(
+                  'ml-2 gap-1.5 text-xs h-8 px-4 rounded-lg',
+                  selectedMunicipalities.length >= 2
+                    ? 'bg-[#7B2D8E] hover:bg-[#7B2D8E]/80 text-white'
+                    : 'bg-white/[0.05] text-zinc-600 cursor-not-allowed'
+                )}
+              >
+                <GitCompareArrows className="size-3.5" />
+                Compare Now
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

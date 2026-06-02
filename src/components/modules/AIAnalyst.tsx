@@ -447,15 +447,64 @@ export default function AIAnalyst() {
 
       addMessage(loadingMessage);
 
-      // Simulate AI response delay (1-2s)
-      const delay = 1000 + Math.random() * 1000;
-      setTimeout(() => {
-        const response = generateMockResponse(text, persona);
-        updateLastMessage(response.content, response.sources);
-        setStreaming(false);
-      }, delay);
+      // Try real API first, fall back to mock
+      let isSimulated = false;
+      let responseContent = '';
+      let responseSources: string[] | null = null;
+
+      try {
+        const res = await fetch('/api/ai-analyst', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            persona,
+            history: messages.map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          responseContent = data.content || '';
+          responseSources = data.sources || null;
+        } else {
+          throw new Error(`API returned ${res.status}`);
+        }
+      } catch {
+        // Fallback to mock response
+        isSimulated = true;
+        const mockResponse = generateMockResponse(text, persona);
+        responseContent = mockResponse.content;
+        responseSources = mockResponse.sources;
+
+        // Simulate delay for mock responses
+        await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
+      }
+
+      updateLastMessage(responseContent, responseSources);
+      // Store isSimulated flag on the last message
+      // We need to update the message to include isSimulated
+      setStreaming(false);
+
+      // Update the isSimulated flag on the last message
+      // Since updateLastMessage doesn't support isSimulated, we use a workaround
+      // by appending a marker in the sources or content - but actually we can
+      // use a custom approach by directly updating the store
+      if (isSimulated) {
+        // We'll use a small delay and update the message metadata
+        setTimeout(() => {
+          // Access the store directly to update isSimulated
+          const state = useAIAnalystStore.getState();
+          const msgs = [...state.messages];
+          if (msgs.length > 0) {
+            const last = msgs[msgs.length - 1];
+            msgs[msgs.length - 1] = { ...last, isSimulated: true };
+            useAIAnalystStore.setState({ messages: msgs });
+          }
+        }, 0);
+      }
     },
-    [addMessage, isStreaming, persona, setStreaming, updateLastMessage]
+    [addMessage, isStreaming, persona, setStreaming, updateLastMessage, messages]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
