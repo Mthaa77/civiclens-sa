@@ -14,6 +14,7 @@ import {
   BarChart,
   Bar,
   ReferenceLine,
+  Cell,
 } from 'recharts';
 import {
   BookOpen,
@@ -653,7 +654,7 @@ export default function PolicyLens() {
   }, [briefTopic, briefGeography]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 overflow-x-hidden">
       {/* ── Enhanced Module Header ─────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-1">
@@ -688,8 +689,8 @@ export default function PolicyLens() {
             </h1>
             <p className="text-xs text-zinc-400">Evidence-based policy intelligence</p>
           </div>
-          <Badge className="badge-premium badge-phase2 ml-2">Phase 2</Badge>
-          <Badge className="badge-premium ml-1" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
+          <Badge className="badge-premium badge-phase2 ml-2 hidden sm:inline-flex">Phase 2</Badge>
+          <Badge className="badge-premium ml-1 hidden sm:inline-flex" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
             <BookOpen className="size-3 mr-1" />Policy Intelligence
           </Badge>
         </div>
@@ -710,15 +711,15 @@ export default function PolicyLens() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -40 }}
                       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                      className="absolute inset-0 flex items-center gap-4 p-4"
+                      className="absolute inset-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4"
                     >
-                      <div className="flex size-10 items-center justify-center rounded-xl shrink-0" style={{ background: `${insight.color}15`, border: `1px solid ${insight.color}25` }}>
-                        <insight.icon className="size-5" style={{ color: insight.color }} />
+                      <div className="flex size-8 sm:size-10 items-center justify-center rounded-lg sm:rounded-xl shrink-0" style={{ background: `${insight.color}15`, border: `1px solid ${insight.color}25` }}>
+                        <insight.icon className="size-4 sm:size-5" style={{ color: insight.color }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-200">{insight.title}</p>
-                        <p className="text-[11px] text-zinc-300 leading-relaxed mt-0.5">{insight.description}</p>
-                        <p className="text-[10px] text-cyan-400/80 mt-1 italic">{insight.recommendation}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-zinc-200">{insight.title}</p>
+                        <p className="text-[10px] sm:text-[11px] text-zinc-300 leading-relaxed mt-0.5 line-clamp-2 sm:line-clamp-none">{insight.description}</p>
+                        <p className="text-[9px] sm:text-[10px] text-cyan-400/80 mt-1 italic hidden sm:block">{insight.recommendation}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {POLICY_INSIGHTS.map((_, j) => (
@@ -742,7 +743,8 @@ export default function PolicyLens() {
       </motion.div>
 
       <Tabs defaultValue="brief" className="space-y-4">
-        <TabsList className="bg-white/[0.03] border border-white/[0.06] h-9">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <TabsList className="bg-white/[0.03] border border-white/[0.06] h-9 w-max min-w-full sm:w-auto">
           <TabsTrigger value="brief" className="text-[11px] data-[state=active]:bg-[#0F766E]/20 data-[state=active]:text-[#06B6D4]">
             <Sparkles className="size-3 mr-1" /> Brief Generator
           </TabsTrigger>
@@ -756,6 +758,7 @@ export default function PolicyLens() {
             <Table2 className="size-3 mr-1" /> Comparison
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* ── Brief Generator Tab ──────────────────────────── */}
         <TabsContent value="brief">
@@ -799,7 +802,7 @@ export default function PolicyLens() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <label className="text-[11px] font-medium text-zinc-400">Topic</label>
                     <Input
@@ -960,7 +963,67 @@ export default function PolicyLens() {
         {/* ── Indicator Explorer Tab ───────────────────────── */}
         <TabsContent value="explorer">
           <motion.div variants={containerStagger} initial="hidden" animate="show" className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* ── Policy Impact Score Cards ──────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+              {[
+                { theme: 'Labour', score: 38, trend: 'down' as const, color: '#3B82F6', icon: Users },
+                { theme: 'Poverty', score: 42, trend: 'up' as const, color: '#EF4444', icon: Scale },
+                { theme: 'Health', score: 61, trend: 'up' as const, color: '#10B981', icon: Heart },
+                { theme: 'Education', score: 58, trend: 'up' as const, color: '#8B5CF6', icon: GraduationCap },
+                { theme: 'Water', score: 53, trend: 'down' as const, color: '#0891B2', icon: Droplets },
+                { theme: 'Crime', score: 34, trend: 'down' as const, color: '#F59E0B', icon: Target },
+              ].map((item, i) => {
+                const circumference = 2 * Math.PI * 18;
+                const offset = circumference - (item.score / 100) * circumference;
+                const trendIcon = item.trend === 'up' ? ArrowUpRight : item.trend === 'down' ? ArrowDownRight : Minus;
+                const TrendIcon = trendIcon;
+                const trendColor = item.trend === 'up' ? '#10B981' : item.trend === 'down' ? '#EF4444' : '#71717a';
+                return (
+                  <motion.div
+                    key={item.theme}
+                    variants={itemSlideUp}
+                    whileHover={{ scale: 1.03, y: -3 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: item.color, opacity: 0.8 }} />
+                      <CardContent className="p-3 flex flex-col items-center">
+                        <div className="relative flex items-center justify-center mb-1.5">
+                          <svg width={48} height={48} className="shrink-0">
+                            <circle cx={24} cy={24} r={18} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={3} />
+                            <motion.circle
+                              cx={24} cy={24} r={18} fill="none" stroke={item.color} strokeWidth={3}
+                              strokeLinecap="round"
+                              strokeDasharray={circumference}
+                              initial={{ strokeDashoffset: circumference }}
+                              animate={{ strokeDashoffset: offset }}
+                              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1], delay: i * 0.1 + 0.3 }}
+                              transform="rotate(-90 24 24)"
+                              style={{ filter: `drop-shadow(0 0 3px ${item.color}60)` }}
+                            />
+                          </svg>
+                          <div className="absolute flex flex-col items-center justify-center">
+                            <span className="text-sm font-bold tabular-nums" style={{ color: item.color }}>{item.score}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <item.icon className="size-3" style={{ color: item.color }} />
+                          <span className="text-[10px] sm:text-[11px] font-semibold text-zinc-300">{item.theme}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <TrendIcon className="size-2.5" style={{ color: trendColor }} />
+                          <span className="text-[9px] font-medium" style={{ color: trendColor }}>
+                            {item.trend === 'up' ? 'Improving' : item.trend === 'down' ? 'Declining' : 'Stable'}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
               {THEMES.map((theme) => (
                 <motion.div key={theme.id} variants={itemSlideUp} whileHover={{ scale: 1.03 }} transition={{ duration: 0.2 }}>
                   <Card
@@ -1120,7 +1183,7 @@ export default function PolicyLens() {
         <TabsContent value="trends">
           <motion.div variants={itemFadeIn} initial="hidden" animate="show" className="space-y-4">
             {/* Mini Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {[
                 { label: 'Unemployment', value: '31.5%', trend: 'down', color: '#3B82F6', prev: '32.1%' },
                 { label: 'Youth Unemployment', value: '44.8%', trend: 'down', color: '#EF4444', prev: '45.5%' },
@@ -1189,7 +1252,7 @@ export default function PolicyLens() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="h-[380px]">
+                <div className="h-[180px] sm:h-[260px] md:h-[340px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={getTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                       <defs>
@@ -1253,6 +1316,87 @@ export default function PolicyLens() {
 
         {/* ── Comparison Tables Tab ────────────────────────── */}
         <TabsContent value="comparison">
+          {/* ── Provincial Ranking Mini-Chart ──────────────── */}
+          <motion.div variants={itemSlideUp} initial="hidden" animate="show">
+            <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="size-4" style={{ color: ACCENT_TO }} />
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-zinc-200">Provincial Ranking</CardTitle>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">Unemployment rate by province — sorted worst to best</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <div className="size-2 rounded-sm bg-emerald-400" />
+                      <span className="text-[9px] text-zinc-400">Best</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="size-2 rounded-sm bg-amber-400" />
+                      <span className="text-[9px] text-zinc-400">Mid</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="size-2 rounded-sm bg-red-400" />
+                      <span className="text-[9px] text-zinc-400">Worst</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[180px] sm:h-[240px] md:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[...PROVINCIAL_COMPARISON].sort((a, b) => b.unemployment - a.unemployment)}
+                      layout="vertical"
+                      margin={{ top: 0, right: 30, left: 80, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="rankGreenGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#10B981" />
+                          <stop offset="100%" stopColor="#10B98180" />
+                        </linearGradient>
+                        <linearGradient id="rankAmberGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#F59E0B" />
+                          <stop offset="100%" stopColor="#F59E0B80" />
+                        </linearGradient>
+                        <linearGradient id="rankRedGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#EF4444" />
+                          <stop offset="100%" stopColor="#EF444480" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                      <XAxis type="number" domain={[0, 50]} tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'rgba(13,18,36,0.95)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: '#e4e4e7',
+                          boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+                        }}
+                        formatter={(v: number) => [`${v.toFixed(1)}%`, 'Unemployment']}
+                      />
+                      <Bar dataKey="unemployment" barSize={14} radius={[0, 4, 4, 0]}>
+                        {[...PROVINCIAL_COMPARISON].sort((a, b) => b.unemployment - a.unemployment).map((entry, index) => {
+                          const total = PROVINCIAL_COMPARISON.length;
+                          let fill = 'url(#rankAmberGrad)';
+                          if (index < Math.ceil(total / 3)) fill = 'url(#rankRedGrad)';
+                          else if (index >= Math.ceil(total * 2 / 3)) fill = 'url(#rankGreenGrad)';
+                          return <Cell key={`rank-cell-${index}`} fill={fill} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           <motion.div variants={itemFadeIn} initial="hidden" animate="show">
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
@@ -1273,7 +1417,7 @@ export default function PolicyLens() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="h-[280px] mb-4">
+                <div className="h-[160px] sm:h-[220px] md:h-[280px] mb-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={sortedComparison} layout="vertical" margin={{ top: 0, right: 30, left: 80, bottom: 0 }}>
                       <defs>
@@ -1301,6 +1445,7 @@ export default function PolicyLens() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
                 <ScrollArea className="max-h-[400px]">
                   <Table>
                     <TableHeader>
@@ -1360,6 +1505,7 @@ export default function PolicyLens() {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

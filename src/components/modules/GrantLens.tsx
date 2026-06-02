@@ -198,7 +198,7 @@ export default function GrantLens() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* ── Header ──────────────────────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-1">
@@ -227,7 +227,7 @@ export default function GrantLens() {
       </motion.div>
 
       {/* ── Key Stats ───────────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total DORA Grants', value: animatedTotal, rawValue: totalAllocated, color: '#F59E0B', icon: Landmark },
           { label: 'Avg Q3 Spend', value: animatedAvg, rawValue: avgSpendRate, color: '#F97316', icon: Target },
@@ -265,13 +265,13 @@ export default function GrantLens() {
           </CardHeader>
           <CardContent className="pt-0">
             {/* Key Metrics Row */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 sm:p-3">
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Avg Spend Rate</p>
                 <p className="text-lg font-extrabold text-amber-400 tabular-nums">{avgSpendRate}%</p>
                 <SpendRateBar value={avgSpendRate} size="md" />
               </div>
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 sm:p-3">
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">On-Time Delivery</p>
                 <p className="text-lg font-extrabold text-emerald-400 tabular-nums">{Math.round(onTrackCount / DORA_GRANTS.length * 100)}%</p>
                 <div className="mt-1 flex items-center gap-1">
@@ -280,20 +280,20 @@ export default function GrantLens() {
                   ))}
                 </div>
               </div>
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 sm:p-3">
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Total Unspent</p>
                 <p className="text-lg font-extrabold text-red-400 tabular-nums">{formatCompactZAR(totalUnspent)}</p>
                 <p className="text-[9px] text-zinc-600 mt-1">{formatPercent((totalUnspent / totalAllocated) * 100)} of allocation</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Donut Chart - Allocated vs Spent */}
               <div>
                 <p className="text-[11px] font-medium text-zinc-400 mb-3 flex items-center gap-1.5">
                   <PieChartIcon className="size-3 text-amber-400" /> Total Grants Allocated vs Spent
                 </p>
-                <div className="h-[220px] relative">
+                <div className="h-[160px] sm:h-[200px] md:h-[220px] relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -335,7 +335,7 @@ export default function GrantLens() {
                 <p className="text-[11px] font-medium text-zinc-400 mb-3 flex items-center gap-1.5">
                   <BarChart3 className="size-3 text-amber-400" /> Provincial Grant Performance
                 </p>
-                <div className="h-[220px]">
+                <div className="h-[160px] sm:h-[200px] md:h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={PROVINCIAL_GRANT_PERFORMANCE} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9, fill: '#71717a' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
@@ -367,7 +367,7 @@ export default function GrantLens() {
                   return (
                     <motion.div
                       key={g.name}
-                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-white/[0.12] transition-all duration-200"
+                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 sm:p-2.5 hover:border-white/[0.12] transition-all duration-200"
                       whileHover={{ scale: 1.03, y: -2 }}
                     >
                       <div className="flex items-center gap-1.5 mb-1.5">
@@ -401,6 +401,7 @@ export default function GrantLens() {
           </CardHeader>
           <CardContent className="pt-0">
             <ScrollArea className="max-h-[400px]">
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/[0.06] hover:bg-transparent bg-gradient-to-r from-amber-500/[0.06] via-transparent to-transparent">
@@ -438,13 +439,14 @@ export default function GrantLens() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>
       </motion.div>
 
       {/* ── Underspending Alert + Grant Opportunities ────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Underspending */}
         <motion.div variants={itemFadeIn}>
           <Card className="border-white/[0.06] bg-white/[0.03] backdrop-blur-xl hover:border-white/[0.1] transition-all duration-300 overflow-hidden">
@@ -458,15 +460,15 @@ export default function GrantLens() {
             </CardHeader>
             <CardContent className="pt-0">
               <ScrollArea className="max-h-[380px]">
-                <div className="space-y-3">
-                  {underspending.map((grant, i) => {
+              <div className="space-y-3">
+              {underspending.map((grant, i) => {
                     const isSevere = grant.q3Spend < 50;
                     const accentColor = isSevere ? 'red' : 'amber';
                     return (
                       <motion.div
                         key={i}
                         className={cn(
-                          'rounded-lg border bg-white/[0.03] p-3.5 transition-all duration-200 overflow-hidden relative',
+                          'rounded-lg border bg-white/[0.03] p-3 sm:p-3.5 transition-all duration-200 overflow-hidden relative',
                           isSevere ? 'border-red-500/15' : 'border-amber-500/15'
                         )}
                         style={{ borderLeftWidth: '3px', borderLeftColor: isSevere ? '#EF4444' : '#F59E0B' }}
@@ -517,7 +519,7 @@ export default function GrantLens() {
                   {NGO_OPPORTUNITIES.map((opp, i) => (
                     <motion.div
                       key={i}
-                      className="rounded-lg border border-amber-500/10 bg-white/[0.03] p-3.5 hover:border-amber-500/25 transition-all duration-200 overflow-hidden relative group"
+                      className="rounded-lg border border-amber-500/10 bg-white/[0.03] p-3 sm:p-3.5 hover:border-amber-500/25 transition-all duration-200 overflow-hidden relative group"
                       whileHover={{ scale: 1.01, y: -2 }}
                     >
                       <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ boxShadow: '0 0 20px #F59E0B10' }} />

@@ -363,7 +363,7 @@ export default function CarbonLens() {
   const alertStyle = getAlertSeverityStyle(currentAlert.severity);
 
   return (
-    <div className="space-y-6 bg-grid-pattern min-h-full">
+    <div className="space-y-6 bg-grid-pattern min-h-full overflow-x-hidden">
       {/* ── Module Header ──────────────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3">
@@ -389,7 +389,7 @@ export default function CarbonLens() {
       </motion.div>
 
       {/* ── Climate Vulnerability Index ─────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Radar + Selector */}
         <motion.div variants={itemFadeIn} className="lg:col-span-2">
           <Card className="glass-card-v2 border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
@@ -426,7 +426,7 @@ export default function CarbonLens() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-                <div className="h-[280px]">
+                <div className="h-[200px] sm:h-[240px] md:h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarData}>
                       <PolarGrid stroke="rgba(255,255,255,0.06)" />
@@ -538,7 +538,7 @@ export default function CarbonLens() {
       </motion.div>
 
       {/* ── Dam Level Tracker ───────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Weekly Trend Chart */}
         <motion.div variants={itemFadeIn}>
           <Card className="glass-card-v2 border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300">
@@ -546,7 +546,7 @@ export default function CarbonLens() {
               <SectionHeader icon={Droplets} title="Dam Level Trends" subtitle="8-week trend with critical threshold" accentColor="#3B82F6" />
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-[240px]">
+              <div className="h-[180px] sm:h-[220px] md:h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={DAM_TREND_WEEKLY} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <defs>
@@ -592,7 +592,7 @@ export default function CarbonLens() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <ScrollArea className="max-h-[240px]">
+              <ScrollArea className="max-h-[200px] sm:max-h-[240px]">
                 <div className="space-y-2">
                   {DAM_LEVELS.sort((a, b) => a.current - b.current).map((dam) => {
                     const diff = dam.current - dam.longTermAvg;
@@ -642,7 +642,7 @@ export default function CarbonLens() {
       {/* ── Seasonal Outlook (NEW) ──────────────────────────── */}
       <motion.div variants={containerStagger} initial="hidden" animate="show">
         <SectionHeader icon={Sun} title="Seasonal Climate Outlook" subtitle="South Africa 2026 forecast and risk assessment" accentColor="#0D9488" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-3">
           {SEASONAL_OUTLOOK.map((season, i) => {
             const isCurrent = i === 0; // Mock: Summer is current season
             return (
@@ -726,7 +726,7 @@ export default function CarbonLens() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <ScrollArea className="max-h-[520px]">
+            <ScrollArea className="max-h-[400px] sm:max-h-[520px]">
               <div className="space-y-2">
                 {paginatedVuln.map((muni, i) => {
                   const rank = vulnPage * ITEMS_PER_PAGE + i + 1;
@@ -737,7 +737,7 @@ export default function CarbonLens() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.03, duration: 0.3 }}
-                      className="group rounded-lg border border-white/[0.06] p-3 hover:border-white/[0.12] transition-all duration-200 card-hover-lift relative overflow-hidden"
+                      className="group rounded-lg border border-white/[0.06] p-2.5 sm:p-3 hover:border-white/[0.12] transition-all duration-200 card-hover-lift relative overflow-hidden"
                       style={{ borderLeftWidth: '3px', borderLeftColor: getScoreColor(muni.cvi) }}
                     >
                       <div className="flex items-center gap-3">

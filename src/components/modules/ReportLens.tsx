@@ -217,7 +217,7 @@ export default function ReportLens() {
           <h2 className="text-sm font-semibold text-zinc-200">Report Templates</h2>
           <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-white/[0.08] text-zinc-500">{REPORT_TEMPLATES.length} templates</Badge>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {REPORT_TEMPLATES.map((tmpl) => (
             <motion.div
               key={tmpl.id}
@@ -297,7 +297,7 @@ export default function ReportLens() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                   {/* Configuration */}
                   <div className="lg:col-span-2 space-y-5">
                     {/* Date Range */}
@@ -461,6 +461,7 @@ export default function ReportLens() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
             <ScrollArea className="max-h-[320px]">
               <Table>
                 <TableHeader>
@@ -511,6 +512,7 @@ export default function ReportLens() {
                 </TableBody>
               </Table>
             </ScrollArea>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

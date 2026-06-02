@@ -258,7 +258,7 @@ export default function DataHub() {
   }, []);
 
   return (
-    <div className="space-y-6 bg-grid-fine min-h-full">
+    <div className="space-y-6 bg-grid-fine min-h-full overflow-x-hidden">
       {/* ── Premium Header ────────────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-2">
@@ -289,7 +289,7 @@ export default function DataHub() {
       </motion.div>
 
       {/* ── Key Stats ─────────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Datasets', value: String(animatedDatasetCount), color: '#0EA5E9', icon: Database, gradient: 'from-sky-500 to-sky-400' },
           { label: 'Total Records', value: `${Math.round(animatedTotalRecords / 1000)}K`, color: '#3B82F6', icon: Table2, gradient: 'from-blue-500 to-blue-400' },
@@ -315,8 +315,8 @@ export default function DataHub() {
 
       {/* ── Premium Tab Navigation ─────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-        <div className="flex items-center gap-2">
-          <TabsList className="bg-white/[0.03] border border-white/[0.06] h-10 backdrop-blur-sm">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <TabsList className="bg-white/[0.03] border border-white/[0.06] h-10 backdrop-blur-sm w-max min-w-full sm:w-auto">
             <TabsTrigger
               value="registry"
               className={cn(
@@ -387,7 +387,7 @@ export default function DataHub() {
             </div>
 
             {/* Dataset Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filteredDatasets.map((ds, i) => {
                 const formatColor = getFormatColor(ds.format);
                 const formatAccent = FORMAT_ACCENT[ds.format] || 'from-zinc-500 to-zinc-400';
@@ -577,7 +577,7 @@ export default function DataHub() {
             <SectionHeader title="Quality Metrics" subtitle="SHA-256 verification status, record counts and quality scores" icon={Shield} accent="from-teal-400 to-emerald-400" />
 
             {/* Quality overview cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {[
                 { label: 'Verified Datasets', value: String(DATASETS.filter(d => d.quality >= 95).length), total: DATASETS.length, color: '#10B981' },
                 { label: 'Avg Quality', value: `${avgQuality}%`, total: 100, color: '#0EA5E9' },
@@ -602,7 +602,7 @@ export default function DataHub() {
             </div>
 
             {/* Dataset Quality Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {DATASETS.map((ds, i) => {
                 const qualityColor = getQualityColor(ds.quality);
                 return (

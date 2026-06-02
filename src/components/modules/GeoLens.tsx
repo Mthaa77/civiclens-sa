@@ -1100,7 +1100,7 @@ export default function GeoLens() {
       <IndicatorTrendChart indicator={selectedIndicator} />
 
       {/* ── Map + Detail Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 lg:gap-5">
         {/* ── Map Card ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -1467,7 +1467,7 @@ export default function GeoLens() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-1.5 sm:gap-2">
               {sortedProvinces.map((prov, i) => {
                 const value = prov[selectedIndicator.key] as number;
                 const color = getChoroplethColor(value, min, max, selectedIndicator.invertScale, activeLayer.colorScheme);

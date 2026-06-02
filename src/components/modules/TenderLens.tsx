@@ -236,7 +236,7 @@ function FilterBar() {
       <div className="bg-[#0a0e1a]/95 backdrop-blur-xl px-4 lg:px-6 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', backgroundImage: 'linear-gradient(to right, #2D6A4F20, transparent)' }}>
         {/* Primary search row */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px] sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
             <Input
               placeholder="Search tenders by title, buyer, description..."
@@ -250,7 +250,7 @@ function FilterBar() {
             value={filters.province || '__all__'}
             onValueChange={(v) => setFilters({ province: v === '__all__' ? '' : v })}
           >
-            <SelectTrigger className="w-[160px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
+            <SelectTrigger className="w-full sm:w-[160px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
               <MapPin className="size-3.5 mr-1 text-zinc-400" />
               <SelectValue placeholder="Province" />
             </SelectTrigger>
@@ -266,7 +266,7 @@ function FilterBar() {
             value={filters.category || '__all__'}
             onValueChange={(v) => setFilters({ category: v === '__all__' ? '' : v })}
           >
-            <SelectTrigger className="w-[170px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
+            <SelectTrigger className="w-full sm:w-[170px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
               <Tag className="size-3.5 mr-1 text-zinc-400" />
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -282,7 +282,7 @@ function FilterBar() {
             value={filters.status || '__all__'}
             onValueChange={(v) => setFilters({ status: v === '__all__' ? '' : v })}
           >
-            <SelectTrigger className="w-[130px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
+            <SelectTrigger className="w-full sm:w-[130px] h-9 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -346,7 +346,7 @@ function FilterBar() {
             >
               <div className="flex items-center gap-4 flex-wrap pt-3 border-t border-white/[0.06] mt-3">
                 {/* Value Range Slider */}
-                <div className="flex items-center gap-3 min-w-[300px]">
+                <div className="flex items-center gap-3 w-full sm:w-auto sm:min-w-[300px] flex-wrap">
                   <span className="text-[11px] text-zinc-400 uppercase tracking-wider font-medium whitespace-nowrap">
                     Value Range
                   </span>
@@ -369,7 +369,7 @@ function FilterBar() {
                   value={filters.bbbeeLevel || '__all__'}
                   onValueChange={(v) => setFilters({ bbbeeLevel: v === '__all__' ? '' : v })}
                 >
-                  <SelectTrigger className="w-[140px] h-8 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
+                  <SelectTrigger className="w-full sm:w-[140px] h-8 bg-white/[0.04] border-white/[0.08] text-zinc-300 text-xs">
                     <Shield className="size-3 mr-1 text-zinc-400" />
                     <SelectValue placeholder="B-BBEE" />
                   </SelectTrigger>
@@ -445,7 +445,7 @@ function ResultsSummaryBar({
       <div className="flex items-center gap-2">
         {/* Sort dropdown */}
         <Select value={sortOption} onValueChange={(v) => onSortChange(v as SortOption)}>
-          <SelectTrigger className="w-[180px] h-8 bg-white/[0.03] border-white/[0.06] text-zinc-400 text-xs">
+          <SelectTrigger className="w-full sm:w-[180px] h-8 bg-white/[0.03] border-white/[0.06] text-zinc-400 text-xs">
             <ArrowUpDown className="size-3 mr-1" />
             <SelectValue />
           </SelectTrigger>
@@ -1561,7 +1561,7 @@ export default function TenderLens() {
           key={`${viewMode}-${currentPage}`}
           className={cn(
             viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'
               : 'flex flex-col gap-2',
           )}
         >

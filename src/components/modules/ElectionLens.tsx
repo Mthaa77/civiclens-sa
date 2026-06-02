@@ -342,7 +342,7 @@ export default function ElectionLens() {
       </motion.div>
 
       {/* ── Key Stats ───────────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <AnimatedStatCard
           label="Total Wards"
           value="4,468"
@@ -413,7 +413,7 @@ export default function ElectionLens() {
                 >
                   <div
                     className={cn(
-                      'size-10 rounded-md cursor-pointer transition-all duration-200 border border-white/[0.04]',
+                      'size-8 sm:size-10 rounded-md cursor-pointer transition-all duration-200 border border-white/[0.04]',
                       'hover:scale-110 hover:z-10',
                     )}
                     style={{
@@ -472,7 +472,7 @@ export default function ElectionLens() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-[240px]">
+              <div className="h-[180px] sm:h-[220px] md:h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={partyBarData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -486,7 +486,7 @@ export default function ElectionLens() {
               </div>
               <Separator className="my-4 bg-white/[0.06]" />
               {/* Premium Table */}
-              <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+              <div className="rounded-lg border border-white/[0.06] overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-white/[0.04] to-white/[0.02] hover:bg-white/[0.04] border-b border-white/[0.08]">
@@ -572,7 +572,7 @@ export default function ElectionLens() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-[260px]">
+              <div className="h-[200px] sm:h-[240px] md:h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={radarData}>
                     <PolarGrid stroke="rgba(255,255,255,0.06)" />

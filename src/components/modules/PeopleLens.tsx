@@ -215,7 +215,7 @@ export default function PeopleLens() {
       </motion.div>
 
       {/* ── Key Metrics ─────────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Total Population', value: '62.0M', sub: 'Census 2022', icon: Users, color: ACCENT_FROM },
           { label: 'Poverty Rate', value: '50.8%', sub: 'Upper-bound', icon: TrendingDown, color: '#EF4444' },
@@ -364,7 +364,7 @@ export default function PeopleLens() {
       </motion.div>
 
       {/* ── Labour Market + Market Sizing ────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Employment by Sector — with sector icons & gradient fills */}
         <motion.div variants={itemFadeIn}>
           <Card className="glass-card-v2 card-hover-lift overflow-hidden">
@@ -374,7 +374,7 @@ export default function PeopleLens() {
               <p className="text-[11px] text-zinc-400 mt-0.5">Formal employment distribution</p>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-[260px]">
+              <div className="h-[200px] sm:h-[240px] md:h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={EMPLOYMENT_BY_SECTOR} layout="vertical" margin={{ top: 0, right: 30, left: 80, bottom: 0 }}>
                     <defs>
@@ -502,7 +502,7 @@ export default function PeopleLens() {
             <p className="text-[11px] text-zinc-400 mt-0.5">Social grant dependency as percentage of provincial population</p>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {SASSA_BY_PROVINCE.sort((a, b) => b.pctPop - a.pctPop).map((prov, idx) => {
                 const barColor = prov.pctPop > 40 ? '#EF4444' : prov.pctPop > 30 ? '#F59E0B' : '#10B981';
                 return (

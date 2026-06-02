@@ -293,7 +293,7 @@ export default function BudgetLens() {
   }, [filterStatus]);
 
   return (
-    <div className="space-y-6 bg-grid-pattern min-h-full">
+    <div className="space-y-6 bg-grid-pattern min-h-full overflow-x-hidden">
       {/* ── Module Header ────────────────────────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-1">
@@ -311,7 +311,7 @@ export default function BudgetLens() {
             <p className="text-[11px] text-zinc-500">National Budget & MTEF Intelligence</p>
           </div>
           {/* Badges */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto hidden sm:flex">
             <Badge className="badge-premium badge-mvp text-[9px] h-5 px-2 gap-1">
               <Landmark className="size-2.5" /> National Treasury
             </Badge>
@@ -324,7 +324,7 @@ export default function BudgetLens() {
       </motion.div>
 
       {/* ── Key Stats ──────────────────────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total Budget', value: 'R2.05T', color: '#10B981', icon: DollarSign, accent: 'from-emerald-500/20 to-teal-500/10' },
           { label: 'Budget Speech', value: 'Feb 2026', color: '#14B8A6', icon: FileText, accent: 'from-teal-500/20 to-cyan-500/10' },
@@ -352,7 +352,7 @@ export default function BudgetLens() {
 
       {/* ── Filter/Sort Controls ────────────────────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
-        <div className="glass-card-v2 p-3 flex flex-wrap items-center gap-3 border-white/[0.08]">
+        <div className="glass-card-v2 p-3 sm:p-3 flex flex-wrap items-center gap-2 sm:gap-3 border-white/[0.08]">
           <div className="flex items-center gap-2 text-zinc-400">
             <Filter className="size-3.5" />
             <span className="text-[11px] font-medium uppercase tracking-wider">Filters</span>
@@ -414,7 +414,7 @@ export default function BudgetLens() {
           </CardHeader>
           <CardContent className="pt-0">
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
               {[
                 { label: 'Total Commitments', value: commitmentStats.total, color: '#a1a1aa' },
                 { label: 'On Track', value: commitmentStats.onTrack, color: '#10B981' },
@@ -498,7 +498,7 @@ export default function BudgetLens() {
       </motion.div>
 
       {/* ── MTEF Trend + Dept Expenditure ────────────────────────────────── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* MTEF Trend */}
         <motion.div variants={itemFadeIn}>
           <Card className="glass-card-v2 border-white/[0.08] overflow-hidden">
@@ -513,7 +513,7 @@ export default function BudgetLens() {
               />
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-[320px]">
+              <div className="h-[180px] sm:h-[260px] md:h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={MTEF_DATA} margin={{ top: 10, right: 20, left: -5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -571,6 +571,7 @@ export default function BudgetLens() {
             </CardHeader>
             <CardContent className="pt-0">
               <ScrollArea className="max-h-[400px]">
+                <div className="overflow-x-auto -mx-1 px-1">
                 <div className="space-y-1.5">
                   {/* Gradient header row */}
                   <div className="grid grid-cols-[1fr_100px_80px] items-center gap-2 px-3 py-1.5 rounded-md bg-gradient-to-r from-white/[0.04] to-transparent">
@@ -654,6 +655,7 @@ export default function BudgetLens() {
                       <span className="text-[11px] font-bold tabular-nums text-emerald-400">{deptTotals.pctSpent.toFixed(1)}%</span>
                     </div>
                   </div>
+                </div>
                 </div>
               </ScrollArea>
             </CardContent>

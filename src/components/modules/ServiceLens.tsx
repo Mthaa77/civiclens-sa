@@ -113,7 +113,7 @@ export default function ServiceLens() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 overflow-x-hidden">
       {/* ── Enhanced Module Header ─────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
         <div className="flex items-center gap-3 mb-1">
@@ -156,7 +156,7 @@ export default function ServiceLens() {
       </motion.div>
 
       {/* ── National Overview — with animated count-up, trend arrows, national comparison ── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Water Access', value: nationalAvg.water, icon: Droplets, color: '#3B82F6', trend: '+1.2%', unit: '%' },
           { label: 'Sanitation Access', value: nationalAvg.sanitation, icon: ShowerHead, color: '#10B981', trend: '-0.5%', unit: '%' },
@@ -166,7 +166,7 @@ export default function ServiceLens() {
           <motion.div key={stat.label} variants={itemSlideUp} whileHover={{ scale: 1.02, y: -2 }} transition={{ duration: 0.2 }}>
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${stat.color}, transparent)`, opacity: 0.8 }} />
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">{stat.label}</p>
                   <div className="flex size-8 items-center justify-center rounded-lg" style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}25` }}>
@@ -230,7 +230,7 @@ export default function ServiceLens() {
                   <TrendingDown className="size-3 mr-1" /> Declining
                 </Badge>
               </div>
-              <div className="h-[160px]">
+              <div className="h-[140px] sm:h-[160px] md:h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={BLUE_DROP_DATA} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <defs>
@@ -284,7 +284,7 @@ export default function ServiceLens() {
                   <TrendingDown className="size-3 mr-1" /> Declining
                 </Badge>
               </div>
-              <div className="h-[160px]">
+              <div className="h-[140px] sm:h-[160px] md:h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={GREEN_DROP_DATA} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <defs>
@@ -324,7 +324,7 @@ export default function ServiceLens() {
             <p className="text-[11px] text-zinc-400 mt-0.5">Household access to basic services (%)</p>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-[320px]">
+            <div className="h-[200px] sm:h-[260px] md:h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={SERVICE_DELIVERY_BY_PROVINCE} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -421,6 +421,7 @@ export default function ServiceLens() {
               <p className="text-[11px] text-zinc-400 mt-0.5">Norms and Standards compliance analysis</p>
             </CardHeader>
             <CardContent className="pt-0">
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/[0.06] hover:bg-transparent" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}08, ${ACCENT_TO}08)` }}>
@@ -465,6 +466,7 @@ export default function ServiceLens() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

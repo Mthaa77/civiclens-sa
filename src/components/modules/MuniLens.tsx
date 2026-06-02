@@ -607,26 +607,26 @@ function ScorecardTab({ muni }: { muni: Municipality }) {
     <motion.div variants={tabContentVariants} initial="hidden" animate="show" exit="exit" className="space-y-6">
       {/* Overall Score */}
       <div className="flex flex-col items-center py-4">
-        <ScoreGauge score={avgScore} label="Overall Score" size={140} strokeWidth={10} />
+        <ScoreGauge score={avgScore} label="Overall Score" size={110} strokeWidth={8} />
         <p className={cn('text-sm font-semibold mt-2', overallBand.color)}>{overallBand.label}</p>
       </div>
 
       {/* 4 Dimension Gauges */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {dimensions.map((dim) => {
           const band = getScoreBand(dim.score);
           return (
             <motion.div
               key={dim.key}
               variants={itemSlideUp}
-              className="glass-card p-4 text-center"
+              className="glass-card p-3 sm:p-4 text-center"
             >
               <div className="flex justify-center mb-2">
-                <div className="flex size-8 items-center justify-center rounded-lg" style={{ background: `${getScoreColor(dim.score)}15`, border: `1px solid ${getScoreColor(dim.score)}30` }}>
-                  <dim.icon className="size-4" style={{ color: getScoreColor(dim.score) }} />
+                <div className="flex size-7 sm:size-8 items-center justify-center rounded-lg" style={{ background: `${getScoreColor(dim.score)}15`, border: `1px solid ${getScoreColor(dim.score)}30` }}>
+                  <dim.icon className="size-3.5 sm:size-4" style={{ color: getScoreColor(dim.score) }} />
                 </div>
               </div>
-              <ScoreGauge score={dim.score} label={dim.label} size={90} strokeWidth={6} />
+              <ScoreGauge score={dim.score} label={dim.label} size={70} strokeWidth={5} />
             </motion.div>
           );
         })}
@@ -708,16 +708,16 @@ function FinanceTab({ muni }: { muni: Municipality }) {
   return (
     <motion.div variants={tabContentVariants} initial="hidden" animate="show" exit="exit" className="space-y-6">
       {/* Key Financial Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="glass-card p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Operating Budget</p>
-          <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.operatingBudget)}</p>
+          <p className="text-base sm:text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.operatingBudget)}</p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Capital Budget</p>
-          <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.capitalBudget)}</p>
+          <p className="text-base sm:text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(muni.capitalBudget)}</p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Cash Coverage</p>
           <div className="flex items-baseline gap-1.5 mt-1">
             <p className={cn('text-lg font-bold tabular-nums', cashCoverageColor)}>
@@ -732,7 +732,7 @@ function FinanceTab({ muni }: { muni: Municipality }) {
             </div>
           )}
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Debtor Collection</p>
           <div className="flex items-baseline gap-1.5 mt-1">
             <p className={cn('text-lg font-bold tabular-nums', debtorColor)}>
@@ -751,7 +751,7 @@ function FinanceTab({ muni }: { muni: Municipality }) {
       {/* Budget Comparison Chart */}
       <div className="glass-card p-4">
         <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">Budget Comparison</h3>
-        <ChartContainer config={budgetChartConfig} className="h-[200px] w-full">
+        <ChartContainer config={budgetChartConfig} className="h-[180px] sm:h-[220px] w-full">
           <BarChart data={budgetData} layout="vertical" margin={{ left: 20, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis type="number" tickFormatter={(v) => formatCompactZAR(v)} stroke="#52525b" fontSize={10} />
@@ -895,9 +895,9 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
   return (
     <motion.div variants={tabContentVariants} initial="hidden" animate="show" exit="exit" className="space-y-6">
       {/* Key Demographics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {demoMetrics.map((metric) => (
-          <div key={metric.label} className="glass-card p-4">
+          <div key={metric.label} className="glass-card p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <metric.icon className="size-3.5 text-zinc-400" />
               <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">{metric.label}</p>
@@ -910,7 +910,7 @@ function DemographicsTab({ muni }: { muni: Municipality }) {
       {/* Age Pyramid */}
       <div className="glass-card p-4">
         <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">Population Age Pyramid</h3>
-        <ChartContainer config={pyramidConfig} className="h-[350px] w-full">
+        <ChartContainer config={pyramidConfig} className="h-[250px] sm:h-[300px] md:h-[350px] w-full">
           <BarChart data={ageGroups} margin={{ left: 10, right: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis type="number" tickFormatter={(v) => `${Math.abs(v)}%`} stroke="#52525b" fontSize={9} />
@@ -1015,7 +1015,7 @@ function ServicesTab({ muni }: { muni: Municipality }) {
         <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
           Comparative Service Access
         </h3>
-        <ChartContainer config={barChartConfig} className="h-[250px] w-full">
+        <ChartContainer config={barChartConfig} className="h-[180px] sm:h-[220px] md:h-[250px] w-full">
           <BarChart data={barData} margin={{ left: 10, right: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="name" stroke="#71717a" fontSize={10} />
@@ -1184,24 +1184,24 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
   return (
     <motion.div variants={tabContentVariants} initial="hidden" animate="show" exit="exit" className="space-y-6">
       {/* Key Procurement Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="glass-card p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Tender Value Per Capita</p>
-          <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">
+          <p className="text-base sm:text-lg font-bold text-zinc-200 tabular-nums mt-1">
             {tenderValuePerCapita !== null ? formatCompactZAR(tenderValuePerCapita) : '—'}
           </p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Total Tender Value</p>
-          <p className="text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(totalTenderValue)}</p>
+          <p className="text-base sm:text-lg font-bold text-zinc-200 tabular-nums mt-1">{formatCompactZAR(totalTenderValue)}</p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Active Tenders</p>
-          <p className="text-lg font-bold text-emerald-400 tabular-nums mt-1">{activeCount}</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-400 tabular-nums mt-1">{activeCount}</p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-3 sm:p-4">
           <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Awards This Year</p>
-          <p className="text-lg font-bold text-blue-400 tabular-nums mt-1">{awardCount}</p>
+          <p className="text-base sm:text-lg font-bold text-blue-400 tabular-nums mt-1">{awardCount}</p>
         </div>
       </div>
 
@@ -1211,7 +1211,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
         <div className="glass-card p-4">
           <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">Procurement Score</h3>
           <div className="flex items-center gap-4">
-            <ScoreGauge score={muni.procurementScore} label="" size={100} strokeWidth={8} showLabel={false} />
+            <ScoreGauge score={muni.procurementScore} label="" size={80} strokeWidth={6} showLabel={false} />
             <div>
               <p className={cn('text-lg font-bold', getScoreBand(muni.procurementScore).color)}>
                 {getScoreBand(muni.procurementScore).label}
@@ -1226,7 +1226,7 @@ function ProcurementTab({ muni }: { muni: Municipality }) {
         {/* Supplier Diversity */}
         <div className="glass-card p-4">
           <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">Supplier B-BBEE Diversity</h3>
-          <ChartContainer config={diversityConfig} className="h-[180px] w-full">
+          <ChartContainer config={diversityConfig} className="h-[150px] sm:h-[180px] w-full">
             <RechartsPieChart>
               <Pie
                 data={diversityData}
@@ -1327,7 +1327,7 @@ function RiskTab({ muni }: { muni: Municipality }) {
       {/* Early Alert Score */}
       <div className="glass-card p-4">
         <div className="flex items-center gap-4">
-          <ScoreGauge score={muni.earlyAlertScore} label="" size={90} strokeWidth={7} showLabel={false} />
+          <ScoreGauge score={muni.earlyAlertScore} label="" size={70} strokeWidth={5} showLabel={false} />
           <div>
             <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Early Alert Score</p>
             <p className={cn('text-lg font-bold', getScoreBand(muni.earlyAlertScore).color)}>
@@ -1427,7 +1427,7 @@ function ClimateTab({ muni }: { muni: Municipality }) {
       {/* Climate Vulnerability Score */}
       <div className={cn('glass-card p-5', climateScoreBand.bgColor, 'border border-current/10')}>
         <div className="flex items-center gap-4">
-          <ScoreGauge score={muni.climateRiskScore} label="" size={100} strokeWidth={8} showLabel={false} />
+          <ScoreGauge score={muni.climateRiskScore} label="" size={80} strokeWidth={6} showLabel={false} />
           <div>
             <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Climate Vulnerability Score</p>
             <p className={cn('text-xl font-bold', climateScoreBand.color)}>{climateScoreBand.label}</p>
@@ -1443,7 +1443,7 @@ function ClimateTab({ muni }: { muni: Municipality }) {
         {/* Radar Chart */}
         <div className="glass-card p-4">
           <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">Risk Dimension Breakdown</h3>
-          <ChartContainer config={radarConfig} className="h-[250px] w-full">
+          <ChartContainer config={radarConfig} className="h-[200px] sm:h-[250px] w-full">
             <RadarChart data={climateBreakdown}>
               <PolarGrid stroke="rgba(255,255,255,0.08)" />
               <PolarAngleAxis dataKey="dimension" stroke="#71717a" fontSize={9} />
@@ -1663,7 +1663,7 @@ function MunicipalityComparisonView({
         <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
           Score Dimension Comparison
         </h3>
-        <ChartContainer config={radarConfig} className="h-[320px] w-full">
+        <ChartContainer config={radarConfig} className="h-[220px] sm:h-[280px] md:h-[320px] w-full">
           <RadarChart data={radarData}>
             <PolarGrid stroke="rgba(255,255,255,0.08)" />
             <PolarAngleAxis dataKey="dimension" stroke="#71717a" fontSize={10} />
@@ -1825,7 +1825,7 @@ function MunicipalityDetail({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15, duration: 0.4 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
       >
         {[
           { label: 'Financial Health', score: muni.financialHealthScore, icon: DollarSign },

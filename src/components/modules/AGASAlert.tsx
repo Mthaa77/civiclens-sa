@@ -147,6 +147,16 @@ const CLEAN_AUDIT_PROBS = [
   { name: 'Msunduzi', probability: 1, currentOutcome: 'Adverse' },
 ];
 
+// ── Audit Outcome Comparison Data (2022/23 vs 2023/24) ──────────────────────
+
+const AUDIT_COMPARISON = [
+  { outcome: 'Clean', prev: 24, current: 25 },
+  { outcome: 'Unqualified', prev: 88, current: 89 },
+  { outcome: 'Qualified', prev: 79, current: 78 },
+  { outcome: 'Adverse', prev: 34, current: 32 },
+  { outcome: 'Disclaimer', prev: 32, current: 33 },
+];
+
 // ── Sparkline data for summary stat cards (5-quarter mini trends) ──────────
 const SPARKLINE_DATA: Record<string, number[]> = {
   'Total Audits': [240, 245, 250, 253, 257],
@@ -636,10 +646,10 @@ export default function AGASAlert() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 overflow-x-hidden">
       {/* ── Enhanced Module Header ─────────────────────────── */}
       <motion.div variants={itemSlideUp} initial="hidden" animate="show">
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
           {/* Gradient accent bar */}
           <div className="w-1 h-10 rounded-full shrink-0" style={{ background: `linear-gradient(180deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
           {/* Icon with animated glow pulse */}
@@ -659,7 +669,7 @@ export default function AGASAlert() {
           </div>
           <div>
             <h1
-              className="text-xl font-bold"
+              className="text-lg sm:text-xl font-bold"
               style={{
                 background: `linear-gradient(135deg, ${ACCENT_FROM}, ${ACCENT_TO})`,
                 WebkitBackgroundClip: 'text',
@@ -669,7 +679,7 @@ export default function AGASAlert() {
             >
               AGASAlert
             </h1>
-            <p className="text-xs text-zinc-400">Auditor-General audit outcome intelligence</p>
+            <p className="text-[10px] sm:text-xs text-zinc-400">Auditor-General audit outcome intelligence</p>
           </div>
           <Badge className="badge-premium badge-phase2 ml-2">Phase 2</Badge>
           <Badge className="badge-premium ml-1" style={{ background: `${ACCENT_FROM}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>
@@ -684,23 +694,23 @@ export default function AGASAlert() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
+            className="h-9 min-h-[44px] sm:min-h-0 sm:h-8 text-[10px] sm:text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
           >
             <Download className="size-3.5" style={{ color: ACCENT_FROM }} />
-            Export Audit Report
+            <span className="hidden sm:inline">Export Audit Report</span><span className="sm:hidden">Export</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
+            className="h-9 min-h-[44px] sm:min-h-0 sm:h-8 text-[10px] sm:text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
           >
             <ExternalLink className="size-3.5" style={{ color: ACCENT_TO }} />
-            View Full AGSA Report
+            <span className="hidden sm:inline">View Full AGSA Report</span><span className="sm:hidden">Full Report</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
+            className="h-9 min-h-[44px] sm:min-h-0 sm:h-8 text-[10px] sm:text-[11px] border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-sm gap-1.5"
           >
             <GitCompareArrows className="size-3.5" style={{ color: '#10B981' }} />
             Compare Years
@@ -708,8 +718,46 @@ export default function AGASAlert() {
         </div>
       </motion.div>
 
+      {/* ── Audit Red Flags Summary Banner ───────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.5 }}
+      >
+        <div className="relative rounded-xl border border-red-500/20 bg-gradient-to-r from-red-500/[0.08] via-red-500/[0.04] to-orange-500/[0.04] backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
+          {/* Animated border pulse */}
+          <motion.div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ border: '1px solid rgba(239,68,68,0.3)' }}
+            animate={{ borderColor: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.1)', 'rgba(239,68,68,0.3)'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 relative z-10">
+            <div className="flex items-center gap-2">
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <AlertTriangle className="size-5 text-red-400" />
+              </motion.div>
+              <span className="text-xs sm:text-sm font-bold text-red-300">
+                ⚠ {AUDIT_OUTCOMES_DISTRIBUTION.find(d => d.name === 'Adverse')!.value + AUDIT_OUTCOMES_DISTRIBUTION.find(d => d.name === 'Disclaimer')!.value} Municipalities with Adverse/Disclaimer Opinions
+              </span>
+            </div>
+            <div className="hidden sm:block w-px h-5 bg-red-500/20" />
+            <span className="text-xs sm:text-sm font-semibold text-orange-300">
+              R {(totalIrregularExpenditure / 1_000_000_000).toFixed(1)} Billion in Irregular Expenditure
+            </span>
+            <div className="hidden sm:block w-px h-5 bg-red-500/20" />
+            <span className="text-[10px] sm:text-[11px] text-red-400/70">
+              MFMA 2023/24 Cycle — Requires urgent intervention
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
       {/* ── Enhanced Summary Stats Row with Gauge Rings + Sparklines ── */}
-      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <motion.div variants={containerStagger} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Total Audits', value: total, icon: FileCheck, color: ACCENT_FROM },
           { label: 'Improving', value: 38, icon: TrendingUp, color: '#10B981' },
@@ -719,19 +767,19 @@ export default function AGASAlert() {
           <motion.div key={stat.label} variants={itemSlideUp} whileHover={{ scale: 1.03, y: -3 }} transition={{ duration: 0.2 }}>
             <Card className="glass-card-v2 card-hover-lift overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${stat.color}, transparent)`, opacity: 0.8 }} />
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold tabular-nums" style={{ color: stat.color }}>
+                    <p className="text-[9px] sm:text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-1">{stat.label}</p>
+                    <p className="text-lg sm:text-2xl font-bold tabular-nums" style={{ color: stat.color }}>
                       {stat.isPercent ? `${stat.value}%` : stat.value}
                     </p>
                   </div>
                   <div className="relative flex items-center justify-center">
                     {/* SVG Gauge Ring around icon */}
-                    <GaugeRing percentage={statGauges[idx].pct} color={stat.color} size={44} strokeWidth={2.5} />
-                    <div className="absolute flex size-8 items-center justify-center rounded-lg" style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}25` }}>
-                      <stat.icon className="size-3.5" style={{ color: stat.color }} />
+                    <GaugeRing percentage={statGauges[idx].pct} color={stat.color} size={36} strokeWidth={2} />
+                    <div className="absolute flex size-6 sm:size-8 items-center justify-center rounded-lg" style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}25` }}>
+                      <stat.icon className="size-3 sm:size-3.5" style={{ color: stat.color }} />
                       {/* Pulsing animation for Improving card icon */}
                       {stat.label === 'Improving' && (
                         <motion.div
@@ -746,8 +794,8 @@ export default function AGASAlert() {
                 </div>
                 {/* Micro Sparkline trend at bottom */}
                 <div className="mt-2 flex items-end justify-between">
-                  <MiniSparkline data={SPARKLINE_DATA[stat.label] ?? []} color={stat.color} width={70} height={18} />
-                  <span className="text-[9px] text-zinc-500 tabular-nums">
+                  <MiniSparkline data={SPARKLINE_DATA[stat.label] ?? []} color={stat.color} width={56} height={14} />
+                  <span className="text-[8px] sm:text-[9px] text-zinc-500 tabular-nums">
                     {(() => {
                       const sd = SPARKLINE_DATA[stat.label] ?? [];
                       if (sd.length < 2) return '';
@@ -778,11 +826,11 @@ export default function AGASAlert() {
               <p className="text-[11px] text-zinc-400 mt-0.5">2023/24 MFMA audit outcomes — {total} municipalities</p>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex items-center gap-4">
-                <div className="relative w-[180px] h-[180px] shrink-0">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                <div className="relative w-[140px] h-[140px] sm:w-[180px] sm:h-[180px] shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={AUDIT_OUTCOMES_DISTRIBUTION} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value" strokeWidth={0}>
+                      <Pie data={AUDIT_OUTCOMES_DISTRIBUTION} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={3} dataKey="value" strokeWidth={0}>
                         {AUDIT_OUTCOMES_DISTRIBUTION.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -801,26 +849,26 @@ export default function AGASAlert() {
                     </PieChart>
                   </ResponsiveContainer>
                   {/* Animated SVG ring showing clean audit rate as outer ring */}
-                  <svg className="absolute inset-0" width="180" height="180" viewBox="0 0 180 180">
+                  <svg className="absolute inset-0" viewBox="0 0 180 180" preserveAspectRatio="xMidYMid meet">
                     <CleanAuditOuterRing percentage={cleanAuditRate} radius={80} />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-zinc-100 tabular-nums">{total}</span>
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Total</span>
-                    <span className="text-[9px] font-bold tabular-nums mt-0.5" style={{ color: ACCENT_TO }}>{cleanAuditRate.toFixed(1)}% Clean</span>
+                    <span className="text-xl sm:text-2xl font-bold text-zinc-100 tabular-nums">{total}</span>
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 uppercase tracking-wider">Total</span>
+                    <span className="text-[8px] sm:text-[9px] font-bold tabular-nums mt-0.5" style={{ color: ACCENT_TO }}>{cleanAuditRate.toFixed(1)}% Clean</span>
                   </div>
                 </div>
-                <div className="flex-1 space-y-2.5">
+                <div className="flex-1 space-y-2 sm:space-y-2.5 w-full">
                   {AUDIT_OUTCOMES_DISTRIBUTION.map((item) => (
                     <motion.div
                       key={item.name}
                       whileHover={{ x: 2, backgroundColor: 'rgba(255,255,255,0.03)' }}
                       className="flex items-center gap-2 rounded px-1 py-0.5 transition-colors"
                     >
-                      <div className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-xs text-zinc-300 flex-1">{item.name}</span>
-                      <span className="text-xs font-semibold text-zinc-200 tabular-nums">{item.value}</span>
-                      <span className="text-[10px] text-zinc-400 tabular-nums w-10 text-right">{((item.value / total) * 100).toFixed(0)}%</span>
+                      <div className="size-2 sm:size-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-[10px] sm:text-xs text-zinc-300 flex-1">{item.name}</span>
+                      <span className="text-[10px] sm:text-xs font-semibold text-zinc-200 tabular-nums">{item.value}</span>
+                      <span className="text-[9px] sm:text-[10px] text-zinc-400 tabular-nums w-8 sm:w-10 text-right">{((item.value / total) * 100).toFixed(0)}%</span>
                     </motion.div>
                   ))}
                 </div>
@@ -846,7 +894,7 @@ export default function AGASAlert() {
                       scale: 1.02,
                       boxShadow: `0 0 20px ${t.color}20, 0 0 40px ${t.color}08`,
                     }}
-                    className="rounded-lg border border-white/[0.06] p-4 transition-all relative overflow-hidden group"
+                    className="rounded-lg border border-white/[0.06] p-3 sm:p-4 transition-all relative overflow-hidden group"
                     style={{ borderLeftWidth: '3px', borderLeftColor: t.color }}
                   >
                     {/* More pronounced gradient background */}
@@ -854,17 +902,17 @@ export default function AGASAlert() {
                     {/* Glow on hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: `radial-gradient(ellipse at top left, ${t.color}10, transparent 70%)` }} />
                     <div className="relative flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex size-7 items-center justify-center rounded-md" style={{ background: `${t.color}15`, border: `1px solid ${t.color}25` }}>
-                          <t.Icon className="size-4" style={{ color: t.color }} />
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <div className="flex size-6 sm:size-7 items-center justify-center rounded-md" style={{ background: `${t.color}15`, border: `1px solid ${t.color}25` }}>
+                          <t.Icon className="size-3.5 sm:size-4" style={{ color: t.color }} />
                         </div>
-                        <span className="text-sm font-semibold text-zinc-200">{t.classification}</span>
+                        <span className="text-xs sm:text-sm font-semibold text-zinc-200">{t.classification}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {t.trend === 'up' && <ArrowUpRight className="size-4" style={{ color: t.color }} />}
-                        {t.trend === 'down' && <ArrowDownRight className="size-4" style={{ color: t.color }} />}
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        {t.trend === 'up' && <ArrowUpRight className="size-3.5 sm:size-4" style={{ color: t.color }} />}
+                        {t.trend === 'down' && <ArrowDownRight className="size-3.5 sm:size-4" style={{ color: t.color }} />}
                         {/* Animated count-up number */}
-                        <span className="text-2xl font-bold tabular-nums" style={{ color: t.color }}>
+                        <span className="text-xl sm:text-2xl font-bold tabular-nums" style={{ color: t.color }}>
                           {trajectoryAnimatedCounts[t.classification] ?? t.count}
                         </span>
                       </div>
@@ -878,13 +926,95 @@ export default function AGASAlert() {
                         style={{ '--progress-from': t.color, '--progress-to': `${t.color}88` } as React.CSSProperties}
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-400 mt-1">{((t.count / total) * 100).toFixed(1)}% of municipalities</p>
+                    <p className="text-[9px] sm:text-[10px] text-zinc-400 mt-1">{((t.count / total) * 100).toFixed(1)}% of municipalities</p>
                   </motion.div>
                 ))}
               </div>
             </CardContent>
           </Card>
         </motion.div>
+      </motion.div>
+
+      {/* ── Audit Outcome Comparison: 2022/23 vs 2023/24 ──────── */}
+      <motion.div variants={itemSlideUp} initial="hidden" animate="show">
+        <Card className="glass-card-v2 card-hover-lift overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_FROM}, ${ACCENT_TO})` }} />
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GitCompareArrows className="size-4" style={{ color: ACCENT_FROM }} />
+                <div>
+                  <CardTitle className="text-sm font-semibold text-zinc-200">Audit Outcome Comparison</CardTitle>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">2022/23 vs 2023/24 — year-on-year audit outcome shift</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="size-3 rounded-sm" style={{ backgroundColor: `${ACCENT_FROM}60` }} />
+                  <span className="text-[10px] text-zinc-400">2022/23</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="size-3 rounded-sm" style={{ backgroundColor: ACCENT_FROM }} />
+                  <span className="text-[10px] text-zinc-400">2023/24</span>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="h-[180px] sm:h-[220px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={AUDIT_COMPARISON} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="outcome" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(13,18,36,0.95)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: '#e4e4e7',
+                      boxShadow: '0 0 20px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.1)',
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value} municipalities`,
+                      name === 'prev' ? '2022/23' : '2023/24',
+                    ]}
+                  />
+                  <Bar dataKey="prev" fill={`${AUDIT_OUTCOME_COLORS.Clean}60`} barSize={18} name="prev" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="current" fill={ACCENT_FROM} barSize={18} name="current" radius={[2, 2, 0, 0]}>
+                    {AUDIT_COMPARISON.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={AUDIT_OUTCOME_COLORS[entry.outcome]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Change indicators row */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 pt-3 border-t border-white/[0.06]">
+              {AUDIT_COMPARISON.map((item) => {
+                const diff = item.current - item.prev;
+                const isImprovement = (item.outcome === 'Clean' || item.outcome === 'Unqualified') ? diff > 0 : diff < 0;
+                const isRegression = (item.outcome === 'Clean' || item.outcome === 'Unqualified') ? diff < 0 : diff > 0;
+                return (
+                  <div key={item.outcome} className="flex items-center gap-1.5">
+                    <div className="size-2 rounded-sm" style={{ backgroundColor: AUDIT_OUTCOME_COLORS[item.outcome] }} />
+                    <span className="text-[10px] text-zinc-400">{item.outcome}</span>
+                    <span className={cn(
+                      'text-[10px] font-bold tabular-nums',
+                      isImprovement ? 'text-emerald-400' : isRegression ? 'text-red-400' : 'text-zinc-400'
+                    )}>
+                      {diff > 0 ? '+' : ''}{diff}
+                    </span>
+                    {isImprovement && <ArrowUpRight className="size-2.5 text-emerald-400" />}
+                    {isRegression && <ArrowDownRight className="size-2.5 text-red-400" />}
+                    {!isImprovement && !isRegression && <Minus className="size-2.5 text-zinc-500" />}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* ── 5-Year Audit Outcome Trajectory ──────────────────── */}
@@ -910,9 +1040,9 @@ export default function AGASAlert() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-[320px]">
+            <div className="h-[180px] sm:h-[220px] md:h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={FIVE_YEAR_TREND} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                <BarChart data={FIVE_YEAR_TREND} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis dataKey="year" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -940,12 +1070,12 @@ export default function AGASAlert() {
         <Card className="glass-card-v2 card-hover-lift overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${ACCENT_TO}, ${ACCENT_FROM})` }} />
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Building2 className="size-4" style={{ color: ACCENT_TO }} />
                 <div>
-                  <CardTitle className="text-sm font-semibold text-zinc-200">Municipality Audit Outcomes</CardTitle>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">Audit opinions by municipality — click to view MuniLens profile</p>
+                  <CardTitle className="text-xs sm:text-sm font-semibold text-zinc-200">Municipality Audit Outcomes</CardTitle>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">Audit opinions by municipality — click to view MuniLens profile</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -953,7 +1083,7 @@ export default function AGASAlert() {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'h-6 text-[10px] px-2',
+                    'h-7 sm:h-6 text-[10px] px-2 min-h-[44px] sm:min-h-0',
                     muniSortBy === 'name'
                       ? 'border-[#3B82F6]/40 bg-[#3B82F6]/15 text-[#3B82F6]'
                       : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
@@ -966,7 +1096,7 @@ export default function AGASAlert() {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'h-6 text-[10px] px-2',
+                    'h-7 sm:h-6 text-[10px] px-2 min-h-[44px] sm:min-h-0',
                     muniSortBy === 'clean'
                       ? 'border-[#10B981]/40 bg-[#10B981]/15 text-[#10B981]'
                       : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
@@ -979,12 +1109,12 @@ export default function AGASAlert() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-[320px]">
+            <div className="h-[220px] sm:h-[280px] md:h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sortedMuniAudits} layout="vertical" margin={{ top: 0, right: 20, left: 100, bottom: 0 }}>
+                <BarChart data={sortedMuniAudits} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 10 }} axisLine={false} tickLine={false} width={95} />
+                  <XAxis type="number" tick={{ fill: '#71717a', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 8 }} axisLine={false} tickLine={false} width={70} />
                   <Tooltip content={<AuditTrendTooltip />} />
                   <Bar dataKey="Clean" stackId="a" fill={AUDIT_OUTCOME_COLORS.Clean} name="Clean" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="Unqualified" stackId="a" fill={AUDIT_OUTCOME_COLORS.Unqualified} name="Unqualified" />
@@ -1008,10 +1138,10 @@ export default function AGASAlert() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setActiveModule('munilens')}
-                    className="flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] p-2 text-left hover:bg-white/[0.04] transition-colors"
+                    className="flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] p-2 text-left hover:bg-white/[0.04] transition-colors min-h-[44px]"
                   >
                     <div className="size-2 rounded-sm shrink-0" style={{ backgroundColor: AUDIT_OUTCOME_COLORS[dominantOutcome] }} />
-                    <span className="text-[11px] text-zinc-300 truncate">{muni.name}</span>
+                    <span className="text-[10px] sm:text-[11px] text-zinc-300 truncate">{muni.name}</span>
                   </motion.button>
                 );
               })}
@@ -1037,19 +1167,19 @@ export default function AGASAlert() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="rounded-lg border border-red-500/20 bg-gradient-to-r from-red-500/[0.08] to-orange-500/[0.05] p-3 mb-4 flex items-center justify-between"
+              className="rounded-lg border border-red-500/20 bg-gradient-to-r from-red-500/[0.08] to-orange-500/[0.05] p-3 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 justify-between"
             >
               <div className="flex items-center gap-3">
                 <motion.div
-                  className="flex size-8 items-center justify-center rounded-lg bg-red-500/15"
+                  className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-red-500/15"
                   animate={{ boxShadow: ['0 0 0px rgba(239,68,68,0)', '0 0 12px rgba(239,68,68,0.3)', '0 0 0px rgba(239,68,68,0)'] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <Zap className="size-4 text-red-400" />
+                  <Zap className="size-3.5 sm:size-4 text-red-400" />
                 </motion.div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-red-300/70">Total Irregular Expenditure</p>
-                  <p className="text-lg font-extrabold tabular-nums text-red-400">{formatZAR(totalIrregularExpenditure)}</p>
+                  <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-red-300/70">Total Irregular Expenditure</p>
+                  <p className="text-base sm:text-lg font-extrabold tabular-nums text-red-400">{formatZAR(totalIrregularExpenditure)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1078,7 +1208,7 @@ export default function AGASAlert() {
                         borderColor: `${sevColor}30`,
                         boxShadow: `0 0 16px ${sevColor}10, 0 0 32px ${sevColor}06`,
                       }}
-                      className="rounded-lg border border-white/[0.06] p-4 transition-all cursor-pointer relative overflow-hidden group"
+                      className="rounded-lg border border-white/[0.06] p-3 sm:p-4 transition-all cursor-pointer relative overflow-hidden group"
                       style={{ borderLeftWidth: '3px', borderLeftColor: sevColor }}
                     >
                       <div className="absolute inset-0 opacity-[0.03]" style={{ background: `linear-gradient(135deg, ${sevColor}, transparent)` }} />
@@ -1092,15 +1222,15 @@ export default function AGASAlert() {
                         />
                       )}
                       <div className="relative">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-2.5">
+                        <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
                             {/* Enhanced severity pulse for critical */}
                             {mi.severity === 'critical' && (
                               <motion.div
                                 className="relative shrink-0"
                               >
                                 <motion.div
-                                  className="size-2.5 rounded-full bg-red-500"
+                                  className="size-2 sm:size-2.5 rounded-full bg-red-500"
                                   animate={{ opacity: [1, 0.3, 1], scale: [1, 1.4, 1] }}
                                   transition={{ duration: 1.2, repeat: Infinity }}
                                 />
@@ -1111,15 +1241,15 @@ export default function AGASAlert() {
                                 />
                               </motion.div>
                             )}
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5 shrink-0" style={{ background: `${ACCENT_TO}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>{mi.id}</Badge>
-                            <span className="text-sm font-semibold text-zinc-200">{mi.municipality}</span>
+                            <Badge variant="outline" className="text-[8px] sm:text-[9px] h-5 px-1 shrink-0" style={{ background: `${ACCENT_TO}15`, color: ACCENT_TO, borderColor: `${ACCENT_TO}25` }}>{mi.id}</Badge>
+                            <span className="text-xs sm:text-sm font-semibold text-zinc-200 truncate">{mi.municipality}</span>
                           </div>
-                          <span className="text-lg font-extrabold tabular-nums shrink-0" style={{ color: sevColor }}>
+                          <span className="text-sm sm:text-lg font-extrabold tabular-nums shrink-0" style={{ color: sevColor }}>
                             {formatZAR(mi.amount)}
                           </span>
                         </div>
-                        <p className="text-[11px] text-zinc-300 leading-relaxed">{mi.description}</p>
-                        <div className="flex items-center gap-3 mt-2.5">
+                        <p className="text-[10px] sm:text-[11px] text-zinc-300 leading-relaxed">{mi.description}</p>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2.5">
                           <Badge
                             variant="outline"
                             className="text-[9px] h-5 px-2"
@@ -1133,7 +1263,7 @@ export default function AGASAlert() {
                             variant="outline"
                             size="sm"
                             className={cn(
-                              'h-6 text-[10px] px-2 ml-auto border-white/[0.08] bg-white/[0.03] gap-1',
+                              'h-7 sm:h-6 text-[9px] sm:text-[10px] px-2 min-h-[44px] sm:min-h-0 ml-auto border-white/[0.08] bg-white/[0.03] gap-1',
                               'hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-400',
                               'transition-all duration-200',
                               'hover:shadow-[0_0_8px_rgba(245,158,11,0.2),0_0_16px_rgba(245,158,11,0.1)]'
@@ -1164,14 +1294,15 @@ export default function AGASAlert() {
               <p className="text-[11px] text-zinc-400 mt-0.5">Sorted by audit outcome</p>
             </CardHeader>
             <CardContent className="pt-0">
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <ScrollArea className="max-h-[400px]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/[0.06] hover:bg-transparent" style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.06), rgba(245,158,11,0.06))' }}>
-                      <TableHead className="text-zinc-400 text-[10px] font-semibold">Municipality</TableHead>
-                      <TableHead className="text-zinc-400 text-[10px] font-semibold">Audit Outcome</TableHead>
-                      <TableHead className="text-zinc-400 text-[10px] font-semibold text-right">FHS</TableHead>
-                      <TableHead className="text-zinc-400 text-[10px] font-semibold text-right">Cash Days</TableHead>
+                      <TableHead className="text-zinc-400 text-[9px] sm:text-[10px] font-semibold p-2 sm:p-3">Municipality</TableHead>
+                      <TableHead className="text-zinc-400 text-[9px] sm:text-[10px] font-semibold p-2 sm:p-3">Audit Outcome</TableHead>
+                      <TableHead className="text-zinc-400 text-[9px] sm:text-[10px] font-semibold text-right p-2 sm:p-3">FHS</TableHead>
+                      <TableHead className="text-zinc-400 text-[9px] sm:text-[10px] font-semibold text-right p-2 sm:p-3">Cash Days</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1203,22 +1334,23 @@ export default function AGASAlert() {
                           }}
                           onClick={() => setActiveModule('munilens')}
                         >
-                          <TableCell className="text-xs font-medium text-zinc-200">{m.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ backgroundColor: `${rowColor}15`, color: rowColor, borderColor: `${rowColor}25` }}>
+                          <TableCell className="text-[10px] sm:text-xs font-medium text-zinc-200 p-2 sm:p-3">{m.name}</TableCell>
+                          <TableCell className="p-2 sm:p-3">
+                            <Badge variant="outline" className="text-[8px] sm:text-[9px] h-5 px-1" style={{ backgroundColor: `${rowColor}15`, color: rowColor, borderColor: `${rowColor}25` }}>
                               {m.auditOutcome}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right text-xs font-bold tabular-nums" style={{ color: (m.financialHealthScore ?? 0) >= 50 ? '#10B981' : '#EF4444' }}>
+                          <TableCell className="text-right text-[10px] sm:text-xs font-bold tabular-nums p-2 sm:p-3" style={{ color: (m.financialHealthScore ?? 0) >= 50 ? '#10B981' : '#EF4444' }}>
                             {m.financialHealthScore}
                           </TableCell>
-                          <TableCell className="text-right text-xs text-zinc-300 tabular-nums">{m.cashCoverageDays}d</TableCell>
+                          <TableCell className="text-right text-[10px] sm:text-xs text-zinc-300 tabular-nums p-2 sm:p-3">{m.cashCoverageDays}d</TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
               </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

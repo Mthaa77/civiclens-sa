@@ -479,7 +479,7 @@ export default function RiskLens() {
         variants={containerStagger}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
       >
         {([
           { label: 'Critical', count: severityCounts.Critical, icon: AlertOctagon, color: '#EF4444', pulse: true, blur: 'backdrop-blur-xl' },
@@ -534,7 +534,7 @@ export default function RiskLens() {
                   className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.06]"
                   style={{ background: `radial-gradient(circle, ${card.color}, transparent)` }}
                 />
-                <CardContent className="p-5 relative">
+                <CardContent className="p-3 sm:p-5 relative">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
@@ -601,7 +601,7 @@ export default function RiskLens() {
                 placeholder="Search signals..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[160px] h-8 text-[11px] pl-7 border-white/[0.08] bg-[#0d1224] placeholder:text-zinc-500 focus:border-amber-500/30 focus:ring-amber-500/10 transition-colors"
+                className="w-full sm:w-[160px] h-8 text-[11px] pl-7 border-white/[0.08] bg-[#0d1224] placeholder:text-zinc-500 focus:border-amber-500/30 focus:ring-amber-500/10 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -618,7 +618,7 @@ export default function RiskLens() {
               <span className="text-[11px] font-semibold uppercase tracking-wider">Filters</span>
             </div>
             <Select value={severityFilter} onValueChange={setSeverityFilter}>
-              <SelectTrigger className="w-[120px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
+              <SelectTrigger className="w-full sm:w-[120px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -630,7 +630,7 @@ export default function RiskLens() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
+              <SelectTrigger className="w-full sm:w-[150px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -641,7 +641,7 @@ export default function RiskLens() {
               </SelectContent>
             </Select>
             <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
-              <SelectTrigger className="w-[130px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
+              <SelectTrigger className="w-full sm:w-[130px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
                 <SelectValue placeholder="Entity Type" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -652,7 +652,7 @@ export default function RiskLens() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[110px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
+              <SelectTrigger className="w-full sm:w-[110px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -666,7 +666,7 @@ export default function RiskLens() {
             <div className="flex items-center gap-1.5 ml-1">
               <ArrowUpDown className="size-3 text-zinc-500" />
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="w-[100px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
+                <SelectTrigger className="w-full sm:w-[100px] h-8 text-[11px] border-white/[0.08] bg-[#0d1224] hover:border-amber-500/30 transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0d1224] border-white/[0.08]">
@@ -721,7 +721,7 @@ export default function RiskLens() {
         variants={containerStagger}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6"
       >
         {/* Risk Feed */}
         <motion.div variants={itemFadeIn} className="lg:col-span-2">
@@ -738,7 +738,7 @@ export default function RiskLens() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <ScrollArea className="max-h-[520px]">
+              <ScrollArea className="max-h-[400px] sm:max-h-[520px]">
                 <div className="space-y-2">
                   {signals.map((signal, i) => {
                     const sevColor = SEVERITY_COLORS[signal.severity];
@@ -1041,6 +1041,7 @@ export default function RiskLens() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
             <ScrollArea className="max-h-[440px]">
               <Table>
                 <TableHeader>
@@ -1118,6 +1119,7 @@ export default function RiskLens() {
                 </TableBody>
               </Table>
             </ScrollArea>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

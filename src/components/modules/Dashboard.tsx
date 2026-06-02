@@ -42,6 +42,11 @@ import {
   FileCheck,
   Droplets,
   Eye,
+  Activity,
+  Wifi,
+  Cpu,
+  Server,
+  Navigation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -147,6 +152,20 @@ const listItemStagger = {
     x: 0,
     transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] },
   }),
+};
+
+// ── Province Abbreviations ──────────────────────────────────────────────────
+
+const PROVINCE_ABBREVIATIONS: Record<string, string> = {
+  'Eastern Cape': 'EC',
+  'Free State': 'FS',
+  'Gauteng': 'GP',
+  'KwaZulu-Natal': 'KZN',
+  'Limpopo': 'LP',
+  'Mpumalanga': 'MP',
+  'Northern Cape': 'NC',
+  'North West': 'NW',
+  'Western Cape': 'WC',
 };
 
 // ── Province Accent Colors ──────────────────────────────────────────────────
@@ -317,25 +336,317 @@ function getFHSBarColor(score: number): string {
   return '#EF4444';
 }
 
+// ── Helper: Get FHS indicator dot color ──────────────────────────────────────
+
+function getFHSIndicatorColor(score: number): string {
+  if (score >= 65) return '#10B981'; // green
+  if (score >= 45) return '#F59E0B'; // amber
+  return '#EF4444'; // red
+}
+
+// ── Mini Map Province SVG Paths (simplified for widget) ─────────────────────
+
+const MINI_MAP_PROVINCES = [
+  { id: 'limpopo', name: 'Limpopo', path: 'M 265,8 L 290,5 L 330,10 L 370,20 L 410,18 L 440,30 L 465,55 L 460,80 L 440,100 L 420,115 L 395,120 L 370,130 L 345,125 L 320,115 L 295,110 L 270,105 L 250,95 L 240,75 L 245,50 L 255,30 Z', labelX: 355, labelY: 70 },
+  { id: 'mpumalanga', name: 'Mpumalanga', path: 'M 420,115 L 440,100 L 460,80 L 465,55 L 490,70 L 510,90 L 520,115 L 515,145 L 500,170 L 480,185 L 460,190 L 440,180 L 420,165 L 400,155 L 395,135 L 395,120 Z', labelX: 465, labelY: 135 },
+  { id: 'gauteng', name: 'Gauteng', path: 'M 370,130 L 395,120 L 395,135 L 400,155 L 390,165 L 375,170 L 360,165 L 350,155 L 345,140 Z', labelX: 372, labelY: 148 },
+  { id: 'north-west', name: 'North West', path: 'M 240,75 L 250,95 L 270,105 L 295,110 L 320,115 L 345,125 L 345,140 L 350,155 L 360,165 L 350,180 L 335,195 L 310,205 L 280,210 L 250,205 L 220,195 L 195,180 L 180,160 L 175,140 L 185,120 L 200,100 L 220,85 Z', labelX: 275, labelY: 160 },
+  { id: 'free-state', name: 'Free State', path: 'M 350,180 L 360,165 L 375,170 L 390,165 L 400,155 L 420,165 L 440,180 L 460,190 L 455,215 L 440,240 L 420,260 L 395,270 L 370,275 L 340,270 L 310,260 L 285,245 L 270,225 L 275,210 L 280,210 L 310,205 L 335,195 Z', labelX: 365, labelY: 225 },
+  { id: 'kwazulu-natal', name: 'KwaZulu-Natal', path: 'M 460,190 L 480,185 L 500,170 L 515,190 L 525,215 L 530,245 L 525,275 L 515,305 L 500,330 L 480,350 L 460,365 L 445,370 L 440,355 L 440,335 L 435,315 L 420,295 L 410,275 L 420,260 L 440,240 L 455,215 Z', labelX: 480, labelY: 280 },
+  { id: 'northern-cape', name: 'Northern Cape', path: 'M 30,110 L 50,90 L 80,75 L 110,70 L 140,72 L 170,78 L 195,80 L 220,85 L 200,100 L 185,120 L 175,140 L 180,160 L 195,180 L 220,195 L 250,205 L 275,210 L 270,225 L 285,245 L 270,260 L 245,275 L 215,285 L 185,290 L 155,295 L 130,300 L 105,305 L 80,300 L 60,280 L 40,255 L 25,225 L 15,195 L 10,165 L 15,135 L 20,120 Z', labelX: 150, labelY: 195 },
+  { id: 'western-cape', name: 'Western Cape', path: 'M 80,300 L 105,305 L 130,300 L 155,295 L 185,290 L 215,285 L 210,305 L 200,325 L 190,345 L 175,365 L 155,385 L 135,400 L 115,410 L 95,415 L 75,410 L 58,395 L 45,375 L 35,350 L 30,325 L 32,310 L 45,300 L 60,295 Z', labelX: 125, labelY: 355 },
+  { id: 'eastern-cape', name: 'Eastern Cape', path: 'M 215,285 L 245,275 L 270,260 L 285,245 L 310,260 L 340,270 L 370,275 L 395,270 L 410,275 L 420,295 L 435,315 L 440,335 L 440,355 L 445,370 L 430,380 L 410,395 L 385,405 L 355,410 L 325,408 L 295,400 L 265,390 L 240,375 L 220,355 L 205,335 L 195,315 L 200,305 L 210,305 Z', labelX: 320, labelY: 345 },
+];
+
+// ── Province Quick-Select Navigation Cards ────────────────────────────────────
+
+function ProvinceQuickSelect() {
+  const { setActiveModule } = useNavigationStore();
+
+  const handleProvinceClick = () => {
+    setActiveModule('geolens' as ModuleId);
+  };
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <div className="flex items-center gap-2 mb-2 sm:mb-3">
+        <Navigation className="size-3.5 text-[#B45309]" />
+        <span className="text-[10px] sm:text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Quick Province Navigation</span>
+      </div>
+      <div className="flex gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        {PROVINCE_SUMMARY.map((prov, i) => {
+          const fhsColor = getFHSBarColor(prov.avgFHS);
+          const indicatorColor = getFHSIndicatorColor(prov.avgFHS);
+          const accent = PROVINCE_ACCENT_COLORS[prov.province] || '#B45309';
+          const abbrev = PROVINCE_ABBREVIATIONS[prov.province] || prov.province.slice(0, 3).toUpperCase();
+
+          return (
+            <motion.button
+              key={prov.province}
+              variants={itemSlideUp}
+              custom={i}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleProvinceClick}
+              className="flex-shrink-0 w-[100px] sm:w-[110px] rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-2.5 sm:p-3 cursor-pointer group transition-all duration-300 hover:border-white/[0.16] text-left min-h-[44px]"
+              style={{ boxShadow: `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03)` }}
+            >
+              {/* Top mini accent line */}
+              <div
+                className="absolute top-0 left-0 right-0 h-[1.5px] rounded-t-xl opacity-70"
+                style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60, transparent)`, boxShadow: `0 0 6px ${accent}30` }}
+              />
+
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div
+                  className="size-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: indicatorColor, boxShadow: `0 0 6px ${indicatorColor}60` }}
+                />
+                <span className="text-[10px] sm:text-[11px] font-bold text-zinc-200 truncate">{abbrev}</span>
+              </div>
+
+              {/* Mini progress bar for FHS */}
+              <div className="w-full h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: fhsColor }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(prov.avgFHS, 100)}%` }}
+                  transition={{ duration: 0.8, delay: 0.2 + i * 0.06, ease: [0.4, 0, 0.2, 1] }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[8px] sm:text-[9px] text-zinc-500 font-medium">FHS</span>
+                <span className="text-[9px] sm:text-[10px] font-bold tabular-nums" style={{ color: fhsColor }}>{prov.avgFHS}</span>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Mini Interactive Map Widget ────────────────────────────────────────────────
+
+function MiniMapWidget() {
+  const { setActiveModule } = useNavigationStore();
+  const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
+
+  const handleProvinceClick = () => {
+    setActiveModule('geolens' as ModuleId);
+  };
+
+  const getProvinceFHS = (name: string): number => {
+    const prov = PROVINCE_SUMMARY.find(p => p.province === name);
+    return prov ? prov.avgFHS : 0;
+  };
+
+  return (
+    <motion.div variants={itemSlideUp}>
+      <Card
+        className="border-white/[0.10] bg-white/[0.04] backdrop-blur-xl hover:border-white/[0.16] transition-all duration-300 overflow-hidden relative"
+        style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+      >
+        {/* Top accent line */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70"
+          style={{ background: 'linear-gradient(90deg, #B45309, #F59E0B, transparent)', boxShadow: '0 0 10px rgba(180,83,9,0.2)' }}
+        />
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex size-5 items-center justify-center rounded bg-[#B45309]/10 border border-[#B45309]/20">
+              <Map className="size-3 text-[#B45309]" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold text-zinc-200">Spatial Overview</span>
+          </div>
+
+          {/* SVG Map */}
+          <div className="relative w-full" style={{ height: '220px' }}>
+            <svg
+              viewBox="0 0 550 430"
+              className="w-full h-full"
+              style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }}
+            >
+              <defs>
+                <filter id="miniMapGlow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <radialGradient id="miniBgSpotlight" cx="50%" cy="45%" r="55%">
+                  <stop offset="0%" stopColor="#B45309" stopOpacity="0.04" />
+                  <stop offset="100%" stopColor="#B45309" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+
+              {/* Background */}
+              <rect width="550" height="430" fill="url(#miniBgSpotlight)" rx="8" />
+
+              {/* Province paths */}
+              {MINI_MAP_PROVINCES.map((geo) => {
+                const fhs = getProvinceFHS(geo.name);
+                const color = getFHSBarColor(fhs);
+                const isHovered = hoveredProvince === geo.id;
+
+                return (
+                  <g key={geo.id}>
+                    <path
+                      d={geo.path}
+                      fill={`${color}B3`}
+                      stroke={isHovered ? '#fff' : '#0d1224'}
+                      strokeWidth={isHovered ? 2 : 1.5}
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        filter: isHovered ? 'url(#miniMapGlow)' : 'none',
+                        fillOpacity: isHovered ? 1 : 0.8,
+                      }}
+                      onClick={handleProvinceClick}
+                      onMouseEnter={() => setHoveredProvince(geo.id)}
+                      onMouseLeave={() => setHoveredProvince(null)}
+                    />
+                    {/* Province abbreviation label */}
+                    <text
+                      x={geo.labelX}
+                      y={geo.labelY}
+                      textAnchor="middle"
+                      fill="#fff"
+                      fontSize="9"
+                      fontWeight="700"
+                      style={{
+                        pointerEvents: 'none',
+                        opacity: isHovered ? 1 : 0.7,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      {PROVINCE_ABBREVIATIONS[geo.name] || geo.name.slice(0, 3).toUpperCase()}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Color legend */}
+          <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-1">
+              <div className="size-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[8px] text-zinc-500">≥65</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="size-1.5 rounded-full bg-amber-500" />
+              <span className="text-[8px] text-zinc-500">45–64</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="size-1.5 rounded-full bg-orange-500" />
+              <span className="text-[8px] text-zinc-500">25–44</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="size-1.5 rounded-full bg-red-500" />
+              <span className="text-[8px] text-zinc-500">&lt;25</span>
+            </div>
+          </div>
+
+          {/* Click hint */}
+          <p className="text-[8px] text-zinc-600 mt-1.5 text-center">Click any province to explore in GeoLens</p>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ── System Health Monitor Widget ──────────────────────────────────────────────
+
+function SystemHealthMonitor() {
+  const healthItems = [
+    { label: 'API Uptime', value: '99.97%', color: '#10B981', barPct: 99.97, icon: <Server className="size-3" /> },
+    { label: 'Data Sync', value: '2 min ago', color: '#10B981', isDot: true, icon: <Wifi className="size-3" /> },
+    { label: 'ML Model Accuracy', value: '94.2%', color: '#F59E0B', barPct: 94.2, icon: <Cpu className="size-3" /> },
+    { label: 'Active Users', value: '847', color: '#0077B6', isDot: true, icon: <Users className="size-3" /> },
+  ];
+
+  return (
+    <motion.div
+      variants={itemSlideUp}
+      className="rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl overflow-hidden relative"
+      style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03)' }}
+    >
+      {/* Subtle top accent line */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[1px] opacity-50"
+        style={{ background: 'linear-gradient(90deg, #10B981, #F59E0B, #0077B6, transparent)', boxShadow: '0 0 8px rgba(16,185,129,0.15)' }}
+      />
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0 p-2.5 sm:p-3">
+        {/* Section label */}
+        <div className="flex items-center gap-1.5 shrink-0 sm:pr-3 sm:border-r border-white/[0.06]">
+          <Activity className="size-3 text-emerald-500/70" />
+          <span className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">System Health</span>
+        </div>
+
+        {/* Health items */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 sm:pl-3 flex-1">
+          {healthItems.map((item) => (
+            <div key={item.label} className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1">
+                <div style={{ color: `${item.color}80` }}>{item.icon}</div>
+                <span className="text-[9px] sm:text-[10px] text-zinc-500 font-medium">{item.label}</span>
+              </div>
+
+              {item.isDot ? (
+                /* Colored indicator dot */
+                <div className="flex items-center gap-1">
+                  <div
+                    className="size-1.5 rounded-full"
+                    style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}60` }}
+                  />
+                  <span className="text-[9px] sm:text-[10px] font-bold tabular-nums" style={{ color: item.color }}>{item.value}</span>
+                </div>
+              ) : (
+                /* Mini progress bar */
+                <div className="flex items-center gap-1.5">
+                  <div className="w-12 sm:w-16 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: item.color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${item.barPct || 0}%` }}
+                      transition={{ duration: 1, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    />
+                  </div>
+                  <span className="text-[9px] sm:text-[10px] font-bold tabular-nums" style={{ color: item.color }}>{item.value}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Section Header Component ────────────────────────────────────────────────
 
 function SectionHeader({ title, subtitle, accentColor = '#0077B6', action }: { title: string; subtitle?: string; accentColor?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between mb-3 sm:mb-5">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div
-          className="w-[3px] h-7 rounded-full shrink-0"
+          className="w-[3px] h-5 sm:h-7 rounded-full shrink-0"
           style={{
             background: `linear-gradient(180deg, ${accentColor}, ${accentColor}60)`,
             boxShadow: `0 0 12px ${accentColor}30`,
           }}
         />
         <div>
-          <h2 className="text-sm font-bold text-zinc-100 tracking-tight">{title}</h2>
-          {subtitle && <p className="text-[11px] text-zinc-400 mt-0.5">{subtitle}</p>}
+          <h2 className="text-xs sm:text-sm font-bold text-zinc-100 tracking-tight">{title}</h2>
+          {subtitle && <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 line-clamp-2">{subtitle}</p>}
         </div>
       </div>
-      {action && <div>{action}</div>}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -378,7 +689,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
     >
       <div
         className={cn(
-          'relative overflow-hidden rounded-xl border border-white/[0.10] p-5 lg:p-6',
+          'relative overflow-hidden rounded-xl border border-white/[0.10] p-3 sm:p-4 lg:p-5 xl:p-6',
           'bg-gradient-to-br',
           data.gradientFrom,
           data.gradientTo,
@@ -471,12 +782,12 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
 
         <div className="relative flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1 sm:mb-1.5">
               {data.label}
             </p>
             {/* KPI value with count-up animation */}
             <motion.p
-              className="text-2xl lg:text-[2rem] font-extrabold tabular-nums tracking-tight leading-none"
+              className="text-xl sm:text-2xl lg:text-[2rem] font-extrabold tabular-nums tracking-tight leading-none"
               style={{ color: data.accentColor }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -506,7 +817,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               )}
               <span
                 className={cn(
-                  'text-xs font-semibold tabular-nums',
+                  'text-[10px] sm:text-xs font-semibold tabular-nums',
                   data.sentiment === 'negative'
                     ? 'text-red-400'
                     : data.sentiment === 'warning'
@@ -518,7 +829,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
               >
                 {data.trend.value}
               </span>
-              <span className="text-[10px] text-zinc-500 ml-0.5">vs prev. year</span>
+              <span className="text-[9px] sm:text-[10px] text-zinc-500 ml-0.5 hidden sm:inline">vs prev. year</span>
             </div>
           </div>
 
@@ -558,12 +869,12 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
         </div>
 
         {/* Micro sparkline chart at bottom */}
-        <div className="relative mt-3 pt-2.5 border-t border-white/[0.06]">
+        <div className="relative mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-white/[0.06]">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] text-zinc-500 font-medium">7-day trend</span>
-            <span className="text-[9px] font-bold tabular-nums" style={{ color: data.accentColor }}>{data.targetPct}% of target</span>
+            <span className="text-[8px] sm:text-[9px] text-zinc-500 font-medium">7-day trend</span>
+            <span className="text-[8px] sm:text-[9px] font-bold tabular-nums" style={{ color: data.accentColor }}>{data.targetPct}% of target</span>
           </div>
-          <svg width={sparkW} height={sparkH} className="mt-1 overflow-visible">
+          <svg width={sparkW} height={sparkH} className="mt-0.5 sm:mt-1 overflow-visible w-full max-w-[60px]">
             <motion.polyline
               points={sparkPoints}
               fill="none"
@@ -587,29 +898,29 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           </svg>
         </div>
 
-        {/* Quick Action dropdown (appears on hover) */}
+        {/* Quick Action dropdown (appears on hover, touch-friendly) */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
           <div className="flex flex-col gap-0.5 bg-[#0d1224]/95 backdrop-blur-xl border border-white/[0.1] rounded-lg shadow-xl overflow-hidden">
             <button
               onClick={(e) => { e.stopPropagation(); setActiveModule(data.targetModule); }}
-              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-2 py-1.5 min-h-[32px] text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 active:bg-white/[0.1] transition-colors whitespace-nowrap"
             >
               <Eye className="size-2.5" />
-              View Details
+              View
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); toast.success('Data exported successfully'); }}
-              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-2 py-1.5 min-h-[32px] text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 active:bg-white/[0.1] transition-colors whitespace-nowrap"
             >
               <Download className="size-2.5" />
-              Export Data
+              Export
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); toast.success('Alert created'); }}
-              className="flex items-center gap-1.5 px-2 py-1 text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-2 py-1.5 min-h-[32px] text-[9px] text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 active:bg-white/[0.1] transition-colors whitespace-nowrap"
             >
               <ShieldAlert className="size-2.5" />
-              Set Alert
+              Alert
             </button>
           </div>
         </div>
@@ -738,9 +1049,9 @@ function AIInsightsPanel() {
           style={{ backgroundColor: '#0D9488' }}
         />
 
-        <CardContent className="p-5 lg:p-6 relative">
+        <CardContent className="p-3 sm:p-4 lg:p-5 xl:p-6 relative">
           {/* Header row */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-3">
               <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border border-teal-500/25">
                 <Sparkles className="size-4.5 text-teal-400" />
@@ -759,7 +1070,7 @@ function AIInsightsPanel() {
               </div>
               <div>
                 <h3
-                  className="text-base font-extrabold tracking-tight"
+                  className="text-sm sm:text-base font-extrabold tracking-tight"
                   style={{
                     backgroundImage: 'linear-gradient(135deg, #0D9488, #10B981)',
                     WebkitBackgroundClip: 'text',
@@ -770,7 +1081,7 @@ function AIInsightsPanel() {
                   AI Insights
                 </h3>
               </div>
-              <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/20 text-[9px] px-2 py-0.5 font-semibold uppercase tracking-wider">
+              <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/20 text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 font-semibold uppercase tracking-wider hidden sm:inline-flex">
                 Powered by CivicLens AI
               </Badge>
             </div>
@@ -779,15 +1090,15 @@ function AIInsightsPanel() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={goToPrev}
-                className="flex size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200"
+                className="flex size-8 sm:size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200 active:bg-white/[0.1]"
               >
-                <ChevronLeft className="size-3.5" />
+                <ChevronLeft className="size-4 sm:size-3.5" />
               </button>
               <button
                 onClick={goToNext}
-                className="flex size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200"
+                className="flex size-8 sm:size-7 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-zinc-400 hover:text-zinc-200 active:bg-white/[0.1]"
               >
-                <ChevronRight className="size-3.5" />
+                <ChevronRight className="size-4 sm:size-3.5" />
               </button>
             </div>
           </div>
@@ -804,46 +1115,46 @@ function AIInsightsPanel() {
                 className="space-y-2.5"
               >
                 {/* Type badge + Severity indicator + Title */}
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                    <Badge className={cn('text-[10px] px-2 py-0.5 font-semibold', INSIGHT_TYPE_STYLES[currentInsight.type])}>
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
+                    <Badge className={cn('text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 font-semibold', INSIGHT_TYPE_STYLES[currentInsight.type])}>
                       {currentInsight.type}
                     </Badge>
                     <div
-                      className="size-2 rounded-full shrink-0"
+                      className="size-1.5 sm:size-2 rounded-full shrink-0"
                       style={{
                         backgroundColor: INSIGHT_SEVERITY_COLORS[currentInsight.severity],
                         boxShadow: `0 0 6px ${INSIGHT_SEVERITY_COLORS[currentInsight.severity]}60`,
                       }}
                     />
                   </div>
-                  <h4 className="text-sm font-bold text-zinc-100 leading-snug">
+                  <h4 className="text-xs sm:text-sm font-bold text-zinc-100 leading-snug">
                     {currentInsight.title}
                   </h4>
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-zinc-400 leading-relaxed pl-0">
+                <p className="text-[11px] sm:text-xs text-zinc-400 leading-relaxed pl-0 line-clamp-3 sm:line-clamp-none">
                   {currentInsight.description}
                 </p>
 
                 {/* Source attribution */}
                 <div className="flex items-center gap-1.5 pt-0.5">
                   <FileSearch className="size-3 text-teal-500/60" />
-                  <span className="text-[10px] text-zinc-500 font-medium">{currentInsight.source}</span>
+                  <span className="text-[9px] sm:text-[10px] text-zinc-500 font-medium">{currentInsight.source}</span>
                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
 
           {/* Navigation dots */}
-          <div className="flex items-center justify-center gap-1.5 mt-4">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-1.5 mt-3 sm:mt-4">
             {AI_INSIGHTS.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
                 className={cn(
-                  'rounded-full transition-all duration-300',
+                  'rounded-full transition-all duration-300 min-w-[24px] min-h-[24px] flex items-center justify-center',
                   idx === currentIndex
                     ? 'w-5 h-1.5 bg-teal-400'
                     : 'w-1.5 h-1.5 bg-zinc-600 hover:bg-zinc-400'
@@ -1017,14 +1328,14 @@ function BudgetTreemapChart() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                <span className="flex size-5 items-center justify-center rounded bg-[#0D9488]/10 border border-[#0D9488]/20">
-                  <Brain className="size-3 text-[#0D9488]" />
+              <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200 flex items-center gap-1.5 sm:gap-2">
+                <span className="flex size-4 sm:size-5 items-center justify-center rounded bg-[#0D9488]/10 border border-[#0D9488]/20">
+                  <Brain className="size-2.5 sm:size-3 text-[#0D9488]" />
                 </span>
                 Budget Allocation by Province
               </CardTitle>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                Provincial budget allocation (R Billions) — Education, Health, Infrastructure · Click to explore in GeoLens
+              <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">
+                Provincial budget allocation (R Billions) — Education, Health, Infrastructure
               </p>
             </div>
             <div className="text-[10px] text-zinc-500 font-semibold tabular-nums">
@@ -1034,7 +1345,7 @@ function BudgetTreemapChart() {
         </CardHeader>
         <CardContent className="pt-0">
           <div
-            className="h-[340px] cursor-pointer"
+            className="h-[200px] sm:h-[280px] md:h-[340px] cursor-pointer"
             onClick={handleProvinceClick}
           >
             <ResponsiveContainer width="100%" height="100%">
@@ -1089,27 +1400,27 @@ function AuditOutcomeChart() {
           style={{ background: 'linear-gradient(90deg, #0077B6, #2D6A4F, transparent)', boxShadow: '0 0 10px rgba(0,119,182,0.2)' }}
         />
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-            <span className="flex size-5 items-center justify-center rounded bg-[#0077B6]/10 border border-[#0077B6]/20">
-              <Shield className="size-3 text-[#0077B6]" />
+          <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200 flex items-center gap-1.5 sm:gap-2">
+            <span className="flex size-4 sm:size-5 items-center justify-center rounded bg-[#0077B6]/10 border border-[#0077B6]/20">
+              <Shield className="size-2.5 sm:size-3 text-[#0077B6]" />
             </span>
             Audit Outcome Distribution
           </CardTitle>
-          <p className="text-[11px] text-zinc-400 mt-0.5">
+          <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">
             2023/24 MFMA audit outcomes — {total} municipalities
           </p>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex items-center gap-4">
-            <div className="relative w-[180px] h-[180px] shrink-0">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div className="relative w-[140px] sm:w-[180px] h-[140px] sm:h-[180px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={AUDIT_OUTCOMES_DISTRIBUTION}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
+                    innerRadius={40}
+                    outerRadius={60}
                     paddingAngle={3}
                     dataKey="value"
                     strokeWidth={0}
@@ -1141,11 +1452,11 @@ function AuditOutcomeChart() {
                     background: `radial-gradient(circle, #0077B615 0%, transparent 70%)`,
                   }}
                 />
-                <span className="relative text-2xl font-extrabold text-zinc-100 tabular-nums">{total}</span>
-                <span className="relative text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">Total</span>
+                <span className="relative text-xl sm:text-2xl font-extrabold text-zinc-100 tabular-nums">{total}</span>
+                <span className="relative text-[9px] sm:text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">Total</span>
               </div>
             </div>
-            <div className="flex-1 space-y-2.5">
+            <div className="flex-1 space-y-1.5 sm:space-y-2.5 w-full sm:w-auto">
               {AUDIT_OUTCOMES_DISTRIBUTION.map((item) => (
                 <div key={item.name} className="flex items-center gap-2.5 group/legend">
                   <div
@@ -1155,11 +1466,11 @@ function AuditOutcomeChart() {
                       boxShadow: `0 0 6px ${item.color}40`,
                     }}
                   />
-                  <span className="text-xs text-zinc-300 flex-1 font-medium">{item.name}</span>
-                  <span className="text-xs font-bold text-zinc-200 tabular-nums">
+                  <span className="text-[10px] sm:text-xs text-zinc-300 flex-1 font-medium">{item.name}</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-zinc-200 tabular-nums">
                     {item.value}
                   </span>
-                  <span className="text-[10px] text-zinc-400 tabular-nums w-10 text-right font-semibold">
+                  <span className="text-[9px] sm:text-[10px] text-zinc-400 tabular-nums w-8 sm:w-10 text-right font-semibold">
                     {((item.value / total) * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -1186,18 +1497,18 @@ function ProvincialFHSChart() {
           style={{ background: 'linear-gradient(90deg, #2D6A4F, #F59E0B, transparent)', boxShadow: '0 0 10px rgba(45,106,79,0.2)' }}
         />
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-            <span className="flex size-5 items-center justify-center rounded bg-[#2D6A4F]/10 border border-[#2D6A4F]/20">
-              <TrendingUp className="size-3 text-[#2D6A4F]" />
+          <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200 flex items-center gap-1.5 sm:gap-2">
+            <span className="flex size-4 sm:size-5 items-center justify-center rounded bg-[#2D6A4F]/10 border border-[#2D6A4F]/20">
+              <TrendingUp className="size-2.5 sm:size-3 text-[#2D6A4F]" />
             </span>
             Provincial Financial Health
           </CardTitle>
-          <p className="text-[11px] text-zinc-400 mt-0.5">
+          <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">
             Average Financial Health Score by province — colour-coded by score band
           </p>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="h-[280px]">
+          <div className="h-[200px] sm:h-[250px] md:h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sortedData}
@@ -1220,7 +1531,7 @@ function ProvincialFHSChart() {
                   type="category"
                   dataKey="province"
                   width={95}
-                  tick={{ fill: '#d4d4d8', fontSize: 11 }}
+                  tick={{ fill: '#d4d4d8', fontSize: 9 }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -1262,17 +1573,17 @@ function ServiceDeliveryChart() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                <span className="flex size-5 items-center justify-center rounded bg-[#3B82F6]/10 border border-[#3B82F6]/20">
-                  <Building2 className="size-3 text-[#3B82F6]" />
+              <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200 flex items-center gap-2">
+                <span className="flex size-4 sm:size-5 items-center justify-center rounded bg-[#3B82F6]/10 border border-[#3B82F6]/20">
+                  <Building2 className="size-2.5 sm:size-3 text-[#3B82F6]" />
                 </span>
                 Service Delivery by Province
               </CardTitle>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
+              <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">
                 Household access to basic services (%)
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {[
                 { key: 'water', label: 'Water', color: SERVICE_COLORS.water },
                 { key: 'sanitation', label: 'Sanitation', color: SERVICE_COLORS.sanitation },
@@ -1287,14 +1598,14 @@ function ServiceDeliveryChart() {
                       boxShadow: `0 0 5px ${item.color}40`,
                     }}
                   />
-                  <span className="text-[10px] text-zinc-400 font-medium">{item.label}</span>
+                  <span className="text-[9px] sm:text-[10px] text-zinc-400 font-medium">{item.label}</span>
                 </div>
               ))}
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="h-[300px]">
+          <div className="h-[200px] sm:h-[250px] md:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={SERVICE_DELIVERY_BY_PROVINCE}
@@ -1365,19 +1676,19 @@ function ProvincialTable() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                <span className="flex size-5 items-center justify-center rounded bg-[#B45309]/10 border border-[#B45309]/20">
-                  <Map className="size-3 text-[#B45309]" />
+              <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200 flex items-center gap-1.5 sm:gap-2">
+                <span className="flex size-4 sm:size-5 items-center justify-center rounded bg-[#B45309]/10 border border-[#B45309]/20">
+                  <Map className="size-2.5 sm:size-3 text-[#B45309]" />
                 </span>
                 Provincial Intelligence Table
               </CardTitle>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
+              <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">
                 Key metrics by province — click row to explore in GeoLens
               </p>
             </div>
             <Badge
               variant="outline"
-              className="border-white/[0.08] text-zinc-400 text-[10px] cursor-pointer hover:border-[#B45309]/30 hover:text-[#B45309] transition-all"
+              className="border-white/[0.08] text-zinc-400 text-[9px] sm:text-[10px] cursor-pointer hover:border-[#B45309]/30 hover:text-[#B45309] transition-all min-h-[32px]"
               onClick={handleRowClick}
             >
               <Map className="size-3 mr-1" />
@@ -1398,23 +1709,23 @@ function ProvincialTable() {
                     backgroundClip: 'padding-box, border-box',
                   }}
                 >
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                     Province
                   </TableHead>
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
-                    Municipalities
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-right">
+                    Munis
                   </TableHead>
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-right">
                     Avg FHS
                   </TableHead>
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-right">
                     Avg SDS
                   </TableHead>
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-right">
                     §139
                   </TableHead>
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider text-right">
-                    Clean Audits
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-right">
+                    Clean
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -1436,8 +1747,8 @@ function ProvincialTable() {
                         borderLeft: `3px solid ${provinceAccent}30`,
                       }}
                     >
-                      <TableCell className="font-semibold text-zinc-200 text-xs">
-                        <div className="flex items-center gap-2">
+                      <TableCell className="font-semibold text-zinc-200 text-[10px] sm:text-xs">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <div
                             className="size-1.5 rounded-full shrink-0"
                             style={{ backgroundColor: provinceAccent }}
@@ -1445,13 +1756,13 @@ function ProvincialTable() {
                           {prov.province}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right text-zinc-300 text-xs tabular-nums">
+                      <TableCell className="text-right text-zinc-300 text-[10px] sm:text-xs tabular-nums">
                         {prov.municipalities}
                       </TableCell>
                       <TableCell className="text-right">
                         <span
                           className={cn(
-                            'inline-flex items-center text-xs font-bold tabular-nums',
+                            'inline-flex items-center text-[10px] sm:text-xs font-bold tabular-nums',
                             fhsBand.textColor
                           )}
                         >
@@ -1461,7 +1772,7 @@ function ProvincialTable() {
                       <TableCell className="text-right">
                         <span
                           className={cn(
-                            'inline-flex items-center text-xs font-bold tabular-nums',
+                            'inline-flex items-center text-[10px] sm:text-xs font-bold tabular-nums',
                             sdsBand.textColor
                           )}
                         >
@@ -1470,20 +1781,20 @@ function ProvincialTable() {
                       </TableCell>
                       <TableCell className="text-right">
                         {prov.section139 > 0 ? (
-                          <Badge className="bg-red-500/15 text-red-400 border-red-500/25 text-[10px] h-5 px-1.5 font-semibold">
+                          <Badge className="bg-red-500/15 text-red-400 border-red-500/25 text-[9px] sm:text-[10px] h-5 px-1 sm:px-1.5 font-semibold">
                             {prov.section139}
                           </Badge>
                         ) : (
-                          <span className="text-zinc-500 text-xs">—</span>
+                          <span className="text-zinc-500 text-[10px] sm:text-xs">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         {prov.cleanAudit > 0 ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px] h-5 px-1.5 font-semibold">
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[9px] sm:text-[10px] h-5 px-1 sm:px-1.5 font-semibold">
                             {prov.cleanAudit}
                           </Badge>
                         ) : (
-                          <span className="text-zinc-500 text-xs">0</span>
+                          <span className="text-zinc-500 text-[10px] sm:text-xs">0</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1558,10 +1869,10 @@ function MunicipalityComparison() {
               <GitCompareArrows className="size-3.5 text-[#7B2D8E]" />
             </div>
             <div>
-              <CardTitle className="text-sm font-bold text-zinc-200">
+              <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200">
                 Municipality Comparison
               </CardTitle>
-              <p className="text-[10px] text-zinc-400 mt-0.5">
+              <p className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5">
                 Select municipalities to compare key metrics side by side
               </p>
             </div>
@@ -1569,7 +1880,7 @@ function MunicipalityComparison() {
         </CardHeader>
         <CardContent className="pt-0">
           {/* Select dropdowns */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
             {[selected1, selected2, selected3].map((val, idx) => {
               const setter = [setSelected1, setSelected2, setSelected3][idx];
               const labels = ['Municipality A', 'Municipality B', 'Municipality C'];
@@ -1614,14 +1925,14 @@ function MunicipalityComparison() {
                     backgroundClip: 'padding-box, border-box',
                   }}
                 >
-                  <TableHead className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider w-[160px]">
+                  <TableHead className="text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider w-[120px] sm:w-[160px]">
                     Metric
                   </TableHead>
                   {selectedMunicipalities.map((m, i) => {
                     return (
                       <TableHead
                         key={m!.id}
-                        className="text-right text-[11px] font-bold uppercase tracking-wider"
+                        className="text-right text-[10px] sm:text-[11px] font-bold uppercase tracking-wider"
                         style={{ color: COMPARISON_COLORS[i] }}
                       >
                         {m!.name}
@@ -1633,7 +1944,7 @@ function MunicipalityComparison() {
               <TableBody>
                 {/* Financial Health Score */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold">Financial Health Score</TableCell>
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold">Financial Health Score</TableCell>
                   {selectedMunicipalities.map((m, i) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.span
@@ -1641,7 +1952,7 @@ function MunicipalityComparison() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className={cn('text-sm font-bold tabular-nums', getScoreColor(m!.financialHealthScore))}
+                        className={cn('text-xs sm:text-sm font-bold tabular-nums', getScoreColor(m!.financialHealthScore))}
                       >
                         {m!.financialHealthScore ?? '—'}/100
                       </motion.span>
@@ -1650,7 +1961,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Service Delivery Score */}
                 <TableRow className="border-white/[0.04] bg-white/[0.01]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold">Service Delivery Score</TableCell>
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold">Service Delivery Score</TableCell>
                   {selectedMunicipalities.map((m, i) => {
                     const sds = m!.serviceDeliveryScore !== null ? 100 - m!.serviceDeliveryScore : null;
                     return (
@@ -1660,7 +1971,7 @@ function MunicipalityComparison() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25 }}
-                          className={cn('text-sm font-bold tabular-nums', getScoreColor(sds))}
+                          className={cn('text-xs sm:text-sm font-bold tabular-nums', getScoreColor(sds))}
                         >
                           {m!.serviceDeliveryScore !== null ? `${m!.serviceDeliveryScore}/100` : '—'}
                         </motion.span>
@@ -1670,7 +1981,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* FHS vs SDS comparison row */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
                     <ArrowLeftRight className="size-3" /> FHS vs SDS Gap
                   </TableCell>
                   {selectedMunicipalities.map((m) => {
@@ -1685,7 +1996,7 @@ function MunicipalityComparison() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25 }}
-                          className={cn('text-sm font-bold tabular-nums', gapColor)}
+                          className={cn('text-xs sm:text-sm font-bold tabular-nums', gapColor)}
                         >
                           {m!.financialHealthScore !== null && m!.serviceDeliveryScore !== null ? `${gap} pts` : '—'}
                         </motion.span>
@@ -1695,7 +2006,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Audit Outcome */}
                 <TableRow className="border-white/[0.04] bg-white/[0.01]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold">Audit Outcome</TableCell>
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold">Audit Outcome</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.div
@@ -1713,7 +2024,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Population */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
                     <Users className="size-3" /> Population
                   </TableCell>
                   {selectedMunicipalities.map((m) => (
@@ -1723,7 +2034,7 @@ function MunicipalityComparison() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="text-sm font-semibold text-zinc-200 tabular-nums"
+                        className="text-xs sm:text-sm font-semibold text-zinc-200 tabular-nums"
                       >
                         {formatPopulation(m!.population2022)}
                       </motion.span>
@@ -1732,7 +2043,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Section 139 Status */}
                 <TableRow className="border-white/[0.04] bg-white/[0.01]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold">§139 Status</TableCell>
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold">§139 Status</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.div
@@ -1750,7 +2061,7 @@ function MunicipalityComparison() {
                 </TableRow>
                 {/* Province */}
                 <TableRow className="border-white/[0.04]">
-                  <TableCell className="text-xs text-zinc-300 font-semibold">Province</TableCell>
+                  <TableCell className="text-[10px] sm:text-xs text-zinc-300 font-semibold">Province</TableCell>
                   {selectedMunicipalities.map((m) => (
                     <TableCell key={m!.id} className="text-right">
                       <motion.span
@@ -1758,7 +2069,7 @@ function MunicipalityComparison() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="text-xs text-zinc-300 font-medium"
+                        className="text-[10px] sm:text-xs text-zinc-300 font-medium"
                       >
                         {m!.province}
                       </motion.span>
@@ -1799,10 +2110,10 @@ function RiskSignalsPanel() {
                 <ShieldAlert className="size-3.5 text-red-400" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-200">
+                <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200">
                   Recent Risk Signals
                 </CardTitle>
-                <p className="text-[10px] text-zinc-400">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400">
                   {DASHBOARD_KPIS.riskSignalsActive} active signals
                 </p>
               </div>
@@ -1810,7 +2121,7 @@ function RiskSignalsPanel() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <ScrollArea className="max-h-[340px]">
+          <ScrollArea className="max-h-[260px] sm:max-h-[340px]">
             <div className="space-y-2.5">
               {recentSignals.map((signal, i) => {
                 const severityStyle = getSeverityStyle(signal.severity);
@@ -1829,7 +2140,7 @@ function RiskSignalsPanel() {
                       <div className="flex items-center gap-1">
                         <Badge
                           className={cn(
-                            'shrink-0 text-[9px] h-5 px-1.5 font-bold border',
+                    'shrink-0 text-[8px] sm:text-[9px] h-5 px-1 sm:px-1.5 font-bold border',
                             severityStyle.bgColor,
                             severityStyle.color,
                             severityStyle.borderColor
@@ -1847,10 +2158,10 @@ function RiskSignalsPanel() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-zinc-200 truncate">
+                        <p className="text-[11px] sm:text-xs font-semibold text-zinc-200 truncate">
                           {signal.type}
                         </p>
-                        <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-2 leading-relaxed">
+                        <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 line-clamp-1 sm:line-clamp-2 leading-relaxed">
                           {signal.description}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
@@ -1873,7 +2184,7 @@ function RiskSignalsPanel() {
           <div className="flex items-center justify-between">
             <button
               onClick={() => setActiveModule('risklens' as ModuleId)}
-              className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+              className="group flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors min-h-[44px]"
             >
               <span className="relative">
                 View all risk signals
@@ -1885,7 +2196,7 @@ function RiskSignalsPanel() {
               variant="ghost"
               size="sm"
               onClick={() => setActiveModule('risklens' as ModuleId)}
-              className="h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300"
+              className="h-8 sm:h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300 min-w-[44px]"
             >
               Expand
               <ArrowRight className="size-2.5" />
@@ -1920,10 +2231,10 @@ function TenderHighlightsPanel() {
                 <FileSearch className="size-3.5 text-[#2D6A4F]" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-200">
+                <CardTitle className="text-xs sm:text-sm font-bold text-zinc-200">
                   Active Tender Highlights
                 </CardTitle>
-                <p className="text-[10px] text-zinc-400">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400">
                   Top {activeTenders.length} by estimated value
                 </p>
               </div>
@@ -1931,7 +2242,7 @@ function TenderHighlightsPanel() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <ScrollArea className="max-h-[340px]">
+          <ScrollArea className="max-h-[260px] sm:max-h-[340px]">
             <div className="space-y-2.5">
               {activeTenders.map((tender, i) => {
                 const categoryColor = CATEGORY_COLORS[tender.category] || '#71717a';
@@ -1947,14 +2258,14 @@ function TenderHighlightsPanel() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-zinc-200 line-clamp-1 leading-snug">
+                        <p className="text-[11px] sm:text-xs font-semibold text-zinc-200 line-clamp-1 leading-snug">
                           {tender.title}
                         </p>
-                        <p className="text-[11px] text-zinc-400 mt-1">
+                        <p className="text-[10px] sm:text-[11px] text-zinc-400 mt-1">
                           {tender.buyerName}
                         </p>
                       </div>
-                      <span className="text-xs font-extrabold text-[#B45309] tabular-nums shrink-0">
+                      <span className="text-[11px] sm:text-xs font-extrabold text-[#B45309] tabular-nums shrink-0">
                         {formatCompactZAR(tender.estimatedValue)}
                       </span>
                     </div>
@@ -2004,7 +2315,7 @@ function TenderHighlightsPanel() {
           <div className="flex items-center justify-between">
             <button
               onClick={() => setActiveModule('tenderlens' as ModuleId)}
-              className="group flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+              className="group flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors min-h-[44px]"
             >
               <span className="relative">
                 View all tenders
@@ -2016,7 +2327,7 @@ function TenderHighlightsPanel() {
               variant="ghost"
               size="sm"
               onClick={() => setActiveModule('tenderlens' as ModuleId)}
-              className="h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300"
+              className="h-8 sm:h-6 gap-1 text-[9px] text-zinc-500 hover:text-zinc-300 min-w-[44px]"
             >
               Expand
               <ArrowRight className="size-2.5" />
@@ -2079,17 +2390,17 @@ function LiveActivityFeed() {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="relative w-full h-12 flex items-center bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-white/[0.06] overflow-hidden rounded-xl"
+      className="relative w-full h-10 sm:h-12 flex items-center bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-white/[0.06] overflow-hidden rounded-xl"
     >
       {/* Left: LIVE indicator + label */}
-      <div className="flex items-center gap-2 px-3 shrink-0 z-10 bg-[#0a0e1a]/90 h-full border-r border-white/[0.06]">
+      <div className="flex items-center gap-2 px-2 sm:px-3 shrink-0 z-10 bg-[#0a0e1a]/90 h-full border-r border-white/[0.06]">
         <span className="relative flex size-2">
           <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
           <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
         </span>
-        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
+        <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
         <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
-        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Activity Feed</span>
+        <span className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 uppercase tracking-wider hidden sm:inline">Activity Feed</span>
       </div>
 
       {/* Right: Scrolling events - Clickable */}
@@ -2112,9 +2423,9 @@ function LiveActivityFeed() {
                   {config.icon}
                 </span>
                 {/* Event text */}
-                <span className="text-[11px] text-zinc-300 font-medium group-hover/event:underline underline-offset-2">{event.text}</span>
+                <span className="text-[10px] sm:text-[11px] text-zinc-300 font-medium group-hover/event:underline underline-offset-2">{event.text}</span>
                 {/* Entity tag */}
-                <span className="text-[9px] font-semibold text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">{event.entity}</span>
+                <span className="text-[8px] sm:text-[9px] font-semibold text-zinc-500 bg-white/[0.04] px-1 sm:px-1.5 py-0.5 rounded border border-white/[0.06]">{event.entity}</span>
                 {/* Relative timestamp */}
                 <span className="text-[9px] text-zinc-500 font-mono">{event.time}</span>
                 {/* Dot divider */}
@@ -2168,12 +2479,12 @@ function LiveActivityFeedPanel() {
           style={{ backgroundColor: '#0D9488' }}
         />
 
-        <CardContent className="p-5 lg:p-6 relative">
+        <CardContent className="p-3 sm:p-4 lg:p-5 xl:p-6 relative">
           {/* Header */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-3 sm:mb-5">
             <div className="flex items-center gap-3">
               {/* Live badge with pulsing dot */}
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <span className="relative flex size-2">
                   <motion.span
                     className="absolute inset-0 rounded-full bg-emerald-400"
@@ -2182,11 +2493,11 @@ function LiveActivityFeedPanel() {
                   />
                   <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
                 </span>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live</span>
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-zinc-100 tracking-tight">Real-Time Activity Feed</h3>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Latest system events across all monitoring modules</p>
+                <h3 className="text-xs sm:text-sm font-bold text-zinc-100 tracking-tight">Real-Time Activity Feed</h3>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5">Latest system events across all monitoring modules</p>
               </div>
             </div>
             <Badge className="bg-white/[0.04] text-zinc-400 border-white/[0.08] text-[9px] px-2 py-0.5 font-semibold">
@@ -2195,7 +2506,7 @@ function LiveActivityFeedPanel() {
           </div>
 
           {/* Feed items */}
-          <ScrollArea className="max-h-[360px]">
+          <ScrollArea className="max-h-[280px] sm:max-h-[360px]">
             <div className="space-y-1">
               {FEED_PANEL_EVENTS.map((event, i) => {
                 const config = ACTIVITY_TYPE_CONFIG[event.type];
@@ -2205,14 +2516,14 @@ function LiveActivityFeedPanel() {
                     initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                    className="group/feed-item flex items-start gap-3 rounded-lg p-2.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer border border-transparent hover:border-white/[0.06]"
+                    className="group/feed-item flex items-start gap-2 sm:gap-3 rounded-lg p-2 sm:p-2.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer border border-transparent hover:border-white/[0.06]"
                     onClick={() => {
                       if (config?.targetModule) setActiveModule(config.targetModule);
                     }}
                   >
                     {/* Event type icon with glow */}
                     <div
-                      className={cn('flex size-7 items-center justify-center rounded-lg shrink-0 mt-0.5', config.color)}
+                      className={cn('flex size-6 sm:size-7 items-center justify-center rounded-lg shrink-0 mt-0.5', config.color)}
                       style={{
                         background: `${config.color === 'text-red-400' ? '#EF4444' : config.color === 'text-emerald-400' ? '#10B981' : config.color === 'text-blue-400' ? '#3B82F6' : config.color === 'text-amber-400' ? '#F59E0B' : '#14B8A6'}12`,
                         border: `1px solid ${config.color === 'text-red-400' ? '#EF4444' : config.color === 'text-emerald-400' ? '#10B981' : config.color === 'text-blue-400' ? '#3B82F6' : config.color === 'text-amber-400' ? '#F59E0B' : '#14B8A6'}25`,
@@ -2224,11 +2535,11 @@ function LiveActivityFeedPanel() {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-zinc-200 leading-relaxed group-hover/feed-item:text-zinc-50 transition-colors">
+                      <p className="text-[11px] sm:text-xs text-zinc-200 leading-relaxed group-hover/feed-item:text-zinc-50 transition-colors line-clamp-2 sm:line-clamp-none">
                         {event.text}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-semibold text-zinc-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-zinc-400 bg-white/[0.04] px-1 sm:px-1.5 py-0.5 rounded border border-white/[0.06]">
                           {event.entity}
                         </span>
                         <span className="text-[9px] text-zinc-500">·</span>
@@ -2237,7 +2548,7 @@ function LiveActivityFeedPanel() {
                     </div>
 
                     {/* Arrow */}
-                    <ArrowRight className="size-3.5 text-zinc-600 group-hover/feed-item:text-zinc-400 shrink-0 mt-1 transition-colors" />
+                    <ArrowRight className="size-3 sm:size-3.5 text-zinc-600 group-hover/feed-item:text-zinc-400 shrink-0 mt-1 transition-colors" />
                   </motion.div>
                 );
               })}
@@ -2249,11 +2560,11 @@ function LiveActivityFeedPanel() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="size-3 text-zinc-500" />
-              <span className="text-[10px] text-zinc-500">Auto-updating every 30s</span>
+              <span className="text-[9px] sm:text-[10px] text-zinc-500">Auto-updating every 30s</span>
             </div>
             <button
               onClick={() => setActiveModule('risklens' as ModuleId)}
-              className="group flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+              className="group flex items-center gap-1.5 text-[9px] sm:text-[10px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors min-h-[44px]"
             >
               <span className="relative">
                 View all events
@@ -2276,27 +2587,27 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
   return (
     <motion.div variants={itemSlideUp} className="flex flex-col sm:flex-row sm:items-center gap-3">
       {/* Live Indicator + Counter */}
-      <div className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 flex-1">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 sm:px-4 py-2 sm:py-2.5 flex-1 overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="relative flex size-2.5 items-center justify-center">
             <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40" />
             <div className="relative size-2 rounded-full bg-emerald-400" />
           </div>
-          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+          <span className="text-[10px] sm:text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
             Live Data
           </span>
         </div>
         <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Shield className="size-3 text-zinc-400" />
-          <span className="text-[11px] text-zinc-400">
-            Data as of 03 Mar 2026 — MFMA 2023/24 cycle
+          <span className="text-[10px] sm:text-[11px] text-zinc-400 whitespace-nowrap">
+            Data as of 03 Mar 2026
           </span>
         </div>
-        <Separator orientation="vertical" className="h-3 bg-white/[0.08]" />
-        <div className="flex items-center gap-1.5">
+        <Separator orientation="vertical" className="h-3 bg-white/[0.08] hidden sm:block" />
+        <div className="flex items-center gap-1.5 shrink-0 hidden sm:flex">
           <Clock className="size-3 text-zinc-400" />
-          <span className="text-[11px] text-zinc-400 font-mono">
+          <span className="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
             Last updated: {counter}
           </span>
         </div>
@@ -2314,7 +2625,7 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
           size="sm"
           onClick={refresh}
           className={cn(
-            'h-8 gap-1.5 text-zinc-300',
+            'h-9 sm:h-8 gap-1.5 text-zinc-300',
             'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
             'hover:bg-white/[0.08] hover:border-white/[0.16] hover:shadow-lg',
             'active:scale-[0.98] transition-all duration-200'
@@ -2323,7 +2634,7 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
           <RefreshCw
             className={cn('size-3.5 animate-spin-on-hover', isRefreshing && 'animate-spin')}
           />
-          <span className="text-[11px]">Refresh</span>
+          <span className="text-[10px] sm:text-[11px]">Refresh</span>
         </Button>
 
         {/* Export Button — Premium Glass Morphism */}
@@ -2332,14 +2643,14 @@ function DashboardHeader({ onExportOpen }: { onExportOpen: () => void }) {
           size="sm"
           onClick={onExportOpen}
           className={cn(
-            'h-8 gap-1.5 text-zinc-300',
+            'h-9 sm:h-8 gap-1.5 text-zinc-300',
             'bg-white/[0.04] backdrop-blur-sm border border-white/[0.08]',
             'hover:bg-white/[0.08] hover:border-white/[0.16] hover:shadow-lg',
             'active:scale-[0.98] transition-all duration-200'
           )}
         >
           <Download className="size-3.5 animate-icon-bounce-hover" />
-          <span className="text-[11px]">Export</span>
+          <span className="text-[10px] sm:text-[11px]">Export</span>
         </Button>
       </div>
     </motion.div>
@@ -2374,7 +2685,7 @@ export default function Dashboard() {
   ], []);
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-5 sm:space-y-8 relative overflow-hidden">
       {/* Subtle noise texture overlay for depth */}
       <div className="noise-texture absolute inset-0 pointer-events-none rounded-xl" />
 
@@ -2436,20 +2747,18 @@ export default function Dashboard() {
           }}
         />
 
-        <div className="relative flex items-center gap-3 p-3 pl-4">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
-            <AlertTriangle className="size-4 text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              {/* Pulsing red dot */}
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 sm:pl-4">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
+              <AlertTriangle className="size-3.5 sm:size-4 text-red-400" />
+            </div>
+            <div className="flex items-center gap-2">
               <span className="relative flex size-2">
                 <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
                 <span className="relative inline-flex size-2 rounded-full bg-red-500" />
               </span>
-              {/* Gradient "High Priority" badge */}
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white"
+                className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white"
                 style={{
                   background: 'linear-gradient(135deg, #DC2626, #D97706)',
                 }}
@@ -2457,21 +2766,23 @@ export default function Dashboard() {
                 High Priority
               </span>
             </div>
-            <p className="text-xs font-semibold text-red-200">
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-red-200">
               Financial Distress Alert: 63% of municipalities now classified as distressed
             </p>
-            <p className="text-[10px] text-red-300/60 mt-0.5">
-              162 of 257 municipalities below Financial Health Score threshold of 45 — up 8.2% year-on-year
+            <p className="text-[9px] sm:text-[10px] text-red-300/60 mt-0.5">
+              162 of 257 municipalities below FHS threshold of 45 — up 8.2% YoY
             </p>
           </div>
-          {/* View Distressed Municipalities button */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => useNavigationStore.getState().setActiveModule('munilens')}
-            className="h-7 gap-1.5 text-[10px] border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/50 shrink-0"
+            className="h-8 sm:h-7 gap-1.5 text-[9px] sm:text-[10px] border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/50 shrink-0 min-w-[44px]"
           >
-            View Distressed Municipalities
+            <span className="hidden sm:inline">View Distressed</span>
+            <span className="sm:hidden">View</span>
             <ArrowRight className="size-3" />
           </Button>
         </div>
@@ -2488,11 +2799,21 @@ export default function Dashboard() {
           variants={containerStagger}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4"
         >
           {kpiCards.map((kpi, index) => (
             <KPICard key={kpi.label} data={kpi} index={index} />
           ))}
+        </motion.div>
+
+        {/* ── Province Quick-Select Navigation Cards ──────────────── */}
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          animate="show"
+          className="mt-3 sm:mt-4"
+        >
+          <ProvinceQuickSelect />
         </motion.div>
       </div>
 
@@ -2555,7 +2876,7 @@ export default function Dashboard() {
           variants={containerStagger}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4"
         >
           <AuditOutcomeChart />
           <ProvincialFHSChart />
@@ -2603,7 +2924,7 @@ export default function Dashboard() {
       {/* Section Divider — Animated Gradient */}
       <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#0D9488]/25 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
 
-      {/* ── Provincial Intelligence Table ───────────────────────── */}
+      {/* ── Provincial Intelligence Table + Mini Map ─────────────── */}
       <div>
         <SectionHeader
           title="Provincial Intelligence"
@@ -2614,8 +2935,10 @@ export default function Dashboard() {
           variants={containerStagger}
           initial="hidden"
           animate="show"
+          className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_300px] gap-3 sm:gap-4"
         >
           <ProvincialTable />
+          <MiniMapWidget />
         </motion.div>
       </div>
 
@@ -2652,25 +2975,25 @@ export default function Dashboard() {
           variants={containerStagger}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
         >
           {/* Compare Municipality Button */}
           <motion.div variants={itemSlideUp}>
             <button
               onClick={() => setCompareOpen(true)}
               className={cn(
-                'w-full flex items-center gap-2.5 rounded-xl border p-4',
+                'w-full flex items-center gap-2 sm:gap-2.5 rounded-xl border p-3 sm:p-4',
                 'border-[#7B2D8E]/20 bg-[#7B2D8E]/05',
                 'hover:border-[#7B2D8E]/40 hover:bg-[#7B2D8E]/10',
-                'transition-all duration-300 cursor-pointer group'
+                'transition-all duration-300 cursor-pointer group min-h-[44px]'
               )}
             >
               <div className="flex size-8 items-center justify-center rounded-lg bg-[#7B2D8E]/15 border border-[#7B2D8E]/25">
                 <GitCompareArrows className="size-4 text-[#A855F7]" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">Compare Municipalities</p>
-                <p className="text-[10px] text-zinc-500">Side-by-side comparison of 2–3 municipalities</p>
+                <p className="text-[11px] sm:text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">Compare Municipalities</p>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500">Side-by-side comparison</p>
               </div>
               <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-[#A855F7] transition-colors" />
             </button>
@@ -2687,6 +3010,18 @@ export default function Dashboard() {
           <TenderHighlightsPanel />
         </motion.div>
       </div>
+
+      {/* Section Divider — Animated Gradient */}
+      <div className="relative h-px"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" /><motion.div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-emerald-500/15 to-transparent" animate={{ x: ['-100%', '300%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} /></div>
+
+      {/* ── System Health Monitor ──────────────────────────────── */}
+      <motion.div
+        variants={containerStagger}
+        initial="hidden"
+        animate="show"
+      >
+        <SystemHealthMonitor />
+      </motion.div>
 
       {/* ── Data Export Sheet ──────────────────────────────────── */}
       <DataExport
