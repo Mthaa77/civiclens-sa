@@ -19,7 +19,8 @@ export type ModuleId =
   | 'grantlens'
   | 'budgetlens'
   | 'carbonlens'
-  | 'datahub';
+  | 'datahub'
+  | 'settings';
 
 export interface ModuleDef {
   id: ModuleId;
@@ -185,6 +186,8 @@ export interface ChatMessage {
   timestamp: string;
   isLoading?: boolean;
   isSimulated?: boolean;
+  isError?: boolean;
+  reaction?: 'up' | 'down' | null;
 }
 
 export interface ChatSession {

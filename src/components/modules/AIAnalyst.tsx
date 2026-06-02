@@ -15,18 +15,21 @@ import {
   BookOpen,
   Search,
   FileText,
-  ShieldAlert,
   TrendingUp,
+  ThumbsUp,
+  ThumbsDown,
+  Copy,
+  Download,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SUGGESTED_PROMPTS, PROVINCE_SUMMARY, MOCK_MUNICIPALITIES, MOCK_TENDERS, MOCK_RISK_SIGNALS } from '@/lib/mock-data';
-import { formatCompactZAR, formatNumber, formatPercent } from '@/lib/formatters';
+import { SUGGESTED_PROMPTS } from '@/lib/mock-data';
 import { useAIAnalystStore } from '@/store/ai-analyst';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
 import type { AIPersona, ChatMessage } from '@/types';
 
 // ── Persona Config ───────────────────────────────────────────────────────────
@@ -80,137 +83,195 @@ const PERSONAS: PersonaConfig[] = [
   },
 ];
 
-// ── Mock Response Generator ──────────────────────────────────────────────────
+// ── LocalStorage Keys ────────────────────────────────────────────────────────
 
-function generateMockResponse(question: string, persona: AIPersona): { content: string; sources: string[] } {
-  const q = question.toLowerCase();
-  const sources: string[] = [];
+const STORAGE_KEY_MESSAGES = 'civiclens-ai-analyst-messages';
+const STORAGE_KEY_PERSONA = 'civiclens-ai-analyst-persona';
 
-  // Municipality-related
-  if (q.includes('municipal') || q.includes('muni') || q.includes('city') || q.includes('town')) {
-    sources.push('Municipal Money API — National Treasury', 'Stats SA Census 2022', 'MFMA 2023/24 Audit Data');
-    const muni = MOCK_MUNICIPALITIES[Math.floor(Math.random() * MOCK_MUNICIPALITIES.length)];
-    if (persona === 'Citizen') {
-      return {
-        content: `Based on the latest data, **${muni.name}** has a Financial Health Score of **${muni.financialHealthScore}/100** and a Service Delivery Pressure Score of **${muni.serviceDeliveryScore}/100**. ${muni.financialHealthScore && muni.financialHealthScore >= 50 ? 'The municipality is performing relatively well financially.' : 'The municipality is facing significant financial challenges.'} Water access stands at **${muni.waterAccess}%** of households, and sanitation access is at **${muni.sanitationAccess}%**. ${muni.section139Status === 'Intervention' ? '⚠️ This municipality is currently under Section 139 intervention.' : muni.section139Status === 'Warning' ? '⚠️ This municipality is under a Section 139 warning.' : 'The municipality is not currently under Section 139 intervention.'}`,
-        sources,
-      };
+function loadMessages(): ChatMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_MESSAGES);
+    if (stored) {
+      const parsed = JSON.parse(stored) as ChatMessage[];
+      // Filter out loading messages from previous sessions
+      return parsed.filter((m) => !m.isLoading);
     }
-    return {
-      content: `**${muni.name}** (${muni.code}) — Category ${muni.category} in ${muni.province}\n\n` +
-        `| Metric | Value | Assessment |\n|--------|-------|------------|\n` +
-        `| Financial Health Score | ${muni.financialHealthScore}/100 | ${muni.financialHealthScore && muni.financialHealthScore >= 65 ? 'Good' : muni.financialHealthScore && muni.financialHealthScore >= 45 ? 'Fair' : 'Poor'} |\n` +
-        `| Service Delivery Pressure | ${muni.serviceDeliveryScore}/100 | ${muni.serviceDeliveryScore && muni.serviceDeliveryScore <= 30 ? 'Low' : muni.serviceDeliveryScore && muni.serviceDeliveryScore <= 55 ? 'Moderate' : 'High'} |\n` +
-        `| Cash Coverage | ${muni.cashCoverageDays} days | ${muni.cashCoverageDays && muni.cashCoverageDays < 30 ? '⚠️ Below 30-day threshold' : 'Above threshold'} |\n` +
-        `| Debtor Collection | ${muni.debtorCollectionRate}% | ${muni.debtorCollectionRate && muni.debtorCollectionRate < 80 ? '⚠️ Below 80% target' : 'On target'} |\n` +
-        `| Audit Outcome | ${muni.auditOutcome} | ${muni.auditOutcome === 'Clean' ? '✓ Strong' : muni.auditOutcome === 'Disclaimer' ? '✗ Critical' : '⚠ Concern'} |\n` +
-        `\nSection 139 Status: **${muni.section139Status}** | Early Alert Score: **${muni.earlyAlertScore}/100**`,
-      sources,
-    };
+  } catch {
+    // Ignore parse errors
   }
+  return [];
+}
 
-  // Tender-related
-  if (q.includes('tender') || q.includes('procurement') || q.includes('bid') || q.includes('award')) {
-    sources.push('eTenders OCDS Database', 'CSD Supplier Registry', 'National Treasury PFMA Reports');
-    const tender = MOCK_TENDERS[Math.floor(Math.random() * MOCK_TENDERS.length)];
-    if (persona === 'Citizen') {
-      return {
-        content: `I found information about **"${tender.title}"** in ${tender.province}. This is a ${tender.status.toLowerCase()} tender worth approximately **${formatCompactZAR(tender.estimatedValue)}**. The buyer is ${tender.buyerName}, and it requires **B-BBEE Level ${tender.bbbeeRequirement}**. ${tender.status === 'Active' ? `The closing date is ${tender.closingDate}.` : tender.status === 'Awarded' ? `It was awarded for ${formatCompactZAR(tender.awardValue)}.` : `The tender status is ${tender.status}.`}`,
-        sources,
-      };
+function saveMessages(messages: ChatMessage[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    // Don't save loading messages
+    const toSave = messages.filter((m) => !m.isLoading);
+    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadPersona(): AIPersona | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_PERSONA);
+    if (stored) {
+      return stored as AIPersona;
     }
-    return {
-      content: `**Tender Intelligence Report**\n\n` +
-        `**OCID:** ${tender.ocid}\n` +
-        `**Title:** ${tender.title}\n` +
-        `**Status:** ${tender.status} | **Category:** ${tender.category}\n` +
-        `**Buyer:** ${tender.buyerName} (${tender.province})\n` +
-        `**Estimated Value:** ${formatCompactZAR(tender.estimatedValue)}${tender.awardValue ? ` | **Award Value:** ${formatCompactZAR(tender.awardValue)}` : ''}\n` +
-        `**B-BBEE:** Level ${tender.bbbeeRequirement} | **Contract:** ${tender.contractPeriodDays} days\n\n` +
-        `**AI Assessment:** ${tender.aiSummary}\n\n` +
-        `**Bid Recommendation:** ${tender.bidRecommendation || 'N/A'} (Confidence: ${tender.confidenceScore ? `${Math.round(tender.confidenceScore * 100)}%` : 'N/A'})`,
-      sources,
-    };
+  } catch {
+    // Ignore
   }
+  return null;
+}
 
-  // Risk-related
-  if (q.includes('risk') || q.includes('anomal') || q.includes('fraud') || q.includes('signal') || q.includes('alert')) {
-    sources.push('CivicLens Risk Engine v2.1', 'AGSA Audit Reports 2023/24', 'MFMA Section 139 Database');
-    const signal = MOCK_RISK_SIGNALS[Math.floor(Math.random() * MOCK_RISK_SIGNALS.length)];
-    if (persona === 'Citizen') {
-      return {
-        content: `A **${signal.severity}** risk signal has been detected: **${signal.type}**. This means ${signal.description.toLowerCase()} It was detected on ${new Date(signal.detectedAt).toLocaleDateString('en-ZA')} and is currently **${signal.status}**. ${signal.severity === 'Critical' ? '🚨 This requires immediate attention from authorities.' : signal.severity === 'High' ? '⚠️ This should be investigated promptly.' : 'This is being monitored.'}`,
-        sources,
-      };
+function savePersona(persona: AIPersona) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_PERSONA, persona);
+  } catch {
+    // Ignore
+  }
+}
+
+// ── Simple Markdown Renderer ─────────────────────────────────────────────────
+
+function renderMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const lines = text.split('\n');
+  let inList = false;
+  let listKey = 0;
+
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
+
+    // Check for bullet list items
+    const bulletMatch = line.match(/^(\s*)[-*•]\s+(.*)$/);
+    if (bulletMatch) {
+      if (!inList) {
+        inList = true;
+      }
+      const indent = bulletMatch[1].length;
+      const content = bulletMatch[2];
+      nodes.push(
+        <div
+          key={`list-${lineIdx}`}
+          className="flex items-start gap-1.5"
+          style={{ paddingLeft: `${Math.min(indent, 16)}px` }}
+        >
+          <span className="text-[#0F766E] mt-0.5 shrink-0">•</span>
+          <span>{renderInlineMarkdown(content)}</span>
+        </div>
+      );
+      continue;
     }
-    return {
-      content: `**Risk Signal Analysis**\n\n` +
-        `**Type:** ${signal.type} | **Severity:** ${signal.severity} | **Status:** ${signal.status}\n\n` +
-        `**Description:** ${signal.description}\n\n` +
-        `**Indicator:** ${signal.indicator}\n` +
-        `**Detected Value:** ${signal.indicatorValue} (Threshold: ${signal.threshold})\n` +
-        `**Entity:** ${signal.entityId} (${signal.entityType})${signal.municipalityCode ? ` | Municipality: ${signal.municipalityCode}` : ''}\n\n` +
-        `**Detection Timestamp:** ${new Date(signal.detectedAt).toISOString()}\n\n` +
-        `There are currently **234 active risk signals** across the system, with **18 classified as Critical**. The most common risk type is Award Concentration, followed by Financial Distress signals.`,
-      sources,
-    };
+
+    // If we were in a list and this line isn't a bullet, close the list
+    if (inList) {
+      inList = false;
+    }
+
+    // Check for table rows (pipe-delimited)
+    if (line.includes('|') && line.trim().startsWith('|')) {
+      // Skip separator rows like |---|---|
+      if (/^\|[\s\-:|]+\|$/.test(line.trim())) {
+        continue;
+      }
+      const cells = line.split('|').filter((c) => c.trim() !== '');
+      nodes.push(
+        <div key={`table-${lineIdx}`} className="flex gap-4 text-[12px]">
+          {cells.map((cell, ci) => (
+            <span
+              key={ci}
+              className={cn(
+                'min-w-[80px]',
+                ci === 0 ? 'font-medium text-zinc-200' : 'text-zinc-400'
+              )}
+            >
+              {renderInlineMarkdown(cell.trim())}
+            </span>
+          ))}
+        </div>
+      );
+      continue;
+    }
+
+    // Empty line
+    if (line.trim() === '') {
+      nodes.push(<div key={`blank-${lineIdx}`} className="h-2" />);
+      continue;
+    }
+
+    // Regular line with inline markdown
+    nodes.push(
+      <div key={`line-${lineIdx}`}>{renderInlineMarkdown(line)}</div>
+    );
+    listKey++;
   }
 
-  // Financial-related
-  if (q.includes('financial') || q.includes('budget') || q.includes('fiscal') || q.includes('revenue') || q.includes('cash')) {
-    sources.push('Municipal Money API — National Treasury', 'MFMA Section 71 Reports', 'Stats SA P9114 Financial Census');
-    const prov = PROVINCE_SUMMARY[Math.floor(Math.random() * PROVINCE_SUMMARY.length)];
-    return {
-      content: `**Financial Health Analysis: ${prov.province}**\n\n` +
-        `**Average Financial Health Score:** ${prov.avgFHS}/100\n` +
-        `**Municipalities:** ${prov.municipalities} | **Section 139 Interventions:** ${prov.section139} | **Clean Audits:** ${prov.cleanAudit}\n\n` +
-        `${prov.avgFHS >= 50 ? 'The province shows moderate financial resilience, though significant variation exists between municipalities.' : 'The province faces systemic financial challenges with a majority of municipalities in distress.'}\n\n` +
-        `**Key Financial Indicators:**\n` +
-        `- Operating Budget Growth: +4.2% YoY (national average)\n` +
-        `- Irregular Expenditure: R45B nationally in 2024/25\n` +
-        `- Average Cash Coverage: 38 days (threshold: 30 days)\n` +
-        `- Debtor Collection Rate: 72.4% nationally (target: 95%)\n\n` +
-        `Nationally, **162 of 257 municipalities** are classified as in financial distress, with **43 under Section 139 intervention**.`,
-      sources,
-    };
+  return nodes;
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  // Pattern matches: **bold**, *italic*, `code`, and plain text
+  const pattern = /(\*\*.*?\*\*|\*.*?\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    // Add plain text before this match
+    if (match.index > lastIndex) {
+      const plainText = text.slice(lastIndex, match.index);
+      nodes.push(...renderSpecialTokens(plainText));
+    }
+
+    const token = match[0];
+
+    if (token.startsWith('**') && token.endsWith('**')) {
+      nodes.push(
+        <strong key={`b-${match.index}`} className="font-semibold text-zinc-100">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('*') && token.endsWith('*') && !token.startsWith('**')) {
+      nodes.push(
+        <em key={`i-${match.index}`} className="italic text-zinc-300">
+          {token.slice(1, -1)}
+        </em>
+      );
+    } else if (token.startsWith('`') && token.endsWith('`')) {
+      nodes.push(
+        <code
+          key={`c-${match.index}`}
+          className="rounded bg-white/[0.08] px-1.5 py-0.5 font-mono text-[11px] text-[#0F766E]"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+
+    lastIndex = match.index + token.length;
   }
 
-  // Province/comparison-related
-  if (q.includes('province') || q.includes('compare') || q.includes('eastern cape') || q.includes('gauteng') || q.includes('western cape') || q.includes('limpopo') || q.includes('kwazulu') || q.includes('mpumalanga') || q.includes('free state') || q.includes('north west') || q.includes('northern cape')) {
-    sources.push('Stats SA Census 2022', 'Municipal Money API — National Treasury', 'AGSA MFMA 2023/24');
-    const best = PROVINCE_SUMMARY.reduce((a, b) => (a.avgFHS > b.avgFHS ? a : b));
-    const worst = PROVINCE_SUMMARY.reduce((a, b) => (a.avgFHS < b.avgFHS ? a : b));
-    return {
-      content: `**Provincial Comparison Analysis**\n\n` +
-        `| Province | Municipalities | Avg FHS | Avg SDS | §139 | Clean Audits |\n|----------|---------------|---------|---------|------|-------------|\n` +
-        PROVINCE_SUMMARY.map(p =>
-          `| ${p.province} | ${p.municipalities} | ${p.avgFHS} | ${p.avgSDS} | ${p.section139} | ${p.cleanAudit} |`
-        ).join('\n') + '\n\n' +
-        `**Best Performer:** ${best.province} (FHS: ${best.avgFHS}/100, ${best.cleanAudit} clean audits)\n` +
-        `**Worst Performer:** ${worst.province} (FHS: ${worst.avgFHS}/100, ${worst.section139} §139 interventions)\n\n` +
-        `The national average Financial Health Score is **${Math.round(PROVINCE_SUMMARY.reduce((s, p) => s + p.avgFHS, 0) / 9)}/100**. There is a **${best.avgFHS - worst.avgFHS}-point gap** between the best and worst performing provinces, highlighting significant geographic inequality in municipal financial management.`,
-      sources,
-    };
+  // Add remaining text
+  if (lastIndex < text.length) {
+    nodes.push(...renderSpecialTokens(text.slice(lastIndex)));
   }
 
-  // General / default
-  sources.push('CivicLens Intelligence Database', 'Municipal Money API', 'Stats SA', 'National Treasury MFMA Reports');
-  return {
-    content: `I can help you explore South Africa's municipal intelligence data. Based on your question, here are some relevant insights:\n\n` +
-      `**National Overview:**\n` +
-      `- 257 municipalities across 9 provinces\n` +
-      `- 162 municipalities classified as in financial distress\n` +
-      `- 43 under Section 139 intervention\n` +
-      `- 25 achieved clean audit outcomes in 2023/24\n` +
-      `- 234 active risk signals detected\n\n` +
-      `**Key Trends:**\n` +
-      `- Financial health scores have declined 3.2% year-over-year\n` +
-      `- Service delivery pressure has increased in 6 of 9 provinces\n` +
-      `- Irregular expenditure reached R45B in the latest cycle\n` +
-      `- Procurement concentration risk has increased 14% YoY\n\n` +
-      `You can ask me about specific municipalities, tenders, risk signals, financial data, or provincial comparisons. Try being specific — for example, "What is the financial health of Johannesburg?" or "Show me risk signals in Gauteng."`,
-    sources,
-  };
+  return nodes;
+}
+
+function renderSpecialTokens(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  // Handle emojis and special chars like ⚠️, 🚨, ✓, ✗
+  const parts = text.split(/([\u{1F6A8}\u{26A0}\u{2705}\u{2713}\u{2717}\u{261D}]|⚠️)/u);
+  for (let i = 0; i < parts.length; i++) {
+    nodes.push(<span key={`st-${i}`}>{parts[i]}</span>);
+  }
+  return nodes;
 }
 
 // ── Sub-Components ───────────────────────────────────────────────────────────
@@ -227,7 +288,9 @@ function SourceChip({ source, expanded, onToggle }: { source: string; expanded: 
       )}
     >
       <FileText className="size-2.5" />
-      <span className="truncate max-w-[120px]">{source}</span>
+      <span className={cn('truncate', expanded ? 'max-w-[300px]' : 'max-w-[120px]')}>
+        {source}
+      </span>
       {expanded ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
     </button>
   );
@@ -259,11 +322,18 @@ function TypingIndicator() {
 function ChatMessageBubble({
   message,
   personaConfig,
+  onRetry,
+  onReaction,
+  onCopy,
 }: {
   message: ChatMessage;
   personaConfig: PersonaConfig | undefined;
+  onRetry: (messageId: string) => void;
+  onReaction: (messageId: string, reaction: 'up' | 'down') => void;
+  onCopy: (content: string) => void;
 }) {
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const isUser = message.role === 'user';
 
   return (
@@ -271,7 +341,9 @@ function ChatMessageBubble({
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className={cn('flex gap-2.5', isUser ? 'flex-row-reverse' : 'flex-row')}
+      className={cn('flex gap-2.5 group/msg', isUser ? 'flex-row-reverse' : 'flex-row')}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Avatar */}
       <div
@@ -290,60 +362,122 @@ function ChatMessageBubble({
       </div>
 
       {/* Message bubble */}
-      <div
-        className={cn(
-          'max-w-[80%] rounded-xl px-3.5 py-2.5',
-          isUser
-            ? 'bg-[#0F766E]/20 border border-[#0F766E]/25 text-zinc-100'
-            : 'bg-white/[0.03] border border-white/[0.06] text-zinc-200'
-        )}
-      >
-        {message.isLoading ? (
-          <TypingIndicator />
-        ) : (
-          <>
-            <div className="text-[13px] leading-relaxed whitespace-pre-wrap break-words">
-              {message.content.split(/(\*\*.*?\*\*)/).map((part, i) => {
-                if (part.startsWith('**') && part.endsWith('**')) {
-                  return (
-                    <strong key={i} className="font-semibold text-zinc-100">
-                      {part.slice(2, -2)}
-                    </strong>
-                  );
-                }
-                return <span key={i}>{part}</span>;
-              })}
-            </div>
-
-            {/* Sources */}
-            {!isUser && message.sources && message.sources.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-white/[0.06]">
-                <div className="flex flex-wrap gap-1.5">
-                  {message.sources.map((source, i) => (
-                    <SourceChip
-                      key={i}
-                      source={source}
-                      expanded={sourcesExpanded}
-                      onToggle={() => setSourcesExpanded(!sourcesExpanded)}
-                    />
-                  ))}
-                </div>
+      <div className="max-w-[80%] relative">
+        <div
+          className={cn(
+            'rounded-xl px-3.5 py-2.5',
+            isUser
+              ? 'bg-[#0F766E]/20 border border-[#0F766E]/25 text-zinc-100'
+              : message.isError
+                ? 'bg-red-500/[0.06] border border-red-500/20 text-zinc-200'
+                : 'bg-white/[0.03] border border-white/[0.06] text-zinc-200'
+          )}
+        >
+          {message.isLoading ? (
+            <TypingIndicator />
+          ) : (
+            <>
+              <div className="text-[13px] leading-relaxed break-words">
+                {renderMarkdown(message.content)}
               </div>
-            )}
 
-            {/* Timestamp */}
-            <div
-              className={cn(
-                'mt-1.5 text-[9px] text-zinc-600',
-                isUser ? 'text-right' : 'text-left'
+              {/* Error with retry */}
+              {message.isError && (
+                <div className="mt-2 pt-2 border-t border-red-500/20">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    onClick={() => onRetry(message.id)}
+                  >
+                    <RefreshCw className="size-3" />
+                    Retry
+                  </Button>
+                </div>
               )}
+
+              {/* Sources */}
+              {!isUser && !message.isError && message.sources && message.sources.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                  <div className="flex flex-wrap gap-1.5">
+                    {message.sources.map((source, i) => (
+                      <SourceChip
+                        key={i}
+                        source={source}
+                        expanded={sourcesExpanded}
+                        onToggle={() => setSourcesExpanded(!sourcesExpanded)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Timestamp */}
+              <div
+                className={cn(
+                  'mt-1.5 text-[9px] text-zinc-600',
+                  isUser ? 'text-right' : 'text-left'
+                )}
+              >
+                {new Date(message.timestamp).toLocaleTimeString('en-ZA', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Action buttons for AI messages (on hover) */}
+        {!isUser && !message.isLoading && isHovered && !message.isError && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="flex items-center gap-0.5 mt-1 ml-1"
+          >
+            {/* Thumbs up */}
+            <motion.button
+              whileTap={{ scale: 1.3 }}
+              onClick={() => onReaction(message.id, message.reaction === 'up' ? 'up' : 'up')}
+              className={cn(
+                'flex items-center justify-center size-6 rounded-md transition-colors',
+                message.reaction === 'up'
+                  ? 'text-[#0F766E] bg-[#0F766E]/10'
+                  : 'text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.05]'
+              )}
+              title="Helpful"
             >
-              {new Date(message.timestamp).toLocaleTimeString('en-ZA', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </div>
-          </>
+              <ThumbsUp className="size-3" />
+            </motion.button>
+
+            {/* Thumbs down */}
+            <motion.button
+              whileTap={{ scale: 1.3 }}
+              onClick={() => onReaction(message.id, message.reaction === 'down' ? 'down' : 'down')}
+              className={cn(
+                'flex items-center justify-center size-6 rounded-md transition-colors',
+                message.reaction === 'down'
+                  ? 'text-red-400 bg-red-500/10'
+                  : 'text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.05]'
+              )}
+              title="Not helpful"
+            >
+              <ThumbsDown className="size-3" />
+            </motion.button>
+
+            <div className="w-px h-3 bg-white/[0.06] mx-0.5" />
+
+            {/* Copy */}
+            <motion.button
+              whileTap={{ scale: 1.3 }}
+              onClick={() => onCopy(message.content)}
+              className="flex items-center justify-center size-6 rounded-md text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.05] transition-colors"
+              title="Copy message"
+            >
+              <Copy className="size-3" />
+            </motion.button>
+          </motion.div>
         )}
       </div>
     </motion.div>
@@ -394,15 +528,49 @@ export default function AIAnalyst() {
     updateLastMessage,
     clearMessages,
     setStreaming,
+    setMessages,
+    setMessageReaction,
+    updateMessage,
   } = useAIAnalystStore();
 
   const [input, setInput] = useState('');
-  const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
+  const [isListening, setIsListening] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedRef = useRef(false);
 
   const currentPersona = PERSONAS.find((p) => p.id === persona)!;
   const suggestedPrompts = SUGGESTED_PROMPTS[persona] || [];
+
+  // ── Load messages from localStorage on mount ───────────────────────────
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
+    const savedMessages = loadMessages();
+    if (savedMessages.length > 0) {
+      setMessages(savedMessages);
+    }
+
+    const savedPersona = loadPersona();
+    if (savedPersona) {
+      setPersona(savedPersona);
+    }
+  }, [setMessages, setPersona]);
+
+  // ── Save messages to localStorage on change ────────────────────────────
+  useEffect(() => {
+    if (hasLoadedRef.current) {
+      saveMessages(messages);
+    }
+  }, [messages]);
+
+  // ── Save persona to localStorage on change ─────────────────────────────
+  useEffect(() => {
+    if (hasLoadedRef.current) {
+      savePersona(persona);
+    }
+  }, [persona]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -417,6 +585,45 @@ export default function AIAnalyst() {
     }
   }, [input]);
 
+  // ── API call helper ────────────────────────────────────────────────────
+  const callAPI = useCallback(
+    async (messageText: string, messagePersona: AIPersona, history: ChatMessage[]) => {
+      try {
+        const res = await fetch('/api/ai-analyst', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: messageText,
+            persona: messagePersona,
+            history: history
+              .filter((m) => !m.isLoading && !m.isError)
+              .map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`API returned ${res.status}`);
+        }
+
+        const data = await res.json();
+        return {
+          content: data.response || data.content || '',
+          sources: data.sources || null,
+          isError: false,
+        };
+      } catch (err) {
+        console.error('AI Analyst API error:', err);
+        return {
+          content: 'I encountered an error while processing your request. Please check your connection and try again.',
+          sources: null,
+          isError: true,
+        };
+      }
+    },
+    []
+  );
+
+  // ── Send message ───────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isStreaming) return;
@@ -434,9 +641,15 @@ export default function AIAnalyst() {
       setInput('');
       setStreaming(true);
 
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+
       // Add loading message
+      const loadingId = `msg-${Date.now() + 1}`;
       const loadingMessage: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
+        id: loadingId,
         role: 'assistant',
         content: '',
         persona,
@@ -447,64 +660,160 @@ export default function AIAnalyst() {
 
       addMessage(loadingMessage);
 
-      // Try real API first, fall back to mock
-      let isSimulated = false;
-      let responseContent = '';
-      let responseSources: string[] | null = null;
+      // Call real API
+      const result = await callAPI(text.trim(), persona, [
+        ...messages,
+        userMessage,
+      ]);
 
-      try {
-        const res = await fetch('/api/ai-analyst', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: text,
-            persona,
-            history: messages.map((m) => ({ role: m.role, content: m.content })),
-          }),
-        });
+      updateLastMessage(result.content, result.sources, result.isError);
+      setStreaming(false);
+    },
+    [addMessage, isStreaming, persona, setStreaming, updateLastMessage, messages, callAPI]
+  );
 
-        if (res.ok) {
-          const data = await res.json();
-          responseContent = data.content || '';
-          responseSources = data.sources || null;
-        } else {
-          throw new Error(`API returned ${res.status}`);
+  // ── Retry failed message ───────────────────────────────────────────────
+  const handleRetry = useCallback(
+    async (messageId: string) => {
+      // Find the user message that preceded this AI response
+      const msgIdx = messages.findIndex((m) => m.id === messageId);
+      if (msgIdx < 0) return;
+
+      // Find the last user message before this AI message
+      let userMsg: ChatMessage | null = null;
+      for (let i = msgIdx - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          userMsg = messages[i];
+          break;
         }
-      } catch {
-        // Fallback to mock response
-        isSimulated = true;
-        const mockResponse = generateMockResponse(text, persona);
-        responseContent = mockResponse.content;
-        responseSources = mockResponse.sources;
-
-        // Simulate delay for mock responses
-        await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
       }
 
-      updateLastMessage(responseContent, responseSources);
-      // Store isSimulated flag on the last message
-      // We need to update the message to include isSimulated
-      setStreaming(false);
+      if (!userMsg) return;
 
-      // Update the isSimulated flag on the last message
-      // Since updateLastMessage doesn't support isSimulated, we use a workaround
-      // by appending a marker in the sources or content - but actually we can
-      // use a custom approach by directly updating the store
-      if (isSimulated) {
-        // We'll use a small delay and update the message metadata
-        setTimeout(() => {
-          // Access the store directly to update isSimulated
-          const state = useAIAnalystStore.getState();
-          const msgs = [...state.messages];
-          if (msgs.length > 0) {
-            const last = msgs[msgs.length - 1];
-            msgs[msgs.length - 1] = { ...last, isSimulated: true };
-            useAIAnalystStore.setState({ messages: msgs });
-          }
-        }, 0);
+      // Mark the error message as loading
+      updateMessage(messageId, { isLoading: true, isError: false, content: '' });
+      setStreaming(true);
+
+      // Call API again
+      const result = await callAPI(userMsg.content, persona, messages.slice(0, msgIdx));
+      updateMessage(messageId, {
+        content: result.content,
+        sources: result.sources,
+        isLoading: false,
+        isError: result.isError,
+      });
+      setStreaming(false);
+    },
+    [messages, persona, callAPI, updateMessage, setStreaming]
+  );
+
+  // ── Handle reaction ────────────────────────────────────────────────────
+  const handleReaction = useCallback(
+    (messageId: string, reaction: 'up' | 'down') => {
+      const msg = messages.find((m) => m.id === messageId);
+      if (!msg) return;
+      // Toggle: if same reaction, remove it; otherwise set it
+      setMessageReaction(messageId, msg.reaction === reaction ? null : reaction);
+    },
+    [messages, setMessageReaction]
+  );
+
+  // ── Handle copy ────────────────────────────────────────────────────────
+  const handleCopy = useCallback(
+    async (content: string) => {
+      try {
+        await navigator.clipboard.writeText(content);
+        toast({
+          title: 'Copied!',
+          description: 'Message copied to clipboard',
+        });
+      } catch {
+        toast({
+          title: 'Copy failed',
+          description: 'Could not copy to clipboard',
+        });
       }
     },
-    [addMessage, isStreaming, persona, setStreaming, updateLastMessage, messages]
+    []
+  );
+
+  // ── Export chat ────────────────────────────────────────────────────────
+  const handleExport = useCallback(() => {
+    if (messages.length === 0) return;
+
+    const lines = messages
+      .filter((m) => !m.isLoading)
+      .map((m) => {
+        const timestamp = new Date(m.timestamp).toLocaleString('en-ZA');
+        const role = m.role === 'user' ? 'You' : 'AI Analyst';
+        let line = `[${timestamp}] ${role}:\n${m.content}`;
+        if (m.sources && m.sources.length > 0) {
+          line += `\nSources: ${m.sources.join(', ')}`;
+        }
+        return line;
+      });
+
+    const content = `CivicLens SA — AI Analyst Chat Export\nExported: ${new Date().toLocaleString('en-ZA')}\nPersona: ${persona}\n${'─'.repeat(60)}\n\n${lines.join('\n\n---\n\n')}`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `civiclens-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Chat exported',
+      description: 'Chat history saved as text file',
+    });
+  }, [messages, persona]);
+
+  // ── Clear history ──────────────────────────────────────────────────────
+  const handleClearHistory = useCallback(() => {
+    clearMessages();
+    try {
+      localStorage.removeItem(STORAGE_KEY_MESSAGES);
+    } catch {
+      // Ignore
+    }
+    toast({
+      title: 'Chat cleared',
+      description: 'Chat history has been cleared',
+    });
+  }, [clearMessages]);
+
+  // ── Voice input handler ────────────────────────────────────────────────
+  const handleVoiceInput = useCallback(() => {
+    if (isListening) return;
+    setIsListening(true);
+
+    // Auto-dismiss after 3 seconds (mock)
+    setTimeout(() => {
+      setIsListening(false);
+      toast({
+        title: 'Voice input is coming soon',
+        description: 'This feature will be available in a future update',
+      });
+    }, 3000);
+  }, [isListening]);
+
+  // ── File attachment handler ────────────────────────────────────────────
+  const handleFileAttach = useCallback(() => {
+    toast({
+      title: 'File attachments coming in the next update',
+      description: 'Document and image uploads will be supported soon',
+    });
+  }, []);
+
+  // ── Handle persona change ──────────────────────────────────────────────
+  const handlePersonaChange = useCallback(
+    (newPersona: AIPersona) => {
+      setPersona(newPersona);
+    },
+    [setPersona]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -536,12 +845,12 @@ export default function AIAnalyst() {
           </div>
         </div>
 
-        {/* Persona Selector */}
         <div className="flex items-center gap-1.5">
+          {/* Persona Selector */}
           {PERSONAS.map((p) => (
             <button
               key={p.id}
-              onClick={() => setPersona(p.id)}
+              onClick={() => handlePersonaChange(p.id)}
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200',
                 persona === p.id
@@ -554,6 +863,18 @@ export default function AIAnalyst() {
               <span>{p.label}</span>
             </button>
           ))}
+
+          {/* Export button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 ml-1 text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05]"
+            title="Export chat"
+            onClick={handleExport}
+            disabled={messages.length === 0}
+          >
+            <Download className="size-3.5" />
+          </Button>
         </div>
       </motion.div>
 
@@ -614,6 +935,9 @@ export default function AIAnalyst() {
                     key={msg.id}
                     message={msg}
                     personaConfig={currentPersona}
+                    onRetry={handleRetry}
+                    onReaction={handleReaction}
+                    onCopy={handleCopy}
                   />
                 ))}
                 <div ref={chatEndRef} />
@@ -651,6 +975,32 @@ export default function AIAnalyst() {
         className="pt-3"
       >
         <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm focus-within:border-[#0F766E]/30 focus-within:bg-white/[0.04] transition-all duration-200">
+          {/* Voice listening indicator */}
+          <AnimatePresence>
+            {isListening && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 px-4 pt-2.5"
+              >
+                <motion.div
+                  className="size-2.5 rounded-full bg-red-500"
+                  animate={{
+                    scale: [1, 1.4, 1],
+                    opacity: [1, 0.6, 1],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+                <span className="text-[11px] text-red-400 font-medium">Listening...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <textarea
             ref={textareaRef}
             value={input}
@@ -658,7 +1008,8 @@ export default function AIAnalyst() {
             onKeyDown={handleKeyDown}
             placeholder={`Ask about municipalities, tenders, risk signals... (${currentPersona.label} mode)`}
             rows={1}
-            className="w-full resize-none bg-transparent px-4 pt-3 pb-1 text-[13px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
+            disabled={isListening}
+            className="w-full resize-none bg-transparent px-4 pt-3 pb-1 text-[13px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"
           />
 
           <div className="flex items-center justify-between px-3 pb-2">
@@ -669,14 +1020,21 @@ export default function AIAnalyst() {
                 size="icon"
                 className="size-7 text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.05]"
                 title="Attach file"
+                onClick={handleFileAttach}
               >
                 <Paperclip className="size-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.05]"
+                className={cn(
+                  'size-7 hover:bg-white/[0.05] transition-colors',
+                  isListening
+                    ? 'text-red-400 hover:text-red-300'
+                    : 'text-zinc-600 hover:text-zinc-400'
+                )}
                 title="Voice input"
+                onClick={handleVoiceInput}
               >
                 <Mic className="size-3.5" />
               </Button>
@@ -684,8 +1042,8 @@ export default function AIAnalyst() {
                 variant="ghost"
                 size="icon"
                 className="size-7 text-zinc-600 hover:text-red-400 hover:bg-white/[0.05]"
-                title="Clear chat"
-                onClick={clearMessages}
+                title="Clear history"
+                onClick={handleClearHistory}
               >
                 <Trash2 className="size-3.5" />
               </Button>

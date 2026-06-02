@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Shield, Server, Cpu } from 'lucide-react';
+import { Shield, Server, Cpu, Heart } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -22,7 +22,7 @@ export default function Footer() {
           <div className="flex items-center gap-1.5 text-[11px] text-white/30">
             <span>&copy; 2026 Carter Digitals (Pty) Ltd</span>
             <span className="text-white/10">&middot;</span>
-            <span className="text-[#007749]/60 font-medium">B-BBEE Level 1 EME</span>
+            <span className="text-[#007749]/60 font-medium">B-BBEE Level 1: EME</span>
           </div>
 
           {/* Center — Data residency & compliance */}
@@ -40,7 +40,9 @@ export default function Footer() {
             <span>v2.4.0</span>
             <span className="text-white/10">&middot;</span>
             <span>
-              Powered by{' '}
+              Built with{' '}
+              <Heart className="inline size-2.5 text-red-400/60 fill-red-400/30" />{' '}
+              by{' '}
               <span className="bg-gradient-to-r from-[#FFB81C] to-[#007749] bg-clip-text font-medium text-transparent">
                 CivicLens SA
               </span>

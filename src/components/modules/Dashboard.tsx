@@ -174,7 +174,7 @@ const kpiCards: KPICardData[] = [
   },
   {
     label: 'Total Tender Value',
-    value: 'R478.0B',
+    value: formatCompactZAR(DASHBOARD_KPIS.totalTenderValue),
     rawValue: DASHBOARD_KPIS.totalTenderValue,
     trend: { direction: 'up', value: '+5.7%' },
     sentiment: 'neutral',
@@ -261,9 +261,19 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
           }}
         />
 
+        {/* Shimmer effect on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+          <div
+            className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${data.accentColor}08, transparent)`,
+            }}
+          />
+        </div>
+
         {/* Background glow */}
         <div
-          className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.07] blur-2xl group-hover:opacity-[0.12] transition-opacity duration-500"
+          className="absolute -top-8 -right-8 size-24 rounded-full opacity-[0.07] blur-2xl group-hover:opacity-[0.14] transition-opacity duration-500"
           style={{ backgroundColor: data.accentColor }}
         />
 
@@ -982,6 +992,32 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* ── Dashboard Header ────────────────────────────────────── */}
       <DashboardHeader />
+
+      {/* ── Quick Insight Banner ──────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent p-3"
+      >
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDMpIi8+PC9zdmc+')] opacity-50" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <AlertTriangle className="size-4 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-amber-300">
+              Financial Distress Alert: 63% of municipalities now classified as distressed
+            </p>
+            <p className="text-[10px] text-amber-500/70 mt-0.5">
+              162 of 257 municipalities below Financial Health Score threshold of 45 — up 8.2% year-on-year
+            </p>
+          </div>
+          <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px] shrink-0">
+            High Priority
+          </Badge>
+        </div>
+      </motion.div>
 
       {/* ── Hero KPI Strip ──────────────────────────────────────── */}
       <motion.div

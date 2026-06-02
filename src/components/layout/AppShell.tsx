@@ -9,6 +9,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import Footer from './Footer';
+import ActivityTicker from './ActivityTicker';
+import KeyboardShortcuts from '@/components/shared/KeyboardShortcuts';
 import LoginPage from '@/components/modules/LoginPage';
 import Dashboard from '@/components/modules/Dashboard';
 import TenderLens from '@/components/modules/TenderLens';
@@ -27,6 +29,7 @@ import GrantLens from '@/components/modules/GrantLens';
 import BudgetLens from '@/components/modules/BudgetLens';
 import CarbonLens from '@/components/modules/CarbonLens';
 import DataHub from '@/components/modules/DataHub';
+import SettingsPage from '@/components/modules/SettingsPage';
 import {
   Sheet,
   SheetContent,
@@ -151,6 +154,9 @@ function ModuleContent({ moduleId }: { moduleId: string }) {
   if (moduleId === 'datahub') {
     return <DataHub />;
   }
+  if (moduleId === 'settings') {
+    return <SettingsPage />;
+  }
 
   // Fallback to placeholder for unimplemented modules
   return (
@@ -215,6 +221,9 @@ export default function AppShell() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
 
+        {/* Activity ticker — only when authenticated */}
+        <ActivityTicker />
+
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-4 lg:p-6">
@@ -235,6 +244,9 @@ export default function AppShell() {
 
         <Footer />
       </div>
+
+      {/* Keyboard shortcuts overlay */}
+      <KeyboardShortcuts />
     </div>
   );
 }

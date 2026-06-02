@@ -267,11 +267,11 @@ export default function Topbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
-            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06]">
+            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06] cursor-pointer" onClick={() => setActiveModule('settings' as ModuleId)}>
               <User className="mr-2 size-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06]">
+            <DropdownMenuItem className="text-zinc-400 focus:text-zinc-200 focus:bg-white/[0.06]" onClick={() => setActiveModule('settings')}>
               <Settings className="mr-2 size-4" />
               Settings
             </DropdownMenuItem>
@@ -280,7 +280,7 @@ export default function Topbar() {
               AI Preferences
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
-            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-red-500/10">
+            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer" onClick={() => useNavigationStore.getState().setAuthenticated(false)}>
               <LogOut className="mr-2 size-4" />
               Sign out
             </DropdownMenuItem>
